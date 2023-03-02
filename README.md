@@ -1,8 +1,8 @@
-# tapis-java
+# tapis-jobs
 Texas Advanced Computing Center APIs
 
-**This repository is now defunct.**  
+Jobs Service
 
-The Jobs Service code has been moved to [tapis-jobs](https://github.com/tapis-project/tapis-jobs) and the Security Kernel code has been moved to [tapis-security](https://github.com/tapis-project/tapis-security).  
+[Tapis Documentation](https://tapis.readthedocs.io/en/latest/) 
 
-
+[Tapis Livedocs](https://tapis-project.github.io/live-docs/)

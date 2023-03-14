@@ -156,6 +156,17 @@ extends ResourceConfig
 	    	e.printStackTrace();
 	    }
        
+       // --- Database Migration for release 1.3.1 onwards
+       // This code will be removed after some time
+       DBMigrationSharedAppCtx ctx = new DBMigrationSharedAppCtx();
+      
+       try {
+    	  ctx.migrate();
+	   } catch (Exception e1) {
+		   errors.add("**** FAILURE TO RUN DB MIGRATION: To update sharedAppCtx in  tapis-jobsapi Database ****\n" + e1.getMessage());
+		e1.printStackTrace();
+	    }
+       
        // ------ Queue Initialization 
        // By getting the singleton instance of the queue manager
        // we also cause all job queues and exchanges to be initialized.

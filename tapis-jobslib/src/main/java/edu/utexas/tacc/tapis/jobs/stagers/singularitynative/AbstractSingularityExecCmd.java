@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 abstract class AbstractSingularityExecCmd 
   implements JobExecCmd
@@ -177,7 +178,7 @@ abstract class AbstractSingularityExecCmd
         for (var v : pairs) {
             buf.append(v.getLeft());
             buf.append("=");
-            buf.append(v.getRight());
+            buf.append(conditionalQuote(v.getRight()));
             buf.append("\n");
         }
         return buf.toString();
@@ -190,7 +191,7 @@ abstract class AbstractSingularityExecCmd
      * list. 
      * 
      * @param arg the multiple occurrence argument padded with spaces on both sides 
-     * @param values NON-EMPTY list of values, one per occurance
+     * @param values NON-EMPTY list of values, one per occurrence
      * @return the string that contains all assignments
      */
     protected String getStringListArgs(String arg, List<String> values)
@@ -221,9 +222,24 @@ abstract class AbstractSingularityExecCmd
               else buf.append(",");
             buf.append(v.getLeft());
             buf.append("=");
-            buf.append("\"" + v.getRight() + "\"");
+            buf.append(TapisUtils.safelyDoubleQuoteString(v.getRight()));
         }
         return buf.toString();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* conditionalQuote:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Double quote a string only if it contains at least on space character.
+     * 
+     * @param s string value to be possibly be double quoted
+     * @return the string as is or double quoted
+     */
+    private String conditionalQuote(String s)
+    {
+    	if (StringUtils.isBlank(s)) return s;
+    	if (s.contains(" ")) return TapisUtils.safelyDoubleQuoteString(s);
+    	  else return s;
     }
     
     /* ********************************************************************** */

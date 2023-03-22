@@ -230,7 +230,8 @@ abstract class AbstractSingularityExecCmd
     /* ---------------------------------------------------------------------- */
     /* conditionalQuote:                                                      */
     /* ---------------------------------------------------------------------- */
-    /** Double quote a string only if it contains at least on space character.
+    /** Double quote a string only if it contains at least on space character
+     * and it isn't already quoted.
      * 
      * @param s string value to be possibly be double quoted
      * @return the string as is or double quoted
@@ -238,7 +239,8 @@ abstract class AbstractSingularityExecCmd
     private String conditionalQuote(String s)
     {
     	if (StringUtils.isBlank(s)) return s;
-    	if (s.contains(" ")) return TapisUtils.safelyDoubleQuoteString(s);
+    	if (!(s.startsWith("\"") && s.endsWith("\"")) && s.contains(" ")) 
+    		return TapisUtils.safelyDoubleQuoteString(s);
     	  else return s;
     }
     

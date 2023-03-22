@@ -120,7 +120,8 @@ extends AbsTester
     */
    private int blockedByMaxSystemJobs() throws TapisException
    {
-       // Enforce the quota.
+       // Enforce the quota if one is set.
+	   if (_maxSystemJobs <= 0) return Integer.MAX_VALUE; // Give up precision to avoid query.
        final boolean pendingActive = true;
        int jobCount = getJobsDao().countActiveSystemJobs(_tenantId, _systemId, pendingActive);
        return _maxSystemJobs - jobCount;
@@ -136,7 +137,8 @@ extends AbsTester
     */
    private int blockedByMaxSystemUserJobs() throws TapisException
    {
-       // Enforce the quota.
+       // Enforce the quota if one is set.
+	   if (_maxSystemUserJobs <= 0) return Integer.MAX_VALUE; // Give up precision to avoid query.
        final boolean pendingActive = true;
        int jobCount = getJobsDao().countActiveSystemUserJobs(_tenantId, _systemId,
                                                              _jobOwner, pendingActive);
@@ -154,7 +156,8 @@ extends AbsTester
     */
    private int blockedByMaxSystemQueueJobs() throws TapisException
    {
-       // Enforce the quota.
+       // Enforce the quota if one is set.
+	   if (_maxQueueJobs <= 0) return Integer.MAX_VALUE; // Give up precision to avoid query.
        final boolean pendingActive = true;
        int jobCount = 
            getJobsDao().countActiveSystemQueueJobs(_tenantId, _systemId,
@@ -173,7 +176,8 @@ extends AbsTester
     */
    private int blockedByMaxSystemUserQueueJobs() throws TapisException
    {
-       // Enforce the quota.
+       // Enforce the quota if one is set.
+	   if (_maxUserQueueJobs <= 0) return Integer.MAX_VALUE; // Give up precision to avoid query.
        final boolean pendingActive = true;
        int jobCount = 
            getJobsDao().countActiveSystemUserQueueJobs(_tenantId, _systemId, _jobOwner, 

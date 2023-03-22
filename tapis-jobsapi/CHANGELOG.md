@@ -9,6 +9,16 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.3.1 - 2023-03-22
+
+### New features:
+1. Allow cmdPrefix strings to be up to 1024 characters.
+
+### Bug fixes:
+1. Guard against -1 quota values for batch queues.
+2. Allow spaces in singularity environment variable values
+
+-----------------------
 ## 1.3.0 - 2023-03-03
 
 ### New features:

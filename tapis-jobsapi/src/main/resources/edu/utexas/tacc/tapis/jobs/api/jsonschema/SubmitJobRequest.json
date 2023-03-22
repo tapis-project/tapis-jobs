@@ -154,7 +154,7 @@
             "$comment": "String prepended to the application invocation command.  Conflicts with mpiCmd if isMpi is set.",
             "type": ["string", "null"],
             "minLength": 1,
-            "maxLength": 126
+            "maxLength": 1024
           },
           "notes": {
             "$comment": "User notes in JSON format",

@@ -38,6 +38,7 @@ public final class Job
 	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
 	public static final String EMPTY_JSON = "{}";
 	public static final String EMPTY_JSON_ARRAY = "[]";
+	public static final String DEFAULT_SHARED_APP_CTX = "";
 	
 	// Default directory assignments.  All paths are relative to their system's 
 	// rootDir unless otherwise noted.  Leading slashes are optional on relative
@@ -137,7 +138,7 @@ public final class Job
     private String              mpiCmd;
     private String              cmdPrefix;
     
-    private String              sharedAppCtx;
+    private String              sharedAppCtx = DEFAULT_SHARED_APP_CTX;
     private List<JobSharedAppCtxEnum> sharedAppCtxAttribs;
     
     private String              notes = EMPTY_JSON; // Should never be null.
@@ -272,6 +273,19 @@ public final class Job
         
         // Not the same.
         return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* isSharedAppCtx:                                                              */
+    /* ---------------------------------------------------------------------------- */
+    /** Return whether we are in a shared context or not.  The empty string means
+     * we are not in a shared context.
+     * 
+     * @return true if in a shared context, false otherwise
+     */
+    public boolean isSharedAppCtx()
+    {
+    	return !sharedAppCtx.isEmpty();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -968,6 +982,7 @@ public final class Job
     }
 
     public void setSharedAppCtx(String sharedAppCtx) {
+    	if (sharedAppCtx == null) return; // This should never happen.
         this.sharedAppCtx = sharedAppCtx;
     }
 

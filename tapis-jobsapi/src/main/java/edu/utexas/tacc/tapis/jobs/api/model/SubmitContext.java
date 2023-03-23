@@ -1738,10 +1738,10 @@ public final class SubmitContext
                 reqInput.setTargetPath(target);
                 
                 // Set the shared context flags.
-                if (!StringUtils.isBlank(curArray.isSrcSharedAppCtx()) &&
+                if (!StringUtils.isBlank(curArray.getSrcSharedAppCtx()) &&
                     reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
                     reqInput.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
-                reqInput.setDestSharedAppCtx(curArray.isDestSharedAppCtx());
+                reqInput.setDestSharedAppCtx(curArray.getDestSharedAppCtx());
             
                 // Save the new object in the 
                 _submitReq.getFileInputs().add(reqInput);

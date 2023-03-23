@@ -156,17 +156,6 @@ extends ResourceConfig
 	    	e.printStackTrace();
 	    }
        
-       // --- Database Migration for release 1.3.1 onwards
-       // This code will be removed after some time
-       DBMigrationSharedAppCtx ctx = new DBMigrationSharedAppCtx();
-      
-       try {
-    	  ctx.migrate();
-	   } catch (Exception e1) {
-		   errors.add("**** FAILURE TO RUN DB MIGRATION: To update sharedAppCtx in  tapis-jobsapi Database ****\n" + e1.getMessage());
-		e1.printStackTrace();
-	    }
-       
        // ------ Queue Initialization 
        // By getting the singleton instance of the queue manager
        // we also cause all job queues and exchanges to be initialized.
@@ -190,6 +179,10 @@ extends ResourceConfig
            for (var s : errors) System.out.println(s);
            System.exit(1);
        }
+       
+       // ----- Database Migration for release 1.3.1 onwards
+       // This code will be removed or made optional after some time.
+       runMigration();
    }
    
    /** Initialize rabbitmq vhost and our standard queues and exchanges.  VHost initialization
@@ -200,5 +193,26 @@ extends ResourceConfig
    {
        // This can throw a runtime exception.
        JobQueueManager.getInstance(JobQueueManager.initParmsFromRuntime());
+   }
+   
+   /** Attempt to migrate the jobs table data after the V014__UpdateSharedAppCtx.sql Flyway
+    * migration script was run.  That script changes the shared_app_ctx column from type 
+    * boolean to string, which change boolean values into their string representation,
+    * but doesn't implement the shared context semantics.  Those semantic require consultation
+    * with the Apps service, something most easily done in from a service runtime environment.
+    * Normally, we'd have Flyway run the script, but the security setup and other configuration
+    * make that burdensome.
+    */
+   private void runMigration() 
+   {
+       try {
+    	   // Run the migration which will only have an effect the first time it runs
+    	   // successfully against a database.  After the first time, it's a no-op.
+    	   DBMigrationSharedAppCtx ctx = new DBMigrationSharedAppCtx(JWTValidateRequestFilter.getSiteId());
+    	   ctx.migrate();
+	   } catch (Exception e) {
+		   // We ignore migration errors and simply print an error message. 
+		   System.out.println("**** FAILURE TO RUN DB MIGRATION: jobs.sharedAppCtx not updated ****\n" + e.getMessage());
+	   }
    }
 }

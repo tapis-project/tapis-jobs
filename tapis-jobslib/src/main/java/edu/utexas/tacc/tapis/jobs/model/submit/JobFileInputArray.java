@@ -5,6 +5,7 @@ import java.util.List;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public class JobFileInputArray 
@@ -17,9 +18,9 @@ public class JobFileInputArray
     @Schema(hidden = true)
     private boolean      optional = false;
     @Schema(hidden = true)
-    private String      srcSharedAppCtx = "";
+    private String      srcSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     @Schema(hidden = true)
-    private String     destSharedAppCtx = "";
+    private String     destSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     
     public boolean emptySourceUrls()
     {return sourceUrls == null || sourceUrls.isEmpty();}
@@ -97,7 +98,7 @@ public class JobFileInputArray
         this.optional = optional;
     }
     @Schema(hidden = true)
-    public String isSrcSharedAppCtx() {
+    public String getSrcSharedAppCtx() {
         return srcSharedAppCtx;
     }
     @Schema(hidden = true)
@@ -105,7 +106,7 @@ public class JobFileInputArray
         this.srcSharedAppCtx = srcSharedAppCtx;
     }
     @Schema(hidden = true)
-    public String isDestSharedAppCtx() {
+    public String getDestSharedAppCtx() {
         return destSharedAppCtx;
     }
     @Schema(hidden = true)

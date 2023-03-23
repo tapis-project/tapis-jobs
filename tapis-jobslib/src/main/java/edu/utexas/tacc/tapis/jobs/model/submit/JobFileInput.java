@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.model.submit;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -16,9 +17,9 @@ public class JobFileInput
     @Schema(hidden = true)
     private boolean optional = false;
     @Schema(hidden = true)
-    private String srcSharedAppCtx = "";
+    private String srcSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     @Schema(hidden = true)
-    private String destSharedAppCtx = "";
+    private String destSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     
     // Import an app input into a request input.
     public static JobFileInput importAppInput(AppFileInput appInput)
@@ -85,7 +86,7 @@ public class JobFileInput
         this.optional = optional;
     }
     @Schema(hidden = true)
-    public String isSrcSharedAppCtx() {
+    public String getSrcSharedAppCtx() {
         return srcSharedAppCtx;
     }
     @Schema(hidden = true)
@@ -93,7 +94,7 @@ public class JobFileInput
         this.srcSharedAppCtx = srcSharedAppCtx;
     }
     @Schema(hidden = true)
-    public String isDestSharedAppCtx() {
+    public String getDestSharedAppCtx() {
         return destSharedAppCtx;
     }
     @Schema(hidden = true)

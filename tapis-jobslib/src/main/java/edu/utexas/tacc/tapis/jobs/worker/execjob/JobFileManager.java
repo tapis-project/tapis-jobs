@@ -74,9 +74,9 @@ public final class JobFileManager
     private final Job                 _job;
     
     // Unpack shared context directory settings
-    private final String             _shareExecSystemExecDir;
-    private final String             _shareExecSystemOutputDir;
-    private final String             _shareArchiveSystemDir;
+    private final String              _shareExecSystemExecDirAppOwner;
+    private final String              _shareExecSystemOutputDirAppOwner;
+    private final String              _shareArchiveSystemDirAppOwner;
     
     // Derived path prefix value removed before filtering.
     private String                    _filterIgnorePrefix;
@@ -92,9 +92,10 @@ public final class JobFileManager
         _jobCtx = ctx;
         _job = ctx.getJob();
         
-        _shareExecSystemExecDir   = ctx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
-        _shareExecSystemOutputDir = ctx.getJobSharedAppCtx().getSharingExecSystemOutputDirAppOwner();
-        _shareArchiveSystemDir    = ctx.getJobSharedAppCtx().getSharingArchiveSystemDirAppOwner();
+        // Empty string means not shared.
+        _shareExecSystemExecDirAppOwner   = ctx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
+        _shareExecSystemOutputDirAppOwner = ctx.getJobSharedAppCtx().getSharingExecSystemOutputDirAppOwner();
+        _shareArchiveSystemDirAppOwner    = ctx.getJobSharedAppCtx().getSharingArchiveSystemDirAppOwner();
     }
     
     /* ********************************************************************** */
@@ -125,7 +126,6 @@ public final class JobFileManager
         // Create the directory on the system.
         try {
             var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
-            
             filesClient.mkdir(ioTargets.getExecTarget().systemId, 
                               ioTargets.getExecTarget().dir, sharedAppCtx);
         } catch (TapisClientException e) {
@@ -455,8 +455,8 @@ public final class JobFileManager
                             sourceURI(fileInput.getSourceUrl()).
                             destinationURI(makeExecSysInputUrl(fileInput));
             task.setOptional(fileInput.isOptional());
-            task.setSrcSharedCtx(fileInput.isSrcSharedAppCtx());
-            task.setDestSharedCtx(fileInput.isDestSharedAppCtx());
+            task.setSrcSharedCtx(fileInput.getSrcSharedAppCtx());
+            task.setDestSharedCtx(fileInput.getDestSharedAppCtx());
             tasks.addElementsItem(task);
         }
         
@@ -507,8 +507,8 @@ public final class JobFileManager
                 var task = new ReqTransferElement().
                         sourceURI(makeExecSysOutputUrl("")).
                         destinationURI(makeArchiveSysUrl(""));
-                task.setSrcSharedCtx(_shareExecSystemOutputDir);
-                task.setDestSharedCtx(_shareArchiveSystemDir);
+                task.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
+                task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
                 tasks.addElementsItem(task);
             } 
             else 
@@ -519,7 +519,7 @@ public final class JobFileManager
                 FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
                 var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
                                                        _job.getExecSystemOutputDir());
-                listSubtree.setSharedAppCtx(_shareArchiveSystemDir);
+                listSubtree.setSharedAppCtx(_shareArchiveSystemDirAppOwner);
                 var fileList = listSubtree.list();
                 
                 // Apply the excludes list first since it has precedence, then
@@ -598,15 +598,15 @@ public final class JobFileManager
         var task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
-        task.setSrcSharedCtx(_shareExecSystemExecDir);
-        task.setDestSharedCtx(_shareArchiveSystemDir);
+        task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
+        task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
         tasks.addElementsItem(task);
         if (_jobCtx.usesEnvFile()) {
             task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
-            task.setSrcSharedCtx(_shareExecSystemExecDir);
-            task.setDestSharedCtx(_shareArchiveSystemDir);
+            task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
+            task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
             tasks.addElementsItem(task);
         }
     }
@@ -627,8 +627,8 @@ public final class JobFileManager
             var task = new ReqTransferElement().
                     sourceURI(makeExecSysOutputUrl(relativePath)).
                     destinationURI(makeArchiveSysUrl(relativePath));
-            task.setSrcSharedCtx(_shareExecSystemOutputDir);
-            task.setDestSharedCtx(_shareArchiveSystemDir);
+            task.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
+            task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
             tasks.addElementsItem(task);
         }
     }

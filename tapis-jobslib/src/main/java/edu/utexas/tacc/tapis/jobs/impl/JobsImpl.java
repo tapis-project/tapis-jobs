@@ -737,7 +737,7 @@ public final class JobsImpl
     	boolean isSharedAppPathAllowed = false;
     	
     	// check if job ran on shared app context.
-    	if (StringUtils.isBlank(job.getSharedAppCtx()))
+    	if(!job.isSharedAppCtx())		
     		return isSharedAppPathAllowed;
     	
     	List<JobSharedAppCtxEnum> sharedAppCtxAttribs = job.getSharedAppCtxAttribs();

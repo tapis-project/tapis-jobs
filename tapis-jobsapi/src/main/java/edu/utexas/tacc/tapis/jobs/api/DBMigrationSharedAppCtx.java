@@ -3,7 +3,6 @@ package edu.utexas.tacc.tapis.jobs.api;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -21,8 +20,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 
 final class DBMigrationSharedAppCtx 
 {
@@ -31,7 +28,6 @@ final class DBMigrationSharedAppCtx
 	 /* **************************************************************************** */
 	 // Local logger.
 	 private static final Logger _log = LoggerFactory.getLogger(DBMigrationSharedAppCtx.class);
-	 private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
 	 
 	 // Get the site on which this service is running.
 	 private final String _siteId;

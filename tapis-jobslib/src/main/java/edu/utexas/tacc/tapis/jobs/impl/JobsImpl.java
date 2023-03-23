@@ -707,10 +707,8 @@ public final class JobsImpl
         // So, we need to check it again here if the job is shared and accordingly set the impersonationId
         boolean isSharedAppCtx = checkSharedAppCtx(job, jobOutputFilesinfo);
         
-        String sharedAppCtx = "";
-        if (isSharedAppCtx == true) {
-        	sharedAppCtx = job.getSharedAppCtx();
-        }
+        String sharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
+        if (isSharedAppCtx) sharedAppCtx = job.getSharedAppCtx();
         
         boolean skipTapisAuthorization = isJobShared(job.getUuid(), user, tenant, jobResourceShareType, privilege) || isSharedAppCtx;
         String impersonationId =  null;

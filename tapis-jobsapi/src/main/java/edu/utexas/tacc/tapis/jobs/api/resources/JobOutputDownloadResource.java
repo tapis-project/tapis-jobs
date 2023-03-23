@@ -297,10 +297,8 @@ public class JobOutputDownloadResource extends AbstractResource{
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	   }
-	   String sharedAppCtx = "";
-       if (isSharedAppCtx == true) {
-       	sharedAppCtx = job.getSharedAppCtx();
-       }
+	   String sharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
+       if (isSharedAppCtx) sharedAppCtx = job.getSharedAppCtx();
 	   
 	   String impersonationId = null;
 	   if(skipTapisAuthorization == true) {

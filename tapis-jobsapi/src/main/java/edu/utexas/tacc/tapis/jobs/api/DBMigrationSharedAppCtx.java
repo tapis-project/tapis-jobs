@@ -103,29 +103,31 @@ final class DBMigrationSharedAppCtx
 		try {
 			jobsUpdate = conn.prepareStatement(UPDATE);
 		} catch (Exception e) {
-			String msg = MsgUtils.getMsg("JOBS_UPDATE_SHAREDAPPCTX_CONNECTION_ERROR",e.getMessage());
+			String msg = MsgUtils.getMsg("DB_JOBS_UPDATE_SHAREDAPPCTX_CONNECTION_ERROR",e.getMessage());
 			_log.error(msg,e);
 			return; // Not much we can do.
 		}
 		
 		try {
-		for(String uuid: jobAppOwner.keySet()) {
-		
-			jobsUpdate.setString(1, jobAppOwner.get(uuid));
-			jobsUpdate.setString(2,  uuid);
-			jobsUpdate.addBatch();
-		    
-		}
-		int[] rows = jobsUpdate.executeBatch();
-		for(int k = 0; k < rows.length; k++) {
-			if(rows[k] != 1) {
-				
-				_log.warn(MsgUtils.getMsg("DB_UPDATE_UNEXPECTED_ROWS", "jobs", rows[k], 1));
-				_log.debug(MsgUtils.getMsg("DB_UPDATE_JOB_SHAREDAPP_CTX_FAILURE", "jobs","" ));
+			for(String uuid: jobAppOwner.keySet()) {
+			
+				jobsUpdate.setString(1, jobAppOwner.get(uuid));
+				jobsUpdate.setString(2,  uuid);
+				jobsUpdate.addBatch();
+			    
 			}
-		}
-
-        conn.commit();
+			int[] rows = jobsUpdate.executeBatch();
+			int expectedRowsUpdate = rows.length;
+			int totalRowsUpdated = 0;
+			for(int k = 0; k < rows.length; k++) {
+				if(rows[k] != 1) {
+					_log.debug(MsgUtils.getMsg("DB_UPDATE_JOB_SHAREDAPP_CTX_FAILURE", "jobs", rows[k]));
+				} else totalRowsUpdated = totalRowsUpdated + 1;
+			}
+	        if (totalRowsUpdated < expectedRowsUpdate ) {
+	        	_log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS",expectedRowsUpdate,totalRowsUpdated, UPDATE,jobAppOwner ));
+	        }
+	        conn.commit();
 		}
         catch (Exception e)
         {

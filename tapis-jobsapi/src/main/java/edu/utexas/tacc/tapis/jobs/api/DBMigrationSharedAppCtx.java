@@ -21,6 +21,22 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 
+/**
+ * This migration utility needs to be run after the V014__UpdateSharedAppCtx.sql Flyway
+ * migration script was run.
+ * Context of Migration:
+ * 		We observed a privilege escalation issue in the shared app context. The fix for this issue requires the
+ *      jobs table data migrations. It consists of two steps:
+ * 		1. V014__UpdateSharedAppCtx.sql Flyway migration. This script changes the shared_app_ctx column from type 
+ *    	   boolean to string. In the rows where the shared_app_ctx column has the value 'false', 
+ *         the shared_app_ctx's value is replaced with ''(empty string), and the rows get updated. 
+ *         No change is made to the rows where the shared_app_ctx column has value the 'true'.
+ *      2. This DBMigrationSharedAppCtx replaces 'true' in the shared_app_ctx column in jobs table with 
+ *         shared app owner value for each corresponding job. It obtains this value by making an API request
+ *         to Apps service. 
+ *         Since it requires querying to Apps service for which the Jobs service require service JWT and site information,
+ *         we decided to write this utility instead of putting it in the Flyway script.
+ */
 final class DBMigrationSharedAppCtx 
 {
      /* **************************************************************************** */

@@ -353,6 +353,13 @@ public final class RecoveryUtils
         TreeMap<String, String> policyParameters = new TreeMap<>();
         policyParameters.put("steps", stepsStringValue);
         policyParameters.put("maxElapsedSeconds", "10800000"); // 3 hours
+        
+        // All recovery involving SSH requires the shared application context
+    	// information so that credential downloads can be correctly authorized.
+        // This information is part of the tester data, not policy data, and as
+        // such affects the recovery equivalence class in which this job is placed.
+        trigger.state.put("sharedAppCtx", jobCtx.getJob().getSharedAppCtx());
+    	
         JobRecoverMsg jobRecoverMsg = JobRecoverMsgFactory.getJobRecoverMsg(
                                         RecoveryConfiguration.DFT_SSH_CONNECTION_FAILURE, 
                                         jobCtx.getJob(), RecoveryUtils.class.getSimpleName(), 
@@ -383,9 +390,18 @@ public final class RecoveryUtils
         Gson gson = TapisGsonUtils.getGson(true);
         String stepsStringValue = gson.toJson(steps);
 
+        // All recovery involving SSH requires the shared application context
+    	// information so that credential downloads can be correctly authorized.
         TreeMap<String, String> policyParameters = new TreeMap<>();
         policyParameters.put("steps", stepsStringValue);
         policyParameters.put("maxElapsedSeconds", "10800000"); // 3 hours
+        
+        // All recovery involving SSH requires the shared application context
+    	// information so that credential downloads can be correctly authorized.
+        // This information is part of the tester data, not policy data, and as
+        // such affects the recovery equivalence class in which this job is placed.
+        trigger.state.put("sharedAppCtx", jobCtx.getJob().getSharedAppCtx());
+    	
         JobRecoverMsg jobRecoverMsg = JobRecoverMsgFactory.getJobRecoverMsg(
                                         RecoveryConfiguration.DFT_SSH_CONNECTION_TIMEOUT, 
                                         jobCtx.getJob(), RecoveryUtils.class.getSimpleName(), 
@@ -432,6 +448,12 @@ public final class RecoveryUtils
       policyParms.put("maxTries", Integer.toString(15));  // wait 15 minutes max
     }
 
+    // All recovery involving SSH requires the shared application context
+	// information so that credential downloads can be correctly authorized.
+    // This information is part of the tester data, not policy data, and as
+    // such affects the recovery equivalence class in which this job is placed.
+    trigger.state.put("sharedAppCtx", jobCtx.getJob().getSharedAppCtx());
+	    
     // Create a recoverable exception that includes the original information.
     JobRecoverMsg jobRecoverMsg = JobRecoverMsgFactory.getJobRecoverMsg(
             config,

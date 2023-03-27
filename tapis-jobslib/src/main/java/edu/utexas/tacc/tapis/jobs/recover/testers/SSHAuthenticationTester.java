@@ -28,6 +28,7 @@ public class SSHAuthenticationTester
     public static final String PARM_PROXY_HOST = "proxyHost";
     public static final String PARM_PROXY_PORT = "proxyPort";
     public static final String PARM_USERNAME = "username";
+    public static final String PARM_SHARED_APP_CTX = "sharedAppCtx";
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -41,6 +42,7 @@ public class SSHAuthenticationTester
     protected String            _username;
     protected String            _hostname;
     protected int               _port;
+    protected String            _sharedAppCtx;
     
     /* ********************************************************************** */
     /*                               Constructors                             */
@@ -70,7 +72,7 @@ public class SSHAuthenticationTester
         // Try to connect.
         boolean canConnect = canEstablishConnection();
         
-        // Return whether is the system is marked available.
+        // Return whether the system connection was made.
         if (canConnect) return DEFAULT_RESUBMIT_BATCHSIZE;
         else return NO_RESUBMIT_BATCHSIZE;
     }
@@ -84,7 +86,7 @@ public class SSHAuthenticationTester
     protected boolean canEstablishConnection() throws JobRecoveryAbortException
     {
         // Recovery abort exception can be thrown from here.
-        var conn = getSSHConnection(_username, _systemId, _authMethod);
+        var conn = getSSHConnection(_username, _systemId, _authMethod, _sharedAppCtx);
         if (conn == null) return false;
         
         // An established connection means the condition has cleared.
@@ -146,6 +148,17 @@ public class SSHAuthenticationTester
         if (StringUtils.isBlank(_hostname)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
                                          PARM_HOSTNAME);
+            _log.error(msg);
+            throw new JobRecoveryAbortException(msg);
+        }
+        
+        // The shared application context should never be null.
+        // Empty means that we're not running in a shared contents. 
+        // Otherwise, it's set to the app owner.
+        _sharedAppCtx = testerParameters.get(PARM_SHARED_APP_CTX);
+        if (_sharedAppCtx == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
+            		                     PARM_SHARED_APP_CTX);
             _log.error(msg);
             throw new JobRecoveryAbortException(msg);
         }

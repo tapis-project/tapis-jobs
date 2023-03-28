@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.utils;
 
+import java.nio.file.Path;
+
 import javax.ws.rs.core.Response.Status;
 
 import org.testng.Assert;
@@ -55,4 +57,31 @@ public class JobsApiUtilsTest
         status = JobsApiUtils.toHttpStatus(Condition.INTERNAL_SERVER_ERROR);
         Assert.assertEquals(Status.INTERNAL_SERVER_ERROR, status);
     }
+    
+    @Test(enabled=false)
+    public void canonicalizeDirectoryPathnamesTest() {
+    	
+    	// Experiment with different values to make sure we get what we expect.
+    	var p = Path.of("/").toString();
+    	Assert.assertEquals("/", p);
+    	p = Path.of("//").toString();
+    	Assert.assertEquals("/", p);
+    	p = Path.of("///").toString();
+    	Assert.assertEquals("/", p);
+    	p = Path.of("////").toString();
+    	Assert.assertEquals("/", p);
+    	
+    	p = Path.of("..").toString();
+    	Assert.assertEquals("..", p);
+    	p = Path.of("xx").toString();
+    	Assert.assertEquals("xx", p);
+    	p = Path.of("x/y/z").toString();
+    	Assert.assertEquals("x/y/z", p);
+    	p = Path.of("x//y///z/").toString();
+    	Assert.assertEquals("x/y/z", p);
+    	p = Path.of("").toString();
+    	Assert.assertEquals("", p);
+//    	System.out.println(p);
+    }
+
 }

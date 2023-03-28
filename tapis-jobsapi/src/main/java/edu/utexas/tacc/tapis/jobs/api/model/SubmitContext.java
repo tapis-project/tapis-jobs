@@ -922,18 +922,24 @@ public final class SubmitContext
         
         // Canonicalize path.
         canonicalizeDirectoryPathnames();
+        
+        // Final fix up for macro path definitions.
+        assignCleanMacroPaths();
     }
     
     /* ---------------------------------------------------------------------------- */
     /* sanitizeDirectoryPathnames:                                                  */
     /* ---------------------------------------------------------------------------- */
     /** Check the assigned directory pathnames for prohibited path traversal characters.
+     * The non-null JobWorkingDir was sanitized when we loaded the execution system but 
+     * it could have gotten unclean during macro resolution.
      * 
-     * @throws TapisImplException
+     * @throws TapisImplException when parent traversal is detected
      */
     private void sanitizeDirectoryPathnames() throws TapisImplException
     {
         // Check each of the user specified directories.
+    	sanitizePath(_macros.get(JobTemplateVariables.JobWorkingDir.name()), "JobWorkingDir");
         sanitizePath(_submitReq.getExecSystemInputDir(),  "ExecSystemInputDir");
         sanitizePath(_submitReq.getExecSystemExecDir(),   "ExecSystemExecDir");
         sanitizePath(_submitReq.getExecSystemOutputDir(), "ExecSystemOutputDir");
@@ -963,6 +969,14 @@ public final class SubmitContext
      */
     private void canonicalizeDirectoryPathnames() throws TapisImplException
     {
+        // --------------------- Canonicalize JobWorkingDir ----------------------
+    	var dirName = JobTemplateVariables.JobWorkingDir.name();
+        try {_macros.put(dirName, Path.of(_macros.get(dirName)).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "JobWorkingDir", _macros.get(dirName));
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
         // --------------------- Canonicalize ExecSystemInputDir -----------------
         try {_submitReq.setExecSystemInputDir(Path.of(_submitReq.getExecSystemInputDir()).toString());}
             catch (Exception e) {
@@ -991,6 +1005,17 @@ public final class SubmitContext
                                              "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* assignCleanMacroPaths:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    private void assignCleanMacroPaths()
+    {
+    	_macros.put(JobTemplateVariables.ExecSystemInputDir.name(),  _submitReq.getExecSystemInputDir());
+    	_macros.put(JobTemplateVariables.ExecSystemExecDir.name(),   _submitReq.getExecSystemExecDir());
+    	_macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
+    	_macros.put(JobTemplateVariables.ArchiveSystemDir.name(),    _submitReq.getArchiveSystemDir());
     }
     
     /* ---------------------------------------------------------------------------- */

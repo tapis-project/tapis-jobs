@@ -562,7 +562,7 @@ public final class SubmitContext
             boolean requireExecPerm = false;
            _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
                                              requireExecPerm, LoadSystemTypes.dtn, 
-                                             _sharedAppCtx.isSharingExecSystemId()); // exec system sharing
+                                             _sharedAppCtx.getSharingExecSystemAppOwner()); // exec system sharing
            if (_dtnSystem.getIsDtn() == null || !_dtnSystem.getIsDtn()) {
                String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM", _execSystem.getId(),
                                             _dtnSystem.getId());
@@ -606,7 +606,7 @@ public final class SubmitContext
             boolean requireExecPerm = false;
            _archiveSystem = loadSystemDefinition(systemsClient, _submitReq.getArchiveSystemId(), 
                                                  requireExecPerm, LoadSystemTypes.archive,
-                                                 _sharedAppCtx.isSharingArchiveSystemId()); 
+                                                 _sharedAppCtx.getSharingArchiveSystemAppOwner()); 
         }
     }
     
@@ -645,7 +645,7 @@ public final class SubmitContext
         // Load the system.
         boolean requireExecPerm = true;
         _execSystem = loadSystemDefinition(systemsClient, execSystemId, requireExecPerm, 
-                                           LoadSystemTypes.execution, _sharedAppCtx.isSharingExecSystemId());
+                                           LoadSystemTypes.execution, _sharedAppCtx.getSharingExecSystemAppOwner());
         
         // Double-check!  This shouldn't happen, but it's absolutely critical that we have a system.
         if (_execSystem == null) {
@@ -922,18 +922,24 @@ public final class SubmitContext
         
         // Canonicalize path.
         canonicalizeDirectoryPathnames();
+        
+        // Final fix up for macro path definitions.
+        assignCleanMacroPaths();
     }
     
     /* ---------------------------------------------------------------------------- */
     /* sanitizeDirectoryPathnames:                                                  */
     /* ---------------------------------------------------------------------------- */
     /** Check the assigned directory pathnames for prohibited path traversal characters.
+     * The non-null JobWorkingDir was sanitized when we loaded the execution system but 
+     * it could have gotten unclean during macro resolution.
      * 
-     * @throws TapisImplException
+     * @throws TapisImplException when parent traversal is detected
      */
     private void sanitizeDirectoryPathnames() throws TapisImplException
     {
         // Check each of the user specified directories.
+    	sanitizePath(_macros.get(JobTemplateVariables.JobWorkingDir.name()), "JobWorkingDir");
         sanitizePath(_submitReq.getExecSystemInputDir(),  "ExecSystemInputDir");
         sanitizePath(_submitReq.getExecSystemExecDir(),   "ExecSystemExecDir");
         sanitizePath(_submitReq.getExecSystemOutputDir(), "ExecSystemOutputDir");
@@ -963,6 +969,14 @@ public final class SubmitContext
      */
     private void canonicalizeDirectoryPathnames() throws TapisImplException
     {
+        // --------------------- Canonicalize JobWorkingDir ----------------------
+    	var dirName = JobTemplateVariables.JobWorkingDir.name();
+        try {_macros.put(dirName, Path.of(_macros.get(dirName)).toString());}
+            catch (Exception e) {
+                String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
+                                             "JobWorkingDir", _macros.get(dirName));
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
         // --------------------- Canonicalize ExecSystemInputDir -----------------
         try {_submitReq.setExecSystemInputDir(Path.of(_submitReq.getExecSystemInputDir()).toString());}
             catch (Exception e) {
@@ -991,6 +1005,17 @@ public final class SubmitContext
                                              "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* assignCleanMacroPaths:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    private void assignCleanMacroPaths()
+    {
+    	_macros.put(JobTemplateVariables.ExecSystemInputDir.name(),  _submitReq.getExecSystemInputDir());
+    	_macros.put(JobTemplateVariables.ExecSystemExecDir.name(),   _submitReq.getExecSystemExecDir());
+    	_macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
+    	_macros.put(JobTemplateVariables.ArchiveSystemDir.name(),    _submitReq.getArchiveSystemDir());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1124,7 +1149,7 @@ public final class SubmitContext
             // tapis protocol is used; the destination is always on the execution system,
             // so we just check that the execution system input directory is shared.
             calculateSrcSharedCtx(reqInput, reqInput.getSourceUrl());
-            reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+            reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
             
             // Canonicalize paths and derive other values.
             completeRequestFileInput(reqInput);
@@ -1205,7 +1230,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
         
         // Fill in the automount flag.
         if (reqInput.getAutoMountLocal() == null)
@@ -1276,7 +1301,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrl(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1461,8 +1486,8 @@ public final class SubmitContext
             // that the app definition can be overridden.  The final determination of
             // the shared context setting for each source file is handled by the 
             // marshaling method below.
-            if (_sharedAppCtx.isSharingEnabled()) reqArray.setSrcSharedAppCtx(true);
-            reqArray.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+            if (_sharedAppCtx.isSharingEnabled()) reqArray.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
+            reqArray.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
             
             // Add the request to the list and update list of processed names.
             // We rely on Apps to not allow duplicate named input arrays.
@@ -1533,7 +1558,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
         
         // Merge the descriptions if both exist.
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1599,7 +1624,7 @@ public final class SubmitContext
                                          reqInput.getSourceUrls().get(0), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        reqInput.setDestSharedAppCtx(_sharedAppCtx.isSharingExecSystemInputDir());
+        reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
         
         // ---- description
         if (StringUtils.isBlank(reqInput.getDescription()))
@@ -1738,10 +1763,10 @@ public final class SubmitContext
                 reqInput.setTargetPath(target);
                 
                 // Set the shared context flags.
-                if (curArray.isSrcSharedAppCtx() &&
+                if (!StringUtils.isBlank(curArray.getSrcSharedAppCtx()) &&
                     reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
-                   reqInput.setSrcSharedAppCtx(true);
-                reqInput.setDestSharedAppCtx(curArray.isDestSharedAppCtx());
+                    reqInput.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
+                reqInput.setDestSharedAppCtx(curArray.getDestSharedAppCtx());
             
                 // Save the new object in the 
                 _submitReq.getFileInputs().add(reqInput);
@@ -1772,7 +1797,7 @@ public final class SubmitContext
         
         // Only set the shared flag if the app source is in effect.
         if (reqInput.getSourceUrl().equals(appSource)) 
-            reqInput.setSrcSharedAppCtx(true);
+            reqInput.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1794,7 +1819,7 @@ public final class SubmitContext
 
         // Only set the shared flag if the app and request sources exactly match.
         if (reqArray.equalSourceUrls​(appSources)) 
-            reqArray.setSrcSharedAppCtx(true);
+            reqArray.setSrcSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2013,6 +2038,7 @@ public final class SubmitContext
      * @param systemId
      * @param requireExecPerm
      * @param systemDesc
+     * @param sharedAppCtx
      * @return
      * @throws TapisImplException
      */
@@ -2020,7 +2046,7 @@ public final class SubmitContext
                                              String systemId, 
                                              boolean requireExecPerm,
                                              LoadSystemTypes systemType,
-                                             boolean sharedAppCtx) 
+                                             String sharedAppCtx) 
       throws TapisImplException
     {
         // Load the system definition.
@@ -2421,7 +2447,7 @@ public final class SubmitContext
         
         // Set the shared context information.
         if (_sharedAppCtx.isSharingEnabled()) {
-            _job.setSharedAppCtx(true);
+            _job.setSharedAppCtx(_sharedAppCtx.getSharedAppOwner());
             _job.setSharedAppCtxAttribs(_sharedAppCtx.getSharedAppCtxResources());
         }
         

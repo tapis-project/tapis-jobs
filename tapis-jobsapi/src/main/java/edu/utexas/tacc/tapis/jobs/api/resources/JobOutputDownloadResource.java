@@ -297,7 +297,9 @@ public class JobOutputDownloadResource extends AbstractResource{
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
 	   }
-       
+	   String sharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
+       if (isSharedAppCtx) sharedAppCtx = job.getSharedAppCtx();
+	   
 	   String impersonationId = null;
 	   if(skipTapisAuthorization == true) {
 		   impersonationId = job.getOwner();
@@ -307,7 +309,7 @@ public class JobOutputDownloadResource extends AbstractResource{
        try {
     	  if(jobOutputFilesinfo != null) {
     		   StreamedFile streamFromFiles = dataLocator.getJobOutputDownload(jobOutputFilesinfo, threadContext.getOboTenantId(), 
-    				   threadContext.getOboUser(), compress, impersonationId,isSharedAppCtx );
+    				   threadContext.getOboUser(), compress, impersonationId,sharedAppCtx );
     	       contentDisposition = String.format("attachment; filename=%s", streamFromFiles.getName() );
     	       Response response =  Response
 	               .ok(streamFromFiles.getInputStream(), mtype)

@@ -57,7 +57,7 @@ public abstract class AbsTester
     /* getSystem:                                                                   */
     /* ---------------------------------------------------------------------------- */
     protected TapisSystem getSystem(String username, String tenant, String systemId,
-                                    AuthnMethod authnMethod) 
+                                    AuthnMethod authnMethod, String sharedAppCtx) 
      throws RuntimeException, TapisException, ExecutionException, TapisClientException
     {
         // Get the systems client.
@@ -77,7 +77,6 @@ public abstract class AbsTester
         final boolean requireExecPerm = false;
         final String  selectAll = "allAttributes";
         final String  impersonationId = null;
-        final boolean sharedAppCtx = true;
         return client.getSystem(systemId, authnMethod, requireExecPerm, selectAll,
                                 returnCreds, impersonationId, sharedAppCtx);
     }
@@ -86,7 +85,7 @@ public abstract class AbsTester
     /* getSSHConnection:                                                      */
     /* ---------------------------------------------------------------------- */
     protected SSHConnection getSSHConnection(String username, String systemId, 
-                                             AuthMethod authMethod) 
+                                             AuthMethod authMethod, String sharedAppCtx) 
      throws JobRecoveryAbortException
     {
         // We currently support two authentication methods.
@@ -100,7 +99,7 @@ public abstract class AbsTester
         
         // Get the system definition with credentials.
         TapisSystem system = null;
-        try {system = getSystem(username, _jobRecovery.getTenantId(), systemId, authnMethod);}
+        try {system = getSystem(username, _jobRecovery.getTenantId(), systemId, authnMethod, sharedAppCtx);}
             catch (TapisRecoverableException e) {
                 // Record problem.
                 String msg = MsgUtils.getMsg("JOBS_RECOVERY_TEST_SETUP_ERROR", 

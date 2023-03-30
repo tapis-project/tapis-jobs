@@ -9,6 +9,14 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.3.1 - 2023-03-27
+
+### New features:
+
+### Bug fixes:
+1. Sharing privilege escalation fix.
+
+-----------------------
 ## 1.3.1 - 2023-03-22
 
 ### New features:

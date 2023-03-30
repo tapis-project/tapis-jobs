@@ -49,4 +49,6 @@
     
     <!-- Control library logging. -->
     <logger name="com.zaxxer.hikari" level="ERROR"/>
+    <!-- Control jOOQ logging. -->
+   <logger name="org.jooq" level="WARN"/>
 </configuration>

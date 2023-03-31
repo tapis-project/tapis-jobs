@@ -938,9 +938,14 @@ public final class SubmitContext
      */
     private void sanitizeDirectoryPathnames() throws TapisImplException
     {
-        // Check each of the user specified directories.
-    	sanitizePath(_macros.get(JobTemplateVariables.JobWorkingDir.name()), "JobWorkingDir");
-        sanitizePath(_submitReq.getExecSystemInputDir(),  "ExecSystemInputDir");
+        // Sometimes this method is called before macros have been assigned.
+    	// If macros have been assigned, then we re-sanitize to fix any
+    	// non-compliant values introduced during macro substitution.
+    	var jobWorkingDir = _macros.get(JobTemplateVariables.JobWorkingDir.name());
+    	if (jobWorkingDir != null) sanitizePath(jobWorkingDir, "JobWorkingDir");
+        
+    	// Check each of the user specified directories.
+    	sanitizePath(_submitReq.getExecSystemInputDir(),  "ExecSystemInputDir");
         sanitizePath(_submitReq.getExecSystemExecDir(),   "ExecSystemExecDir");
         sanitizePath(_submitReq.getExecSystemOutputDir(), "ExecSystemOutputDir");
         sanitizePath(_submitReq.getArchiveSystemDir(),    "ArchiveSystemDir");

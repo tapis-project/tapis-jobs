@@ -354,12 +354,12 @@ public class Jobs extends TableImpl<JobsRecord> {
     /**
      * The column <code>public.jobs.cmd_prefix</code>.
      */
-    public final TableField<JobsRecord, String> CMD_PREFIX = createField(DSL.name("cmd_prefix"), SQLDataType.VARCHAR(126), this, "");
+    public final TableField<JobsRecord, String> CMD_PREFIX = createField(DSL.name("cmd_prefix"), SQLDataType.VARCHAR(1024), this, "");
 
     /**
      * The column <code>public.jobs.shared_app_ctx</code>.
      */
-    public final TableField<JobsRecord, Boolean> SHARED_APP_CTX = createField(DSL.name("shared_app_ctx"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field("false", SQLDataType.BOOLEAN)), this, "");
+    public final TableField<JobsRecord, String> SHARED_APP_CTX = createField(DSL.name("shared_app_ctx"), SQLDataType.VARCHAR(64).nullable(false).defaultValue(DSL.field("''::character varying", SQLDataType.VARCHAR)), this, "");
 
     /**
      * The column <code>public.jobs.shared_app_ctx_attribs</code>.
@@ -411,7 +411,7 @@ public class Jobs extends TableImpl<JobsRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.JOBS_APP_ID_IDX, Indexes.JOBS_ARCHIVE_SYSTEM_IDX, Indexes.JOBS_CREATED_IDX, Indexes.JOBS_DTN_SYSTEM_IDX, Indexes.JOBS_EXEC_SYSTEM_IDX, Indexes.JOBS_STATUS_IDX, Indexes.JOBS_TAGS_IDX, Indexes.JOBS_TENANT_CREATEDBY_IDX, Indexes.JOBS_TENANT_OWNER_IDX, Indexes.JOBS_UUID_IDX);
+        return Arrays.asList(Indexes.JOBS_APP_ID_IDX, Indexes.JOBS_ARCHIVE_SYSTEM_IDX, Indexes.JOBS_CREATED_IDX, Indexes.JOBS_DTN_SYSTEM_IDX, Indexes.JOBS_EXEC_SYSTEM_IDX, Indexes.JOBS_SHARED_APP_CTX_IDX, Indexes.JOBS_STATUS_IDX, Indexes.JOBS_TAGS_IDX, Indexes.JOBS_TENANT_CREATEDBY_IDX, Indexes.JOBS_TENANT_OWNER_IDX, Indexes.JOBS_UUID_IDX);
     }
 
     @Override

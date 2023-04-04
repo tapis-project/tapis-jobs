@@ -1132,7 +1132,7 @@ public final class JobsImpl
          
 	         // Convert from SK representation to local representation
 	        
-	         _log.debug("skShareList: "+ skShareList.getShares().toString());
+	         //_log.debug("skShareList: "+ skShareList.getShares().toString());
 	         for(SkShare sks: skShareList.getShares()) {
 	        	 JobShared js = new JobShared();
 	           	 js.setJobResource(JobResourceShare.valueOf(sks.getResourceType()));

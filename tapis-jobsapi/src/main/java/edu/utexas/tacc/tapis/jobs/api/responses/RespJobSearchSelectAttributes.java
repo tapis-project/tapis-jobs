@@ -51,8 +51,7 @@ public final class RespJobSearchSelectAttributes extends RespAbstract{
             Set<String> jobKeySet = jObj1.keySet(); 
                        
             for(String jobKey : jobKeySet) {
-            	System.out.println("jobKey="+ jobKey);
-               if(!selectList.contains(jobKey)) {
+                if(!selectList.contains(jobKey)) {
             	   jObj.getAsJsonObject().remove(jobKey);
                 }
             }      

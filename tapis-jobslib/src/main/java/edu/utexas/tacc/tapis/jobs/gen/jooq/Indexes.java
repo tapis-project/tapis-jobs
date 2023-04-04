@@ -44,6 +44,7 @@ public class Indexes {
     public static final Index JOBS_CREATED_IDX = Internal.createIndex(DSL.name("jobs_created_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.CREATED }, false);
     public static final Index JOBS_DTN_SYSTEM_IDX = Internal.createIndex(DSL.name("jobs_dtn_system_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.DTN_SYSTEM_ID }, false);
     public static final Index JOBS_EXEC_SYSTEM_IDX = Internal.createIndex(DSL.name("jobs_exec_system_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.EXEC_SYSTEM_ID }, false);
+    public static final Index JOBS_SHARED_APP_CTX_IDX = Internal.createIndex(DSL.name("jobs_shared_app_ctx_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.SHARED_APP_CTX }, false);
     public static final Index JOBS_STATUS_IDX = Internal.createIndex(DSL.name("jobs_status_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.STATUS }, false);
     public static final Index JOBS_TAGS_IDX = Internal.createIndex(DSL.name("jobs_tags_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.TAGS }, false);
     public static final Index JOBS_TENANT_CREATEDBY_IDX = Internal.createIndex(DSL.name("jobs_tenant_createdby_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.CREATEDBY_TENANT, Jobs.JOBS.CREATEDBY }, false);

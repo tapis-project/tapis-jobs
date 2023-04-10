@@ -12,7 +12,7 @@
 #
 #   Tested with Docker version 18.06.0-ce
 ##########################################################################
-FROM openjdk:17-jdk-bullseye
+FROM eclipse-temurin:17-jdk-jammy
 
 ARG VER
 ARG SRVC_JAR

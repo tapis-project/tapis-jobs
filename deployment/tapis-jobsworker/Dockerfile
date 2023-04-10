@@ -25,7 +25,7 @@
 #   docker run --name RecoveryReader -e 'MAIN_CLASS=edu.utexas.tacc.tapis.jobs.reader.RecoveryReader' tapis/jobsworker:dev
 #
 ##########################################################################
-FROM openjdk:17-jdk-bullseye
+FROM eclipse-temurin:17-jdk-jammy
 
 # Build-time arguments
 ARG VER

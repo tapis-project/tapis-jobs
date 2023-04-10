@@ -15,6 +15,7 @@ https://tapis-project.github.io/live-docs
 
 ### Bug fixes:
 1. Sharing privilege escalation fix.
+2. Upgrade to JDK 17.0.6-tem and tomcat:9.0.73-jdk17-temurin-jammy
 
 -----------------------
 ## 1.3.1 - 2023-03-22

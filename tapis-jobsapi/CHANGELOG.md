@@ -9,6 +9,15 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.3.3 - 2023-04-19
+
+### New features:
+
+### Bug fixes:
+1. Use latest version of tapis-client-java library which contains
+   adjust timeout for SSH communication. 
+
+-----------------------
 ## 1.3.2 - 2023-03-27
 
 ### New features:

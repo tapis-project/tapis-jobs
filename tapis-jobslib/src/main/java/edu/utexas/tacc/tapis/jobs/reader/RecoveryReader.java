@@ -26,7 +26,6 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.RecoverShutdownMsg;
-import edu.utexas.tacc.tapis.jobs.utils.Throttle;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
@@ -39,6 +38,7 @@ import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.Throttle;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 /** This class drives all job recovery by servicing messages placed on the 

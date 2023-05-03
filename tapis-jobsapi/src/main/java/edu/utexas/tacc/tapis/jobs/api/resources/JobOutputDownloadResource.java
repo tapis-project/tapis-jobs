@@ -142,6 +142,7 @@ public class JobOutputDownloadResource extends AbstractResource{
      )
      public Response getJobOutputDownload(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
     		 						  @DefaultValue("false") @QueryParam("compress") boolean compress,	@DefaultValue("zip") @QueryParam("format") String format,
+    		 						  @DefaultValue("false") @QueryParam("allowIfRunning")boolean allowIfRunning,
     		 						  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
                                
      {
@@ -209,12 +210,12 @@ public class JobOutputDownloadResource extends AbstractResource{
        // ------------------------- Check the Job's status -----------------------------
        // If job is still running and not in terminal state then output download cannot be performed.
        
-       if(!job.getStatus().isTerminal()) {
+       if(!job.getStatus().isTerminal() && allowIfRunning == false) {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-    	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                   MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint, r)).build(); 
+    	   return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED",
+    			   jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint,r)).build();
        }
        
       // --------------------------- Check if the the path is a file or Directory ---------------
@@ -262,7 +263,7 @@ public class JobOutputDownloadResource extends AbstractResource{
     		  
     		  // directory with single file
     		  if((filesList.get(0).getType().equals("dir") || !pathInFileInfo.endsWith(outputPath))
-    			 || (filesList.get(0).getType().equals("file") && filesList.get(0).getSize()> ONE_GB_IN_KB )	  ) {
+    			 || (filesList.get(0).getType().equals("file") && filesList.get(0).getSize()> ONE_GB_IN_KB )) {
     		   compress = true;
     		  }
     	     // for single file, default is false

@@ -140,6 +140,7 @@ public class JobOutputListingResource extends AbstractResource{
      )
      public Response getJobOutputList(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
     		 						  @QueryParam("limit") int limit,	@QueryParam("skip") int skip,
+    		 						  @DefaultValue("false") @QueryParam("allowIfRunning") boolean allowIfRunning,
     		 						  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
                                
      {
@@ -205,12 +206,12 @@ public class JobOutputListingResource extends AbstractResource{
        // ------------------------- Check the Job's status -----------------------------
        // If job is still running and not in terminal state then output listing cannot be performed.
        
-       if(!job.getStatus().isTerminal()) {
+       if(!job.getStatus().isTerminal() && allowIfRunning == false) {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-    	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                   MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint, r)).build(); 
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED",
+    			   jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint,r)).build();
        }
        
        // Set default parameters

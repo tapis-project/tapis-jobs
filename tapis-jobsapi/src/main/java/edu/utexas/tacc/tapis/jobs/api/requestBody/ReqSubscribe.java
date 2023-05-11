@@ -9,7 +9,6 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventCategoryFilter;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.NotifDeliveryTarget;
-import edu.utexas.tacc.tapis.shared.model.NotifDeliveryTarget.DeliveryMethod;
 
 public class ReqSubscribe 
  implements IReqBody
@@ -42,9 +41,7 @@ public class ReqSubscribe
             if (appFilter != null) eventCategoryFilter = JobEventCategoryFilter.valueOf(appFilter.name());
             if (appReq.getDeliveryTargets() != null) 
                 for (var appTarget : appReq.getDeliveryTargets()) { 
-                    var target = new NotifDeliveryTarget();
-                    target.setDeliveryAddress(appTarget.getDeliveryAddress());
-                    var method = DeliveryMethod.valueOf(appTarget.getDeliveryMethod().name());
+                    var target = new NotifDeliveryTarget(appTarget);
                     deliveryTargets.add(target);
                 }
         } catch (Exception e) {

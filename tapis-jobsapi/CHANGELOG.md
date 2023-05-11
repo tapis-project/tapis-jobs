@@ -13,11 +13,14 @@ https://tapis-project.github.io/live-docs
 ### New features:
 1. Added allowIfRunning query parameter to job output list and download end-points. Setting allowIfRunning=true will allow users to download the output files when the job is still running. If allowIfRunning=false and job is running, it will now return a strict 400 error.
 
-      
+### Bug fixes:
+1. Fixed bug in application subscription merge.
 
 ## 1.3.3 - 2023-04-19
 
 ### New features:
+
+1. Incorporated Files client with updated timeouts.
 
 ### Bug fixes:
 1. Use latest version of tapis-client-java library which contains

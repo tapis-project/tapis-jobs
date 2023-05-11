@@ -7,8 +7,14 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
-
 -----------------------
+## 1.3.3 - 2023-05-16
+
+### New features:
+1. Added allowIfRunning query parameter to job output list and download end-points. Setting allowIfRunning=true will allow users to download the output files when the job is still running. If allowIfRunning=false and job is running, it will now return a strict 400 error.
+
+2.    
+
 ## 1.3.3 - 2023-04-19
 
 ### New features:

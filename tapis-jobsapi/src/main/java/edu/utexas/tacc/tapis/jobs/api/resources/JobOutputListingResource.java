@@ -112,7 +112,7 @@ public class JobOutputListingResource extends AbstractResource{
      @Operation(
              description = "Retrieve job's output files list for previously submitted job by its UUID. \n"
             		       + "The job must be in a terminal state (FINISHED or FAILED or CANCELLED). By default, allowIfRunning=false. \n"
-      		               + "allowIfRunning=true allows job output download even if job is not in the terminal state.  \n\n"
+      		               + "allowIfRunning=true allows job output listing even if job is not in the terminal state.  \n\n"
             		       + "The caller must be the job owner, creator or a tenant administrator.\n"
             		       + "The URL must ends with '/' even if there is no outputPath is specified.\n"
             		       + "outputPath is relative to the job output path. "

@@ -20,6 +20,8 @@ https://tapis-project.github.io/live-docs
 
 ### New features:
 
+1. Incorporated Files client with updated timeouts.
+
 ### Bug fixes:
 1. Use latest version of tapis-client-java library which contains
    adjust timeout for SSH communication. 

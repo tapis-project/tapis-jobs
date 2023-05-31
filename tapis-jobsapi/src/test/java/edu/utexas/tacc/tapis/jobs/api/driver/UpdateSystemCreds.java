@@ -8,7 +8,7 @@ import java.util.Properties;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
-import edu.utexas.tacc.tapis.systems.client.gen.model.Credential;
+import edu.utexas.tacc.tapis.systems.client.gen.model.ReqUpdateCredential;
 
 public class UpdateSystemCreds
 {
@@ -55,7 +55,7 @@ public class UpdateSystemCreds
         // System.out.println(reqString);
         
         // Convert json string into an app create request.
-        Credential creds = TapisGsonUtils.getGson().fromJson(reqString, Credential.class);
+        ReqUpdateCredential creds = TapisGsonUtils.getGson().fromJson(reqString, ReqUpdateCredential.class);
         
         // Read base url and jwt from file.
         Properties props = TestUtils.getTestProfile(args[3]);

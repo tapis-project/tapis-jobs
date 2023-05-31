@@ -134,7 +134,7 @@ public final class SingularityRunSlurmCmd
     private String  wckey;                 // specify wckey to be used with job
     
     // --tapis-profile switch for customized data center support.  The profile can be used
-    // to skip outputting specific slurm optionss.  For example, Assign that switch the value 
+    // to skip outputting specific slurm options.  For example, Assign that switch the value 
     // TACC when running a job on TACC HPC systems.  This will avoid passing the --mem 
     // option to slurm and will load the singularity module before calling sbatch.
     private String tapisProfile;          

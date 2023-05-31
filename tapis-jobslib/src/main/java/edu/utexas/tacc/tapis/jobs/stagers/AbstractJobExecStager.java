@@ -79,7 +79,7 @@ public abstract class AbstractJobExecStager
         String envVarFile = generateEnvVarFile();
         
         // Get the ssh connection used by this job 
-        // communicate with the execution system.
+        // to communicate with the execution system.
         var fm = _jobCtx.getJobFileManager();
         
         // Install the wrapper script on the execution system.

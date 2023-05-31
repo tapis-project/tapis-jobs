@@ -7,6 +7,15 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
+
+-----------------------
+## 1.3.5 - 2023-06-01
+
+### New features:
+
+### Bug fixes:
+1. Fixed improper assignment of slurm --gpus, --begin and --nodelist parameters.
+
 -----------------------
 ## 1.3.4 - 2023-05-16
 

@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
-import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.AbstractSingularityStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
@@ -309,7 +308,7 @@ public final class SingularityRunSlurmStager
                 
             case "--begin":
             case "-b":
-                slurmCmd.setArray(value);
+                slurmCmd.setBegin(value);
                 break;
                 
             case "--cluster-contstraint":
@@ -405,7 +404,7 @@ public final class SingularityRunSlurmStager
                 
             case "--gpus":
             case "-G":
-                slurmCmd.setArray(value);
+                slurmCmd.setGpus(value);
                 break;
                 
             case "--gpu-bind":
@@ -511,7 +510,7 @@ public final class SingularityRunSlurmStager
                 
             case "--nodelist":
             case "-W":
-                slurmCmd.setArray(value);
+                slurmCmd.setNodeList(value);
                 break;
                 
             case "--no-kill":

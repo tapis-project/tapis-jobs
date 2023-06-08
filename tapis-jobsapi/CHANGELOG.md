@@ -9,6 +9,13 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.3.6 - 2023-06-12
+
+### New features:
+1. Enable the *--rm* container option in the docker container runtime.  If present, this option is passed on the *docker run* command forcing the container to be deleted after it runs.  Logs and other application output should be explicitly saved to file by applications when such information needs to outlive container execution.   
+
+
+-----------------------
 ## 1.3.5 - 2023-06-01
 
 ### New features:

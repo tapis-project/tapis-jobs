@@ -398,7 +398,8 @@ public class DockerNativeStager
                 dockerRunCmd.getPortMappings().add(value);
                 break;
             case "--rm":
-                // Always set, ignore redundancy.
+                // Allow user to determine whether container is saved or not.
+            	dockerRunCmd.setRm(true);
                 break;
             case "--tmpfs":
                 isAssigned("docker", option, value);
@@ -420,7 +421,7 @@ public class DockerNativeStager
                 // the job will abort.  Note that environment variables are 
                 // passed in via their own ParameterSet object.
                 //
-                //   --cidfile, -e, --env, --env-file, --name, --rm, --user 
+                //   --cidfile, -e, --env, --env-file, --name, --user 
                 //
                 String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", "docker", option);
                 throw new JobException(msg);

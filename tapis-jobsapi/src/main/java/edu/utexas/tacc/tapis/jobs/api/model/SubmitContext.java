@@ -457,15 +457,14 @@ public final class SubmitContext
         marshaller.mergeArgSpecList(reqParmSet.getSchedulerOptions(), appParmSet.getSchedulerOptions(), ArgTypeEnum.SCHEDULER_OPTIONS);
         marshaller.mergeTapisProfileFromSystem(reqParmSet.getSchedulerOptions(), _execSystem.getBatchSchedulerProfile());
         
-        // Copy the remaining application's parameterSet fields into a jobs 
-        // parameterSet. Also include any environment variables set in the 
-        // system definition.  The returned parmSet is never null, but may
-        // contain uninitialized (null) components.
+        // Merge environment variables from systems, apps and the job request.
+        var reqEnv = reqParmSet.getEnvVariables();
+        var appEnv = appParmSet.getEnvVariables();
         var sysEnv = _execSystem.getJobEnvVariables();
-        JobParameterSet appSysParmSet = marshaller.marshalAppParmSet(appParmSet, sysEnv);
+        marshaller.mergeEnvVariables(reqEnv, appEnv, sysEnv);
         
-        // Parameters set in the job submission request have the highest precedence.
-        marshaller.mergeNonArgParms(reqParmSet, appSysParmSet);
+        // Merge the archive filters.
+        marshaller.mergeArchiveFilters(reqParmSet.getArchiveFilter(), appParmSet.getArchiveFilter());
         
         // Validate parameter set components.
         validateArchiveFilters(reqParmSet.getArchiveFilter().getIncludes(), "includes");

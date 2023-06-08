@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppArgSpec;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ArgInputModeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
@@ -84,30 +86,68 @@ public final class JobParmSetMarshaller
      * @return the populate sharedlib parameterSet object, never null
      * @throws TapisImplException 
      */
-    public JobParameterSet marshalAppParmSet(
-        edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet appParmSet,
-        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysEnv) 
-     throws TapisImplException
-    {
-        // Always create a new, uninitialized parameter set.
-        var parmSet = new JobParameterSet(false);
-        if (appParmSet == null) {
-            // The system may define environment variables.
-            parmSet.setEnvVariables(marshalAppKvList(null, sysEnv));
-            return parmSet;
-        }
-        
-        // Null can be returned from the marshal method.
-        var appEnvVariables = appParmSet.getEnvVariables();
-        parmSet.setEnvVariables(marshalAppKvList(appEnvVariables, sysEnv));
-        
-        // Null can be returned from the marshal method.
-        var appArchiveFilter = appParmSet.getArchiveFilter();
-        parmSet.setArchiveFilter(marshalAppAchiveFilter(appArchiveFilter));
-        
-        return parmSet;
-    }
-    
+//    public JobParameterSet marshalAppParmSet(
+//        edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet appParmSet,
+//        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysEnv) 
+//     throws TapisImplException
+//    {
+//        // Always create a new, uninitialized parameter set.
+//        var parmSet = new JobParameterSet(false);
+//        if (appParmSet == null) {
+//            // The system may define environment variables.
+//            parmSet.setEnvVariables(marshalAppKvList(null, sysEnv));
+//            return parmSet;
+//        }
+//        
+//        // Null can be returned from the marshal method.
+//        var appEnvVariables = appParmSet.getEnvVariables();
+//        parmSet.setEnvVariables(marshalAppKvList(appEnvVariables, sysEnv));
+//        
+//        // Null can be returned from the marshal method.
+//        var appArchiveFilter = appParmSet.getArchiveFilter();
+//        parmSet.setArchiveFilter(marshalAppAchiveFilter(appArchiveFilter));
+//        
+//        return parmSet;
+//    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* marshalAppParmSet:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** Populate the standard sharedlib version of ParameterSet with the generated
+     * data passed by the apps and systems services.  
+     * 
+     * Note that we trust the app and systems inputs to conform to the schema 
+     * defined in TapisDefinitions.json.
+     * 
+     * @param appParmSet the parameterSet retrieved from the app definition.
+     * @param sysEnv the environment variable list from systems
+     * @return the populate sharedlib parameterSet object, never null
+     * @throws TapisImplException 
+     */
+//    public JobParameterSet marshalAppArchiveFillter(
+//        edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet appParmSet,
+//        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysEnv) 
+//     throws TapisImplException
+//    {
+//        // Always create a new, uninitialized parameter set.
+//        var parmSet = new JobParameterSet(false);
+//        if (appParmSet == null) {
+//            // The system may define environment variables.
+//            parmSet.setEnvVariables(marshalAppKvList(null, sysEnv));
+//            return parmSet;
+//        }
+//        
+//        // Null can be returned from the marshal method.
+//        var appEnvVariables = appParmSet.getEnvVariables();
+//        parmSet.setEnvVariables(marshalAppKvList(appEnvVariables, sysEnv));
+//        
+//        // Null can be returned from the marshal method.
+//        var appArchiveFilter = appParmSet.getArchiveFilter();
+//        parmSet.setArchiveFilter(marshalAppAchiveFilter(appArchiveFilter));
+//        
+//        return parmSet;
+//    }
+
     /* ---------------------------------------------------------------------------- */
     /* mergeArgSpecList:                                                            */
     /* ---------------------------------------------------------------------------- */
@@ -227,51 +267,52 @@ public final class JobParmSetMarshaller
      * @param appParmSet non-null parameters from application and system, input only
      * @throws TapisImplException
      */
-    public void mergeNonArgParms(JobParameterSet reqParmSet, JobParameterSet appParmSet) 
+    public void mergeArchiveFilters(IncludeExcludeFilter reqFilter, ParameterSetArchiveFilter appFilter) 
      throws TapisImplException
     {
         // Validate that the request environment variables contains no duplicate keys.
-        var reqEnvVars = reqParmSet.getEnvVariables();
-        HashSet<String> origReqEnvKeys = new HashSet<String>(1 + reqEnvVars.size() * 2);
-        for (var kv : reqEnvVars) {
-            // Reserved keys are not allowed.
-            if (kv.getKey().startsWith(TAPIS_ENV_VAR_PREFIX)) {
-                String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", kv.getKey(), 
-                                             TAPIS_ENV_VAR_PREFIX, "job request");
-                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
-            // Duplicates are not allowed.
-            if (!origReqEnvKeys.add(kv.getKey())) {
-                String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "job request", kv.getKey());
-                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
-        }
+//        var reqEnvVars = reqParmSet.getEnvVariables();
+//        HashSet<String> origReqEnvKeys = new HashSet<String>(1 + reqEnvVars.size() * 2);
+//        for (var kv : reqEnvVars) {
+//            // Reserved keys are not allowed.
+//            if (kv.getKey().startsWith(TAPIS_ENV_VAR_PREFIX)) {
+//                String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", kv.getKey(), 
+//                                             TAPIS_ENV_VAR_PREFIX, "job request");
+//                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+//            }
+//            // Duplicates are not allowed.
+//            if (!origReqEnvKeys.add(kv.getKey())) {
+//                String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "job request", kv.getKey());
+//                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+//            }
+//        }
+//        
+//        // Add the environment variables from the app only if they do not already
+//        // exist in the request set.  The app list has already been checked for
+//        // duplicates and reserved names in the marshalling code.
+//        var appEnvVars = appParmSet.getEnvVariables();
+//        if (appEnvVars != null && !appEnvVars.isEmpty())
+//            for (var kv : appEnvVars) 
+//                if (!origReqEnvKeys.contains(kv.getKey())) reqParmSet.getEnvVariables().add(kv);    
         
-        // Add the environment variables from the app only if they do not already
-        // exist in the request set.  The app list has already been checked for
-        // duplicates and reserved names in the marshalling code.
-        var appEnvVars = appParmSet.getEnvVariables();
-        if (appEnvVars != null && !appEnvVars.isEmpty())
-            for (var kv : appEnvVars) 
-                if (!origReqEnvKeys.contains(kv.getKey())) reqParmSet.getEnvVariables().add(kv);    
-        
+    	// Is there anything to merge?
+    	if (appFilter == null) return;
+    	
         // Merge the archive files.  The elements of the includes and excludes lists can
         // be globs or regexes.  The two are distinguished by prefixing regexes with "REGEX:"
         // whereas globs are written as they would appear on a command line.
-        if (appParmSet.getArchiveFilter() != null) {
-            var appIncludes = appParmSet.getArchiveFilter().getIncludes();
-            var appExcludes = appParmSet.getArchiveFilter().getExcludes();
-            if (appIncludes != null && !appIncludes.isEmpty()) 
-                reqParmSet.getArchiveFilter().getIncludes().addAll(appIncludes);
-            if (appExcludes != null && !appExcludes.isEmpty()) 
-                reqParmSet.getArchiveFilter().getExcludes().addAll(appExcludes);
+        var appIncludes = appFilter.getIncludes();
+        var appExcludes = appFilter.getExcludes();
+        if (appIncludes != null && !appIncludes.isEmpty()) 
+         	reqFilter.getIncludes().addAll(appIncludes);
+        if (appExcludes != null && !appExcludes.isEmpty()) 
+           	reqFilter.getExcludes().addAll(appExcludes);
             
-            // Assign the launch file inclusion flag.
-            if (reqParmSet.getArchiveFilter().getIncludeLaunchFiles() == null)
-                reqParmSet.getArchiveFilter().setIncludeLaunchFiles(appParmSet.getArchiveFilter().getIncludeLaunchFiles());
-            if (reqParmSet.getArchiveFilter().getIncludeLaunchFiles() == null)
-                reqParmSet.getArchiveFilter().setIncludeLaunchFiles(Boolean.TRUE);
-        }
+        // Assign the launch file inclusion flag.
+        if (reqFilter.getIncludeLaunchFiles() == null)
+           	reqFilter.setIncludeLaunchFiles(appFilter.getIncludeLaunchFiles());
+        if (reqFilter.getIncludeLaunchFiles() == null)
+           	reqFilter.setIncludeLaunchFiles(Boolean.TRUE);
     }
 
     /* **************************************************************************** */
@@ -496,23 +537,23 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* marshalAppAchiveFilter:                                                      */
     /* ---------------------------------------------------------------------------- */
-    private IncludeExcludeFilter marshalAppAchiveFilter(
-        edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter appFilter)
-    {
-        // Is there anything to do?
-        if (appFilter == null) return null;
-        
-        // Populate each of the filter lists.  Either or
-        // both input lists can be null or empty; we 
-        // initialize null lists after all assignments.
-        IncludeExcludeFilter filter = new IncludeExcludeFilter(false);
-        filter.setIncludes(appFilter.getIncludes());
-        filter.setExcludes(appFilter.getExcludes());
-        filter.setIncludeLaunchFiles(appFilter.getIncludeLaunchFiles());
-        filter.initAll(); // assign empty lists if null
-        
-        return filter;
-    }
+//    private IncludeExcludeFilter marshalAppAchiveFilter(
+//        edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter appFilter)
+//    {
+//        // Is there anything to do?
+//        if (appFilter == null) return null;
+//        
+//        // Populate each of the filter lists.  Either or
+//        // both input lists can be null or empty; we 
+//        // initialize null lists after all assignments.
+//        IncludeExcludeFilter filter = new IncludeExcludeFilter(false);
+//        filter.setIncludes(appFilter.getIncludes());
+//        filter.setExcludes(appFilter.getExcludes());
+//        filter.setIncludeLaunchFiles(appFilter.getIncludeLaunchFiles());
+//        filter.initAll(); // assign empty lists if null
+//        
+//        return filter;
+//    }
     
     /* ---------------------------------------------------------------------------- */
     /* marshalAppKvList:                                                            */
@@ -528,20 +569,31 @@ public final class JobParmSetMarshaller
      * @return the populated standard list or null
      * @throws TapisImplException 
      */
-    private List<KeyValuePair> marshalAppKvList(
-        java.util.List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList,
+    public void mergeEnvVariables(
+    	List<KeyValuePair> reqKvList,
+        List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList,
         List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysKvList) 
      throws TapisImplException
     {
         // The kv list is optional.
-        if (appKvList == null && sysKvList == null) return null;
+        if (appKvList == null && sysKvList == null) return;
         var kvList = new ArrayList<KeyValuePair>();
         
         // Since an app's environment variable values take precedence over
         // those set in the execution system, we use this set to track the
         // app-defined environment variable names.
         HashSet<String> appKeys = null;
-        if (sysKvList != null) appKeys = new HashSet<String>();
+        HashMap<String,String> fixedSysKVs = null;
+        if (sysKvList != null) {
+        	appKeys = new HashSet<String>();
+        	fixedSysKVs = new HashMap<String,String>();
+        	
+        	// Populate the list of FIXED system key/value pairs so that
+        	// we can later check for attempts to override its value.
+        	for (var sysKv : sysKvList)
+        		if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.FIXED)
+        			fixedSysKVs.put(sysKv.getKey(), sysKv.getValue());
+        }
         
         // Copy item by item from apps list.
         if (appKvList != null) {
@@ -558,11 +610,20 @@ public final class JobParmSetMarshaller
                     String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "application definition", appKv.getKey());
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
+
+                // Set the input mode to the default if it's not set.
+                // Args that originate from the application definition
+                // always get a non-null inputMode. 
+                var inputMode = appKv.getInputMode();
+                if (inputMode == null) inputMode = 
+                	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum.INCLUDE_BY_DEFAULT;
+                
                 var kv = new KeyValuePair();
                 if (appKeys != null) appKeys.add(appKv.getKey());
                 kv.setKey(appKv.getKey());
                 kv.setValue(appKv.getValue());
                 kv.setDescription(appKv.getDescription());
+                kv.setNotes(appKv.getNotes());
                 kvList.add(kv);
             }
         }
@@ -587,12 +648,13 @@ public final class JobParmSetMarshaller
                 var kv = new KeyValuePair();
                 kv.setKey(sysKv.getKey());
                 kv.setValue(sysKv.getValue());
-                kv.setDescription(sysKv.getDescription());                
+                kv.setDescription(sysKv.getDescription());
+                kv.setNotes(sysKv.getNotes());
                 kvList.add(kv);
             }
         }
         
-        return kvList;
+//        return kvList;
     }
     
     /* **************************************************************************** */

@@ -1,6 +1,10 @@
 package edu.utexas.tacc.tapis.jobs.api.utils;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -84,4 +88,23 @@ public class JobsApiUtilsTest
 //    	System.out.println(p);
     }
 
+    @Test(enabled=false)
+    public void streamTest() {
+    	var p1 = new edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair();
+    	p1.setKey("p1");
+    	var p2 = new edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair();
+    	p2.setKey("p2");
+
+    	var mergedAppKvList = new ArrayList<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair>();
+    	mergedAppKvList.add(p1);
+    	mergedAppKvList.add(p2);
+    	
+        var mergedAppKvMap =
+            	mergedAppKvList.stream().collect(
+            		Collectors.toMap(edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair::getKey,
+            				         Function.identity()));
+        
+        System.out.println(mergedAppKvMap.size());
+
+    }
 }

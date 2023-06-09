@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -15,7 +18,6 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
-import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
@@ -236,6 +238,9 @@ public final class JobParmSetMarshaller
                     continue;
                 }
                 
+                // Check that we are not trying to override a FIXED app argument.
+                detectFixedArgOverride(reqArg, scratchList.get(scratchIndex), argType);
+                
                 // Merge the request values into the argument that originated 
                 // from the application definition, overriding where necessary 
                 // but preserving the original list order.
@@ -258,13 +263,84 @@ public final class JobParmSetMarshaller
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* mergeNonArgParms:                                                            */
+    /* mergeEnvVariables:                                                           */
     /* ---------------------------------------------------------------------------- */
-    /** Merge each of the non-JobArgSpec components of the application/system parameter 
-     * set into the request parameter set.  
+    /** Populate the standard sharedlib version of KeyValuePair with the generated
+     * version passed by the apps and systems service.  The computational results 
+     * are reflected the updated job request's key/value list.  
      * 
-     * @param reqParmSet non-null parameters from job request, used for input and output
-     * @param appParmSet non-null parameters from application and system, input only
+     * Note that we trust the apps and systems inputs to conform to the schema 
+     * defined in TapisDefinitions.json.
+     * 
+     * @param reqKvList the request kv list, not null
+     * @param appKvList apps generated kv list or null
+     * @param sysKvList systems generated kv list or null
+     * @throws TapisImplException 
+     */
+    public void mergeEnvVariables(List<KeyValuePair> reqKvList,
+                                  List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList,
+                                  List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysKvList) 
+     throws TapisImplException
+    {
+    	// ------------------- Job Request Preprocessing
+        // Validate the names of request environment variables.
+    	validateEnvVariableNames(reqKvList.stream().map(x -> x.getKey()).collect(Collectors.toList()), 
+    			                 "job request");
+    	
+        // The app and systems lists are optional.
+        if (appKvList == null && sysKvList == null) return;
+    	
+    	// ------------------- App/System Merge
+        // Merge env variables from systems into env variables from apps
+        // and return the resultant list that uses the app list type. This
+        // merged list is never null.  The map keys are the env variable 
+        // names and its values are the app's KeyValuePairs.
+        var mergedAppKvList = mergeSysIntoAppEnvVariables(appKvList, sysKvList);
+        var mergedAppKvMap = mergedAppKvList.stream().collect(
+        	Collectors.toMap(edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair::getKey,
+        			         Function.identity()));
+        
+        // ------------------- Job Request/App Merge
+        // Initialize result list and the set of result key names. 
+        var resultList = new ArrayList<KeyValuePair>(reqKvList.size() + mergedAppKvList.size());
+        var resultKeys = new HashSet<String>(1 + 2*resultList.size());
+        
+        // Carry over valid variables from job request.
+        for (var reqKv : reqKvList) {
+        	
+        }
+        
+        
+        // Copy item by item from apps list.
+        if (mergedAppKvList != null) {
+            for (var appKv : mergedAppKvList) {
+                // Set the input mode to the default if it's not set.
+                // Args that originate from the application definition
+                // always get a non-null inputMode. 
+                var inputMode = appKv.getInputMode();
+                if (inputMode == null) inputMode = 
+                	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum.INCLUDE_BY_DEFAULT;
+                
+                var kv = new KeyValuePair();
+                if (resultKeys != null) resultKeys.add(appKv.getKey());
+                kv.setKey(appKv.getKey());
+                kv.setValue(appKv.getValue());
+                kv.setDescription(appKv.getDescription());
+                kv.setNotes(appKv.getNotes());
+                //kvList.add(kv);
+            }
+        }
+//        return kvList;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* mergeArchiveFilters:                                                         */
+    /* ---------------------------------------------------------------------------- */
+    /** Merge application archive filters into the request archive filters.  The 
+     * changes are immediately reflected in the request filter.  
+     * 
+     * @param reqFilter non-null archive filter from job request, used for output
+     * @param appFilter archive filter from application, possibly null, input only
      * @throws TapisImplException
      */
     public void mergeArchiveFilters(IncludeExcludeFilter reqFilter, ParameterSetArchiveFilter appFilter) 
@@ -294,25 +370,28 @@ public final class JobParmSetMarshaller
 //        if (appEnvVars != null && !appEnvVars.isEmpty())
 //            for (var kv : appEnvVars) 
 //                if (!origReqEnvKeys.contains(kv.getKey())) reqParmSet.getEnvVariables().add(kv);    
-        
+    	
+    	// Always normalize the request archive filter.
+    	reqFilter.initAll(); // assign empty lists if null
+
     	// Is there anything to merge?
     	if (appFilter == null) return;
     	
-        // Merge the archive files.  The elements of the includes and excludes lists can
-        // be globs or regexes.  The two are distinguished by prefixing regexes with "REGEX:"
-        // whereas globs are written as they would appear on a command line.
-        var appIncludes = appFilter.getIncludes();
-        var appExcludes = appFilter.getExcludes();
-        if (appIncludes != null && !appIncludes.isEmpty()) 
-         	reqFilter.getIncludes().addAll(appIncludes);
-        if (appExcludes != null && !appExcludes.isEmpty()) 
-           	reqFilter.getExcludes().addAll(appExcludes);
+    	// Merge the archive files.  The elements of the includes and excludes lists can
+    	// be globs or regexes.  The two are distinguished by prefixing regexes with "REGEX:"
+    	// whereas globs are written as they would appear on a command line.
+    	var appIncludes = appFilter.getIncludes();
+    	var appExcludes = appFilter.getExcludes();
+    	if (appIncludes != null && !appIncludes.isEmpty()) 
+    		reqFilter.getIncludes().addAll(appIncludes);
+    	if (appExcludes != null && !appExcludes.isEmpty()) 
+    		reqFilter.getExcludes().addAll(appExcludes);
             
         // Assign the launch file inclusion flag.
         if (reqFilter.getIncludeLaunchFiles() == null)
-           	reqFilter.setIncludeLaunchFiles(appFilter.getIncludeLaunchFiles());
+        	reqFilter.setIncludeLaunchFiles(appFilter.getIncludeLaunchFiles());
         if (reqFilter.getIncludeLaunchFiles() == null)
-           	reqFilter.setIncludeLaunchFiles(Boolean.TRUE);
+        	reqFilter.setIncludeLaunchFiles(Boolean.TRUE);
     }
 
     /* **************************************************************************** */
@@ -435,6 +514,126 @@ public final class JobParmSetMarshaller
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* detectFixedArgOverride:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** Detect whether an attempt is being made to change a fixed argument in a 
+     * computationally significant way.  If a job request tries to change an argument 
+     * defined as fixed in the application definition in any way other than the description,
+     * it will cause this method to thrown an exception.
+     * 
+     * This method is only called then the reqArg's name is non-null and matches that
+     * of the application's argument.
+     * 
+     * @param reqArg the argument redefining an argument
+     * @param scratchSpec the original argument 
+     * @param argType semantic type of argument
+     * @throws TapisImplException when a fixed app argument is changed in a job request
+     */
+    private void detectFixedArgOverride(JobArgSpec reqArg, ScratchArgSpec scratchSpec,
+    		                            ArgTypeEnum argType)
+     throws TapisImplException
+    {
+    	// Is this a fixed argument originating in the application?
+    	if (scratchSpec._inputMode != ArgInputModeEnum.FIXED) return;
+    	
+    	// Make sure the request doesn't materially change the argument's definition.
+    	// Returning from here means that at most the description values may have 
+    	// changed.  Since those values are additive and are only for human consumption,
+    	// we allow it.
+    	//
+    	// We protect ourselves from npe's when even in the case of argument values
+    	// when it's unlikely that they can be null because FIXED is being used.
+    	var appArg = scratchSpec._jobArg;
+    	if (reqArg.getArg() != null && appArg.getArg() != null 
+    		&&
+    		reqArg.getArg().equals(appArg.getArg()) 
+    		&& 
+    		((reqArg.getNotes() == null && appArg.getNotes() == null) 
+    			|| (reqArg.getNotes() != null && reqArg.getNotes().equals(appArg.getNotes()))))
+    	  return;
+    	
+    	// Bail out, we detected a change in the actionable part of the argument definition. 
+        String msg = MsgUtils.getMsg("JOBS_FIXED_ARG_ERROR", reqArg.getName(), "job", "application", 
+        		                     argType.name().toLowerCase());
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* detectFixedEnvVarOverride:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Detect whether an attempt is being made to change a fixed env variable value in a 
+     * computationally significant way.  If an application definition tries to change an 
+     * env variable defined as fixed in the system definition in any way other than the 
+     * description, it will cause this method to thrown an exception.
+     * 
+     * This method assumes it is only called when the appKv tries to override a FIXED 
+     * environment variable definition from a system.
+     * 
+     * @param reqArg the argument redefining an argument
+     * @param scratchSpec the original argument 
+     * @param argType semantic type of argument
+     * @throws TapisImplException when a fixed app argument is changed in a job request
+     */
+    private void detectFixedEnvVarOverride(
+    		           edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv,
+    		           edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair fixedSysKv)
+     throws TapisImplException
+    {
+    	// Make sure the request doesn't materially change the env variable's definition.
+    	// Returning from here means that at most the description values may have 
+    	// changed.  Since those values are additive and are only for human consumption,
+    	// we allow it.
+    	//
+    	// We protect ourselves from npe's when even in the case of env variable values
+    	// when it's unlikely that they can be null because FIXED is being used.
+    	if (appKv.getValue() != null && fixedSysKv.getValue() != null 
+    		&&
+    		appKv.getValue().equals(fixedSysKv.getValue()) 
+    		&& 
+    		((appKv.getNotes() == null && fixedSysKv.getNotes() == null) 
+    			|| (appKv.getNotes() != null && appKv.getNotes().equals(fixedSysKv.getNotes()))))
+    	  return;
+    	
+    	// Bail out, we detected a change in the actionable part of the env variable definition. 
+        String msg = MsgUtils.getMsg("JOBS_FIXED_ENV_VAR_ERROR", appKv.getKey(), "application", "system");
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateEnvVariableNames:                                                    */
+    /* ---------------------------------------------------------------------------- */
+    /** Make sure environment variable don't used the reserved _tapis prefix or 
+     * contain duplicates.
+     * 
+     * @param list list of environment variable names
+     * @param source the source to be used in error message
+     * @throws TapisImplException when validation fails
+     */
+    private void validateEnvVariableNames(List<String> list, String source) 
+     throws TapisImplException
+    {
+    	// Easy cases.
+    	if (list == null || list.isEmpty()) return;
+    
+    	// Check for duplicates.
+    	var names = new HashSet<String>(1 + list.size() * 2);
+    	for (var name : list) {
+    		// Reserved keys are not allowed.
+    		if (name.startsWith(TAPIS_ENV_VAR_PREFIX)) {
+    			String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", name, 
+                                             TAPIS_ENV_VAR_PREFIX, "job request");
+    			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		}
+    		
+    		// Duplicates are not allowed.
+    		if (!names.add(name)) {
+    			String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "job request", name);
+    			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		}
+    	}
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* indexOfNamedArg:                                                             */
     /* ---------------------------------------------------------------------------- */
     /** Find the argument in the list with the specified name.
@@ -489,6 +688,86 @@ public final class JobParmSetMarshaller
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* mergeSysIntoAppEnvVariables:                                                 */
+    /* ---------------------------------------------------------------------------- */
+    /** Merge the application and system definition environment variables.  Either can
+     * be null, though both being null is not expected.  
+     * 
+     * The result is always a non-null list of merged environment variables that 
+     * contains no duplicates.  The appKvList is used for both input and output.  The
+     * result is the appKvList with non-overriddent system environment variable appended.
+     * 
+     * @param appKvList env variables from application definition, can be null
+     * @param sysKvList env variables from system definition, can be null
+     * @return the non-null merged list of environment variables
+     * @throws TapisImplException on bad input
+     */
+    private List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> mergeSysIntoAppEnvVariables(
+    			List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList, 
+    			List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair>sysKvList) 
+     throws TapisImplException
+    {
+    	// Normalize input lists.  The appKvList is also used as the output list.
+    	if (appKvList == null) appKvList = new ArrayList<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair>(0);
+    	if (sysKvList == null) sysKvList = new ArrayList<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair>(0);
+    	
+    	// Validate the names of environment variables in each list.
+    	validateEnvVariableNames(appKvList.stream().map(x -> x.getKey()).collect(Collectors.toList()), 
+    			                 "application definition");
+    	validateEnvVariableNames(sysKvList.stream().map(x -> x.getKey()).collect(Collectors.toList()), 
+                				"system definition");
+    	
+    	// Get a map of all system keys to values that are FIXED and therefore 
+    	// cannot be overwritten. Populate the list of FIXED system key/value pairs 
+    	// so that we can later check for attempts to override their values.
+    	HashMap<String, edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> fixedSysKVs = new HashMap<>();
+        for (var sysKv : sysKvList)
+        	if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.FIXED)
+        		fixedSysKVs.put(sysKv.getKey(), sysKv);
+        
+        // Set of merged application keys.
+        HashSet<String> mergedKeys = new HashSet<>();
+        
+        // Iterate through the elements in the apps list.
+        for (var appKv : appKvList) {
+            // Make sure we are not improperly overriding a FIXED system env variable.
+            var fixedSysKv = fixedSysKVs.get(appKv.getKey());
+            if (fixedSysKv != null) detectFixedEnvVarOverride(appKv, fixedSysKv); // possible exceptions here
+            
+            // Record this key as part of result keys.
+            mergedKeys.add(appKv.getKey());
+        }
+        
+        // Add any keys from the system list that are not already in app list.
+    	for (var sysKv : sysKvList) {
+    		// See if this variable has been overridden by an apps variable.
+    		if (mergedKeys.contains(sysKv.getKey())) continue;
+    		
+    		// Set the input mode to the default if it's not set.
+    		// Args that originate from the systems definition should
+    		// always have a non-null inputMode, but we double check. 
+    		var sysInputMode = sysKv.getInputMode();
+    		if (sysInputMode == null) sysInputMode = 
+    			edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.INCLUDE_BY_DEFAULT;
+    		var inputMode = edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum.valueOf(sysInputMode.name());
+          
+    		// Convert the system env variable to an app environment variable.
+    		var kv = new edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair();
+    		kv.setKey(sysKv.getKey());
+    		kv.setValue(sysKv.getValue());
+    		kv.setDescription(sysKv.getDescription());
+    		kv.setInputMode(inputMode);
+    		kv.setNotes(sysKv.getNotes());
+          
+    		// Add to app variables lists.
+    		mergedKeys.add(kv.getKey());
+    		appKvList.add(kv);
+    	}
+    	
+    	return appKvList;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* validateScratchList:                                                         */
     /* ---------------------------------------------------------------------------- */
     private void validateScratchList(List<ScratchArgSpec> scratchList, ArgTypeEnum argType)
@@ -532,129 +811,6 @@ public final class JobParmSetMarshaller
         
         // Assign each of the arguments from the scratch list.
         for (var elem : scratchList) reqList.add(elem._jobArg);
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* marshalAppAchiveFilter:                                                      */
-    /* ---------------------------------------------------------------------------- */
-//    private IncludeExcludeFilter marshalAppAchiveFilter(
-//        edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter appFilter)
-//    {
-//        // Is there anything to do?
-//        if (appFilter == null) return null;
-//        
-//        // Populate each of the filter lists.  Either or
-//        // both input lists can be null or empty; we 
-//        // initialize null lists after all assignments.
-//        IncludeExcludeFilter filter = new IncludeExcludeFilter(false);
-//        filter.setIncludes(appFilter.getIncludes());
-//        filter.setExcludes(appFilter.getExcludes());
-//        filter.setIncludeLaunchFiles(appFilter.getIncludeLaunchFiles());
-//        filter.initAll(); // assign empty lists if null
-//        
-//        return filter;
-//    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* marshalAppKvList:                                                            */
-    /* ---------------------------------------------------------------------------- */
-    /** Populate the standard sharedlib version of KeyValuePair with the generated
-     * version passed by the apps and systems service.  
-     * 
-     * Note that we trust the apps and systems inputs to conform to the schema 
-     * defined in TapisDefinitions.json.
-     * 
-     * @param appKvList apps generated kv list or null
-     * @param sysKvList systems generated kv list or null
-     * @return the populated standard list or null
-     * @throws TapisImplException 
-     */
-    public void mergeEnvVariables(
-    	List<KeyValuePair> reqKvList,
-        List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList,
-        List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysKvList) 
-     throws TapisImplException
-    {
-        // The kv list is optional.
-        if (appKvList == null && sysKvList == null) return;
-        var kvList = new ArrayList<KeyValuePair>();
-        
-        // Since an app's environment variable values take precedence over
-        // those set in the execution system, we use this set to track the
-        // app-defined environment variable names.
-        HashSet<String> appKeys = null;
-        HashMap<String,String> fixedSysKVs = null;
-        if (sysKvList != null) {
-        	appKeys = new HashSet<String>();
-        	fixedSysKVs = new HashMap<String,String>();
-        	
-        	// Populate the list of FIXED system key/value pairs so that
-        	// we can later check for attempts to override its value.
-        	for (var sysKv : sysKvList)
-        		if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.FIXED)
-        			fixedSysKVs.put(sysKv.getKey(), sysKv.getValue());
-        }
-        
-        // Copy item by item from apps list.
-        if (appKvList != null) {
-            HashSet<String> dups = new HashSet<String>(1 + appKvList.size() * 2);
-            for (var appKv : appKvList) {
-                // Reserved keys are not allowed.
-                if (appKv.getKey().startsWith(TAPIS_ENV_VAR_PREFIX)) {
-                    String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", appKv.getKey(), 
-                                                 TAPIS_ENV_VAR_PREFIX, "application");
-                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-                }
-                // Duplicates are not allowed.
-                if (!dups.add(appKv.getKey())) {
-                    String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "application definition", appKv.getKey());
-                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-                }
-
-                // Set the input mode to the default if it's not set.
-                // Args that originate from the application definition
-                // always get a non-null inputMode. 
-                var inputMode = appKv.getInputMode();
-                if (inputMode == null) inputMode = 
-                	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum.INCLUDE_BY_DEFAULT;
-                
-                var kv = new KeyValuePair();
-                if (appKeys != null) appKeys.add(appKv.getKey());
-                kv.setKey(appKv.getKey());
-                kv.setValue(appKv.getValue());
-                kv.setDescription(appKv.getDescription());
-                kv.setNotes(appKv.getNotes());
-                kvList.add(kv);
-            }
-        }
-        
-        // Copy non-conflict items from systems list.
-        if (sysKvList != null) {
-            HashSet<String> dups = new HashSet<String>(1 + sysKvList.size() * 2);
-            for (var sysKv : sysKvList) {
-                // Reserved keys are not allowed.
-                if (sysKv.getKey().startsWith(TAPIS_ENV_VAR_PREFIX)) {
-                    String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", sysKv.getKey(), 
-                                                 TAPIS_ENV_VAR_PREFIX, "execution system");
-                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-                }
-                // Duplicates are not allowed.
-                if (!dups.add(sysKv.getKey())) {
-                    String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "system definition", sysKv.getKey());
-                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-                }
-                // Values from the app have priority over those from the system.
-                if (appKeys.contains(sysKv.getKey())) continue;
-                var kv = new KeyValuePair();
-                kv.setKey(sysKv.getKey());
-                kv.setValue(sysKv.getValue());
-                kv.setDescription(sysKv.getDescription());
-                kv.setNotes(sysKv.getNotes());
-                kvList.add(kv);
-            }
-        }
-        
-//        return kvList;
     }
     
     /* **************************************************************************** */

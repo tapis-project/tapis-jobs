@@ -448,7 +448,8 @@ public final class SubmitContext
         // Get convenient access to the two parameter sets.
         // Make sure the request set it initialized.
         var appParmSet = _app.getJobAttributes().getParameterSet();
-        var reqParmSet = _submitReq.getParameterSet(); // fully initialized
+        var reqParmSet = _submitReq.getParameterSet(); 
+        reqParmSet.initAll(); // top level fully initialized
         
         // Merge the argSpecs.
         var marshaller = new JobParmSetMarshaller();

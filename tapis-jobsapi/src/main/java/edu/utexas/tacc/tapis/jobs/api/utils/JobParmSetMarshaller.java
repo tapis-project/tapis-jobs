@@ -293,8 +293,9 @@ public final class JobParmSetMarshaller
     	// ------------------- App/System Merge
         // Merge env variables from systems into env variables from apps
         // and return the resultant list that uses the app list type. This
-        // merged list is never null.  The map keys are the env variable 
-        // names and its values are the app's KeyValuePairs.
+        // merged list is never null.  The key map the env variable names to
+        // values mapping of the mergedAppKvList; it's used to quickly find
+        // same name keys during request env variable processing.
         var mergedAppKvList = mergeSysIntoAppEnvVariables(appKvList, sysKvList);
         var mergedAppKvMap = mergedAppKvList.stream().collect(
         	Collectors.toMap(edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair::getKey,
@@ -307,7 +308,8 @@ public final class JobParmSetMarshaller
         
         // Carry over valid variables from job request.
         for (var reqKv : reqKvList) {
-        	
+        	// Get the inherited env variable if one exists.
+        	var appKv = mergedAppKvMap.get(reqKv.getKey());
         }
         
         
@@ -569,10 +571,9 @@ public final class JobParmSetMarshaller
      * This method assumes it is only called when the appKv tries to override a FIXED 
      * environment variable definition from a system.
      * 
-     * @param reqArg the argument redefining an argument
-     * @param scratchSpec the original argument 
-     * @param argType semantic type of argument
-     * @throws TapisImplException when a fixed app argument is changed in a job request
+     * @param appKv env variable from application definition
+     * @param fixedSysKv env variable same key and inputMode set to FIXED, cannot be null 
+     * @throws TapisImplException when an app env variable tries to change a FIXED system variable
      */
     private void detectFixedEnvVarOverride(
     		           edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv,
@@ -594,7 +595,7 @@ public final class JobParmSetMarshaller
     			|| (appKv.getNotes() != null && appKv.getNotes().equals(fixedSysKv.getNotes()))))
     	  return;
     	
-    	// Bail out, we detected a change in the actionable part of the env variable definition. 
+    	// Bail out, we detected a change in the actionable part of the system env variable definition. 
         String msg = MsgUtils.getMsg("JOBS_FIXED_ENV_VAR_ERROR", appKv.getKey(), "application", "system");
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     }
@@ -697,9 +698,9 @@ public final class JobParmSetMarshaller
      * contains no duplicates.  The appKvList is used for both input and output.  The
      * result is the appKvList with non-overriddent system environment variable appended.
      * 
-     * @param appKvList env variables from application definition, can be null
-     * @param sysKvList env variables from system definition, can be null
-     * @return the non-null merged list of environment variables
+     * @param appKvList env variables from application definition, can be null, can be modified
+     * @param sysKvList env variables from system definition, can be null, read only
+     * @return the non-null, merged appVmList of environment variables
      * @throws TapisImplException on bad input
      */
     private List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> mergeSysIntoAppEnvVariables(
@@ -715,7 +716,7 @@ public final class JobParmSetMarshaller
     	validateEnvVariableNames(appKvList.stream().map(x -> x.getKey()).collect(Collectors.toList()), 
     			                 "application definition");
     	validateEnvVariableNames(sysKvList.stream().map(x -> x.getKey()).collect(Collectors.toList()), 
-                				"system definition");
+                				 "system definition");
     	
     	// Get a map of all system keys to values that are FIXED and therefore 
     	// cannot be overwritten. Populate the list of FIXED system key/value pairs 
@@ -764,6 +765,7 @@ public final class JobParmSetMarshaller
     		appKvList.add(kv);
     	}
     	
+    	// Possibly modified list of app env variables.
     	return appKvList;
     }
     

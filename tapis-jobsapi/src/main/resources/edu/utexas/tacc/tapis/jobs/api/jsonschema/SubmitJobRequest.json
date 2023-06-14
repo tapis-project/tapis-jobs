@@ -223,7 +223,7 @@
             "additionalProperties": false,
             "properties": {
                 "name": { "type": "string", "minLength": 1, "maxLength": 80 },
-                "description": { "type": "string", "minLength": 1, "maxLength": 8096},
+                "description": { "type": "string", "minLength": 1, "maxLength": 8096 },
                 "sourceUrls": { "type": ["array", "null"], "items": { "type": "string", "format": "uri", "minLength": 1 } },       
                 "targetDir": { "type": "string", "minLength": 1 }
             }

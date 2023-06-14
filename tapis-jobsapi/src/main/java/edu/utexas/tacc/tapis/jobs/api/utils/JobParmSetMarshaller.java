@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response.Status;
@@ -14,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppArgSpec;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ArgInputModeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -29,6 +28,13 @@ public final class JobParmSetMarshaller
     /* **************************************************************************** */
     // Environment variable names that start with this prefix are reserved for Tapis.
     private static final String TAPIS_ENV_VAR_PREFIX = Job.TAPIS_ENV_VAR_PREFIX;
+    
+    // The distinguished string value of an environment variable that is interpreted 
+    // as the variable being unset (as opposed to set to the empty string, which is 
+    // a valid value).
+    public static final String TAPIS_ENV_VAR_UNSET = "!tapis_not_set";
+    public static final String TAPIS_ENV_VAR_DEFAULT_VALUE = "";
+    public static final String TAPIS_ENV_VAR_DEFAULT_NOTES = Job.EMPTY_JSON;
     
     /* **************************************************************************** */
     /*                                   Enums                                      */
@@ -287,52 +293,108 @@ public final class JobParmSetMarshaller
     	validateEnvVariableNames(reqKvList.stream().map(x -> x.getKey()).collect(Collectors.toList()), 
     			                 "job request");
     	
+    	// Set optional include boolean to default value if it's null.
+    	for (var reqKv : reqKvList) if (reqKv.getInclude() == null) reqKv.setInclude(Boolean.TRUE);
+    	
         // The app and systems lists are optional.
         if (appKvList == null && sysKvList == null) return;
     	
     	// ------------------- App/System Merge
         // Merge env variables from systems into env variables from apps
-        // and return the resultant list that uses the app list type. This
-        // merged list is never null.  The key map the env variable names to
-        // values mapping of the mergedAppKvList; it's used to quickly find
-        // same name keys during request env variable processing.
+        // and return the resultant list that uses the app list type. The
+        // merged list is never null.
         var mergedAppKvList = mergeSysIntoAppEnvVariables(appKvList, sysKvList);
-        var mergedAppKvMap = mergedAppKvList.stream().collect(
-        	Collectors.toMap(edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair::getKey,
-        			         Function.identity()));
         
-        // ------------------- Job Request/App Merge
-        // Initialize result list and the set of result key names. 
-        var resultList = new ArrayList<KeyValuePair>(reqKvList.size() + mergedAppKvList.size());
-        var resultKeys = new HashSet<String>(1 + 2*resultList.size());
-        
-        // Carry over valid variables from job request.
-        for (var reqKv : reqKvList) {
-        	// Get the inherited env variable if one exists.
-        	var appKv = mergedAppKvMap.get(reqKv.getKey());
+        // ------------------- Filter Merged List
+        // Determine which merged env variable to keep for inclusion in the final result list.
+        // After this loop runs the mergeAppKvList will contain all the values that should end
+        // up in the final result list.
+        var mergedAppIter = mergedAppKvList.iterator();
+        while (mergedAppIter.hasNext()) {
+        	// Include the app/system env variable based on input mode
+        	// and, possibly, the include flag in the corresponding
+        	// request env variable.
+        	var appKv = mergedAppIter.next();
+    		var inputMode = appKv.getInputMode();
+    		switch (inputMode) {
+    			case FIXED:
+    			case REQUIRED:
+    				break;
+    				
+    			case INCLUDE_BY_DEFAULT:
+    				if (!includeEnvVarByDefault(appKv.getKey(), reqKvList)) 
+    					mergedAppIter.remove();
+    				break;
+    				
+    			case INCLUDE_ON_DEMAND:
+    				if (!includeEnvVarOnDemand(appKv.getKey(), reqKvList)) 
+    					mergedAppIter.remove();
+    				break;
+    		}
         }
         
-        
-        // Copy item by item from apps list.
-        if (mergedAppKvList != null) {
-            for (var appKv : mergedAppKvList) {
-                // Set the input mode to the default if it's not set.
-                // Args that originate from the application definition
-                // always get a non-null inputMode. 
-                var inputMode = appKv.getInputMode();
-                if (inputMode == null) inputMode = 
-                	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum.INCLUDE_BY_DEFAULT;
-                
-                var kv = new KeyValuePair();
-                if (resultKeys != null) resultKeys.add(appKv.getKey());
-                kv.setKey(appKv.getKey());
-                kv.setValue(appKv.getValue());
-                kv.setDescription(appKv.getDescription());
-                kv.setNotes(appKv.getNotes());
-                //kvList.add(kv);
-            }
+        // ------------------- Job Request Merge
+        // Iterate through the env variables set in the job request, merging them with those 
+        // from apps and systems variables where necessary.  Elements in the mergedAppKvList are
+        // removed as we process the reqKvList and app/system information is transferred into
+        // existing reqKv's.  The residue in mergedAppKvList are those variables assigned in
+        // apps or systems definitions that are not overridden or are referenced from the 
+        // reqKvList, and those variables will later be appended to the end of the reqKvList. 
+        var reqIter = reqKvList.iterator();
+        while (reqIter.hasNext()) {
+        	// Get the job request key/value.
+        	var reqKv = reqIter.next();
+        	
+        	// Does this key override one already in the result list?
+        	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv = null;
+        	for (var kv : mergedAppKvList) 
+        		if (reqKv.getKey().equals(kv.getKey())) {
+        			appKv = kv;
+        			break;
+        		}
+        	
+        	// Merge the job request's key/value into the existing result's 
+        	// key/value if possible.  Attempts to merge incompatible env
+        	// variables will throw an exception.
+        	if (appKv == null) {
+        		// The current reqKv should be removed from its list if
+        		// it's value is the "unset" value. 
+        		if (TAPIS_ENV_VAR_UNSET.equals(reqKv.getValue())) reqIter.remove();
+        	}
+        	else {
+        		// Either the merge (1) throws an exception, or (2) merges appKv
+        		// information into the reqKv, or (3) ignores appKv information.
+        		// In cases 2 and 3 we can safely remove the appKv from its list.
+        		mergeAppIntoReqEnvVariable(reqKv, appKv);
+        		mergedAppKvList.remove(appKv); // fast address comparison most of time 
+        	}
         }
-//        return kvList;
+        
+        // Update the existing request list with app and system variables leftover in 
+        // mergedAppKvList. The resulting list maintains the original request list ordering
+        // minus entries that were removed, followed by unreferenced app entries and then 
+        // unreferenced system entries.
+        var convertedList = mergedAppKvList.stream().map(x -> convertToKeyValuePair(x)).collect(Collectors.toList());
+        reqKvList.addAll(convertedList);
+        
+        // Validate the final list of env variables.
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* mergeAppIntoReqEnvVariable:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    private boolean mergeAppIntoReqEnvVariable(KeyValuePair reqKv, 
+    				 edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv)
+    {
+    	// The merge is determined by the input mode of the appKv.
+//    	var inputMode = appKv.get
+//    	switch () {
+//    	
+//    	}
+    	
+    	
+    	// Keep the reqKv in the result list.
+    	return true;
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -474,6 +536,72 @@ public final class JobParmSetMarshaller
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* convertToKeyValuePair:                                                       */
+    /* ---------------------------------------------------------------------------- */
+    private KeyValuePair convertToKeyValuePair(
+    	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv)
+    {
+        var jobKv = new KeyValuePair();
+        jobKv.setKey(appKv.getKey());
+        jobKv.setDescription(appKv.getDescription());
+        jobKv.setValue(appKv.getValue());
+        if (appKv.getNotes() != null)
+            jobKv.setNotes(appKv.getNotes().toString());  
+        return jobKv;
+    }
+    
+    // ==============================================
+    // Truth Table for Key/Value Inclusion
+    //  
+    //  AppArgSpec          KeyValuePair  Meaning
+    //  inputMode           include 
+    //  ---------------------------------------------
+    //  INCLUDE_ON_DEMAND   True          include arg
+    //  INCLUDE_ON_DEMAND   False         exclude arg
+    //  INCLUDE_ON_DEMAND   undefined     include arg
+    //  INCLUDE_BY_DEFAULT  True          include arg
+    //  INCLUDE_BY_DEFAULT  False         exclude arg
+    //  INCLUDE_BY_DEFAULT  undefined     include arg
+    // ==============================================
+    
+    /* ---------------------------------------------------------------------------- */
+    /* includeEnvVarByDefault:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    private boolean includeEnvVarByDefault(String appKey, List<KeyValuePair> reqList)
+    {
+        // See if the include-by-default appKey has been explicitly excluded in the request.
+        for (var reqKv : reqList) {
+            if (!appKey.equals(reqKv.getKey())) continue;
+            if (reqKv.getInclude() == null || reqKv.getInclude()) return true;
+              else return false;
+        }
+        
+        // If the appKey is not referenced in a request env variable,
+        // the default action is to respect the app definition
+        // and include it by default.
+        return true;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* includeEnvVarOnDemand:                                                          */
+    /* ---------------------------------------------------------------------------- */
+    private boolean includeEnvVarOnDemand(String appKey, List<KeyValuePair> reqList)
+    {
+        // See if the include-on-demand appArg should be included in the 
+        // request by either being simply referenced or explicitly included.
+        for (var reqKv : reqList) {
+            if (!appKey.equals(reqKv.getKey())) continue;
+            if (reqKv.getInclude() == null || reqKv.getInclude()) return true;
+              else return false;
+        }
+        
+        // If the appArg is not referenced in a request env variable,
+        // the default action is to respect the app definition
+        // and not include it.
+        return false;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* detectDuplicateAppArgNames:                                                  */
     /* ---------------------------------------------------------------------------- */
     /** Validate that there each argument in list from an application definition has
@@ -569,10 +697,11 @@ public final class JobParmSetMarshaller
      * description, it will cause this method to thrown an exception.
      * 
      * This method assumes it is only called when the appKv tries to override a FIXED 
-     * environment variable definition from a system.
+     * environment variable definition from a system and neither parameter can be null
+     * and normalizeEnvVariableLists() has been called.
      * 
-     * @param appKv env variable from application definition
-     * @param fixedSysKv env variable same key and inputMode set to FIXED, cannot be null 
+     * @param appKv non-null env variable from application definition
+     * @param fixedSysKv non-null env variable same key and inputMode set to FIXED 
      * @throws TapisImplException when an app env variable tries to change a FIXED system variable
      */
     private void detectFixedEnvVarOverride(
@@ -580,24 +709,87 @@ public final class JobParmSetMarshaller
     		           edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair fixedSysKv)
      throws TapisImplException
     {
-    	// Make sure the request doesn't materially change the env variable's definition.
-    	// Returning from here means that at most the description values may have 
-    	// changed.  Since those values are additive and are only for human consumption,
-    	// we allow it.
+    	// Make sure the app doesn't materially change the system env variable's definition.
+    	// Returning from here means that at most the description values may have changed.  
+    	// Since those values are additive and are only for human consumption, we allow it.
     	//
-    	// We protect ourselves from npe's when even in the case of env variable values
-    	// when it's unlikely that they can be null because FIXED is being used.
-    	if (appKv.getValue() != null && fixedSysKv.getValue() != null 
+    	// We don't have to worry about npe's because both lists have been normalized.
+    	if (appKv.getInputMode() == KeyValueInputModeEnum.FIXED 
     		&&
-    		appKv.getValue().equals(fixedSysKv.getValue()) 
+    		appKv.getValue().equals(fixedSysKv.getValue())
     		&& 
-    		((appKv.getNotes() == null && fixedSysKv.getNotes() == null) 
-    			|| (appKv.getNotes() != null && appKv.getNotes().equals(fixedSysKv.getNotes()))))
+    		appKv.getNotes().equals(fixedSysKv.getNotes()))
     	  return;
     	
     	// Bail out, we detected a change in the actionable part of the system env variable definition. 
         String msg = MsgUtils.getMsg("JOBS_FIXED_ENV_VAR_ERROR", appKv.getKey(), "application", "system");
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* detectFixedEnvVarOverride:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Detect whether an attempt is being made to change a fixed env variable value in a 
+     * computationally significant way.  If a job request tries to change an env variable 
+     * defined as fixed in the app or system definition in any way other than the 
+     * description, it will cause this method to thrown an exception.
+     * 
+     * This method assumes it is only called when the appKv tries to override a FIXED 
+     * environment variable definition from an app or system and neither parameter can be null.
+     * 
+     * @param reqKv non-null env variable from a job request
+     * @param fixedAppKv non-null env variable from application or system definition
+     * @throws TapisImplException when a job request env variable tries to change a FIXED app/system variable
+     */
+    private void detectFixedEnvVarOverride(KeyValuePair reqKv,
+    		           edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair fixedAppKv)
+     throws TapisImplException
+    {
+    	// Make sure the request doesn't materially change the app env variable's definition.
+    	// Returning from here means that at most the description values may have changed.  
+    	// Since those values are additive and are only for human consumption, we allow it.
+    	//
+    	// We protect ourselves from npe's when even in the case of env variable values
+    	// when it's unlikely that they can be null because FIXED is being used.
+    	if (reqKv.getValue() != null && fixedAppKv.getValue() != null 
+    		&&
+    		reqKv.getValue().equals(fixedAppKv.getValue()) 
+    		&& 
+    		((reqKv.getNotes() == null && fixedAppKv.getNotes() == null) 
+    			|| (reqKv.getNotes() != null && reqKv.getNotes().equals(fixedAppKv.getNotes()))))
+    	  return;
+    	
+    	// Bail out, we detected a change in the actionable part of the system env variable definition. 
+        String msg = MsgUtils.getMsg("JOBS_FIXED_ENV_VAR_ERROR", fixedAppKv.getKey(), "job request", "application");
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* normalizeEnvVariableLists:                                                   */
+    /* ---------------------------------------------------------------------------- */
+    /** Set default for fields that are null.
+     * 
+     * @param appKvList the original apps env variable list
+     * @param sysKvList the original systems env variable list
+     */
+    private void normalizeEnvVariableLists(
+    	List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList,
+    	List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysKvList)
+    {
+    	// Set apps list defaults.
+    	for (var kv : appKvList) {
+    		if (kv.getInputMode() == null) kv.setInputMode(KeyValueInputModeEnum.INCLUDE_BY_DEFAULT);
+    		if (kv.getValue() == null) kv.setValue(TAPIS_ENV_VAR_DEFAULT_VALUE);
+    		if (kv.getNotes() == null) kv.setNotes(TAPIS_ENV_VAR_DEFAULT_NOTES);
+    	}
+
+    	// Set systems list defaults.
+    	for (var kv : sysKvList) {
+    		if (kv.getInputMode() == null)
+    			kv.setInputMode(edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.INCLUDE_BY_DEFAULT);
+    		if (kv.getValue() == null) kv.setValue(TAPIS_ENV_VAR_DEFAULT_VALUE);
+    		if (kv.getNotes() == null) kv.setNotes(TAPIS_ENV_VAR_DEFAULT_NOTES);
+    	}
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -629,6 +821,47 @@ public final class JobParmSetMarshaller
     		// Duplicates are not allowed.
     		if (!names.add(name)) {
     			String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "job request", name);
+    			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		}
+    	}
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateSystemEnvVariables:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    private void validateSystemEnvVariables(edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair sysKv)
+     throws TapisImplException
+    {
+    	// FIXED variables must specify a concrete value.
+    	if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.FIXED) {
+    		if (TAPIS_ENV_VAR_UNSET.equals(sysKv.getValue())) {
+    			String msg = MsgUtils.getMsg("JOBS_INVALID_FIXED_ENV_VAR", "system", sysKv.getKey(),
+    					                     sysKv.getValue(), "concrete");
+    			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		}
+    	}
+    	
+    	// REQUIRED variables must specify a concrete value.
+    	if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.REQUIRED) {
+    		if (!TAPIS_ENV_VAR_UNSET.equals(sysKv.getValue())) {
+    			String msg = MsgUtils.getMsg("JOBS_INVALID_REQUIRED_ENV_VAR", "system", sysKv.getKey(),
+    					                     sysKv.getValue(), TAPIS_ENV_VAR_UNSET);
+    			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		}
+    	}
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateAppEnvVariables:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    private void validateAppEnvVariables(edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair sysKv)
+     throws TapisImplException
+    {
+    	// FIXED variables must specify a concrete value.
+    	if (sysKv.getInputMode() == edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum.FIXED) {
+    		if (TAPIS_ENV_VAR_UNSET.equals(sysKv.getValue())) {
+    			String msg = MsgUtils.getMsg("JOBS_INVALID_FIXED_ENV_VAR", "system", sysKv.getKey(),
+    					                     sysKv.getValue(), "concrete");
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
     	}
@@ -711,6 +944,7 @@ public final class JobParmSetMarshaller
     	// Normalize input lists.  The appKvList is also used as the output list.
     	if (appKvList == null) appKvList = new ArrayList<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair>(0);
     	if (sysKvList == null) sysKvList = new ArrayList<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair>(0);
+    	normalizeEnvVariableLists(appKvList, sysKvList);
     	
     	// Validate the names of environment variables in each list.
     	validateEnvVariableNames(appKvList.stream().map(x -> x.getKey()).collect(Collectors.toList()), 
@@ -722,20 +956,58 @@ public final class JobParmSetMarshaller
     	// cannot be overwritten. Populate the list of FIXED system key/value pairs 
     	// so that we can later check for attempts to override their values.
     	HashMap<String, edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> fixedSysKVs = new HashMap<>();
-        for (var sysKv : sysKvList)
+        for (var sysKv : sysKvList) {
+        	validateSystemEnvVariables(sysKv); // possible exceptions here
         	if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.FIXED)
         		fixedSysKVs.put(sysKv.getKey(), sysKv);
+        }
         
         // Set of merged application keys.
-        HashSet<String> mergedKeys = new HashSet<>();
+        final HashSet<String> mergedKeys = new HashSet<>();
         
         // Iterate through the elements in the apps list.
         for (var appKv : appKvList) {
+        	// Basic validation.
+        	validateAppEnvVariables(appKv); // possible exceptions here
+        	
             // Make sure we are not improperly overriding a FIXED system env variable.
             var fixedSysKv = fixedSysKVs.get(appKv.getKey());
             if (fixedSysKv != null) detectFixedEnvVarOverride(appKv, fixedSysKv); // possible exceptions here
             
-            // Record this key as part of result keys.
+            // Check system list for same named env variable. Linear search is fine since
+            // we don't expect many environment variables to be set in system definitions.
+            edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair sysKv = null;
+            for (var kv : sysKvList) 
+            	if (appKv.getKey().equals(kv.getKey())) {
+            		sysKv = kv;
+            		break;
+            	}
+            
+            // Combine app and system definitions when possible. Note almost always the apps fields
+            // override the systems fields, including cases where a concrete system value is unset
+            // because the apps value is TAPIS_ENV_VAR_UNSET. See below for the one exception to
+            // this involving a REQUIRED system env variable.  We concatenate the apps and systems 
+            // descriptions when both exist.
+            if (sysKv != null) {
+            	// The only case where information from the system definition overrides 
+            	// information in the apps definition is when the system's inputMode mode 
+            	// is REQUIRED and the app's is INCLUDE_*.
+            	if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.FIXED
+            	    && 
+            	    (appKv.getInputMode() == KeyValueInputModeEnum.INCLUDE_BY_DEFAULT ||
+            	     appKv.getInputMode() == KeyValueInputModeEnum.INCLUDE_ON_DEMAND))
+            		appKv.setInputMode(KeyValueInputModeEnum.REQUIRED); // inputMode promotion
+            	
+            	// Combine descriptions if both exist.
+            	if (!StringUtils.isBlank(sysKv.getDescription()))
+            		if (StringUtils.isBlank(appKv.getDescription()))
+            			appKv.setDescription(sysKv.getDescription());
+            		else 
+            			appKv.setDescription(appKv.getDescription() + "\n\n" + sysKv.getDescription());
+            }
+            
+            // Record this key as part of result keys so that
+            // system keys with the same name are skipped below.
             mergedKeys.add(appKv.getKey());
         }
         
@@ -747,10 +1019,8 @@ public final class JobParmSetMarshaller
     		// Set the input mode to the default if it's not set.
     		// Args that originate from the systems definition should
     		// always have a non-null inputMode, but we double check. 
-    		var sysInputMode = sysKv.getInputMode();
-    		if (sysInputMode == null) sysInputMode = 
-    			edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.INCLUDE_BY_DEFAULT;
-    		var inputMode = edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum.valueOf(sysInputMode.name());
+    		var sysInputMode = sysKv.getInputMode(); // normalized to not be null
+    		var inputMode = KeyValueInputModeEnum.valueOf(sysInputMode.name());
           
     		// Convert the system env variable to an app environment variable.
     		var kv = new edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair();
@@ -759,13 +1029,13 @@ public final class JobParmSetMarshaller
     		kv.setDescription(sysKv.getDescription());
     		kv.setInputMode(inputMode);
     		kv.setNotes(sysKv.getNotes());
-          
+    		
     		// Add to app variables lists.
     		mergedKeys.add(kv.getKey());
     		appKvList.add(kv);
     	}
     	
-    	// Possibly modified list of app env variables.
+    	// Return the possibly modified list of app env variables.
     	return appKvList;
     }
     

@@ -345,7 +345,7 @@ public final class JobParmSetMarshaller
         	// Get the job request key/value.
         	var reqKv = reqIter.next();
         	
-        	// Does this key override one already in the result list?
+        	// Does this key override one already in the merged list?
         	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv = null;
         	for (var kv : mergedAppKvList) 
         		if (reqKv.getKey().equals(kv.getKey())) {

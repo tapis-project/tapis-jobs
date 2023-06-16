@@ -235,27 +235,30 @@ public final class JobParmSetMarshaller
         // Determine which merged env variable to keep for inclusion in the final result list.
         // After this loop runs the mergeAppKvList will contain all the values that should end
         // up in the final result list.
-        var mergedAppIter = mergedAppKvList.iterator();
-        while (mergedAppIter.hasNext()) {
-        	// Include the app/system env variable based on input mode and, possibly, 
-        	// the include flag in the corresponding request env variable.
-        	var appKv = mergedAppIter.next();
-    		var inputMode = appKv.getInputMode();
-    		switch (inputMode) {
-    			case FIXED:
-    			case REQUIRED:
-    				break;
+        {
+        	// Start a new block to limit scope of iterator.
+        	var mergedAppIter = mergedAppKvList.iterator();
+        	while (mergedAppIter.hasNext()) {
+        		// Include the app/system env variable based on input mode and, possibly, 
+        		// the include flag in the corresponding request env variable.
+        		var appKv = mergedAppIter.next();
+        		var inputMode = appKv.getInputMode();
+        		switch (inputMode) {
+    				case FIXED:
+    				case REQUIRED:
+    					break;
     				
-    			case INCLUDE_BY_DEFAULT:
-    				if (!includeEnvVarByDefault(appKv, reqKvList)) 
-    					mergedAppIter.remove();
-    				break;
+    				case INCLUDE_BY_DEFAULT:
+    					if (!includeEnvVarByDefault(appKv, reqKvList)) 
+    						mergedAppIter.remove();
+    					break;
     				
-    			case INCLUDE_ON_DEMAND:
-    				if (!includeEnvVarOnDemand(appKv.getKey(), reqKvList)) 
-    					mergedAppIter.remove();
-    				break;
-    		}
+    				case INCLUDE_ON_DEMAND:
+    					if (!includeEnvVarOnDemand(appKv.getKey(), reqKvList)) 
+    						mergedAppIter.remove();
+    					break;
+        		}
+        	}
         }
         
         // ------------------- Job Request Merge

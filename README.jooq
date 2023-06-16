@@ -1,0 +1,24 @@
+TapisV3 Jobs JOOQ Notes
+=======================================
+
+-------------------------------------
+Schema updates
+-------------------------------------
+Whenever the DB schema is updated it will be necessary to regenerate the jooq java code.
+To update the schema and re-create the jooq code:
+
+1. Create the sql migration script  in tapis-jobsmigrate/src/resources/edu/utexas/tacc/tapis/jobsmigrate/sql
+2. Make necessary changes to the data model and DAO reflecting the schema changes. e.g, Job and JobsDao
+3. Generate/update the jooq source code and schema: 
+   a. mvn clean install
+   b. cd tapis-jobslib
+   c. mvn -f shaded-pom.xml clean install
+   d. Run the migration script - It will generate the DB schema
+   e. mvn -f jooq-pom.xml clean install - Generate the updated jooq schema and code
+4. Compile Jobs again with jooq generated code
+      a. cd ..
+      a. mvn clean install
+      b. mvn -f shaded-pom.xml clean install
+5. If there is still some compilation error, try to look in JobsDao and jooq-pom.xml
+6. Using "git status" you should be able to see the updates to the jooq source code.
+7. Commit the updates.

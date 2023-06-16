@@ -9,11 +9,12 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.3.6 - 2023-06-12
+## 1.3.6 - 2023-06-22
 
 ### New features:
 1. Enable the *--rm* container option in the docker container runtime.  If present, this option is passed on the *docker run* command forcing the container to be deleted after it runs.  Logs and other application output should be explicitly saved to file by applications when such information needs to outlive container execution.   
 
+2. Support for extended environment variable definitions in Apps and Systems, as well as the addition of the notes and include fields in Jobs environment variable definitions.
 
 -----------------------
 ## 1.3.5 - 2023-06-01

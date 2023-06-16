@@ -274,8 +274,10 @@ public final class JobParmSetMarshaller
         	var reqKv = reqIter.next();
         	
         	// Does this key override one already in the merged list?
-        	for (var appKv : mergedAppKvList) {
+        	var mergedAppIter = mergedAppKvList.iterator();
+        	while (mergedAppIter.hasNext()) {
         		// For merging, we're only interested in matches.
+        		var appKv = mergedAppIter.next();
         		if (!reqKv.getKey().equals(appKv.getKey())) continue;
         	
             	// Merge the job request's key/value into the existing result's 
@@ -286,7 +288,7 @@ public final class JobParmSetMarshaller
         		// appKv information for insertion into the reqKv.  In the latter
         		// case, we can safely remove the appKv from its list.
         		mergeAppIntoReqEnvVariable(reqKv, appKv);
-        		mergedAppKvList.remove(appKv); // fast address comparison most of time 
+        		mergedAppIter.remove(); 
         	}
         }
         

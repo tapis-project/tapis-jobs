@@ -16,6 +16,8 @@ https://tapis-project.github.io/live-docs
 
 2. Support for extended environment variable definitions in Apps and Systems, as well as the addition of the notes and include fields in Jobs environment variable definitions.
 
+3. Increased SSH and FileClient timeouts to avoid canceling slow network operations that will probably succeed.
+
 -----------------------
 ## 1.3.5 - 2023-06-01
 

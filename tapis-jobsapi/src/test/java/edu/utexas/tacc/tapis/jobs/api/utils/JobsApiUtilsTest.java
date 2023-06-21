@@ -112,7 +112,7 @@ public class JobsApiUtilsTest
     
     @Test(enabled=false)
     public void jsonSpaces() {
-    	// Test if keys with embedded spaces are accepted.
+    	// Test whether keys with embedded spaces are accepted.
     	String json = """
     		{
     			"key with spaces": "value and space",

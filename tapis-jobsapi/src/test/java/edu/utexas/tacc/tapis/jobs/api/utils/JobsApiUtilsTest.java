@@ -11,7 +11,10 @@ import javax.ws.rs.core.Response.Status;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.gson.JsonObject;
+
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 public class JobsApiUtilsTest 
 {
@@ -105,6 +108,17 @@ public class JobsApiUtilsTest
             				         Function.identity()));
         
         System.out.println(mergedAppKvMap.size());
-
+    }
+    
+    @Test(enabled=false)
+    public void jsonSpaces() {
+    	// Test if keys with embedded spaces are accepted.
+    	String json = """
+    		{
+    			"key with spaces": "value and space",
+    			"nested x": {"key2 with spaces": "value2 and space"}
+    		}""";
+    	
+    	TapisGsonUtils.getGson().fromJson(json, JsonObject.class);
     }
 }

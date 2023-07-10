@@ -9,6 +9,12 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.4.0 - 2023-07-17
+
+### New features:
+1. Tapis 1.4.0 release.
+
+-----------------------
 ## 1.3.6 - 2023-06-22
 
 ### New features:

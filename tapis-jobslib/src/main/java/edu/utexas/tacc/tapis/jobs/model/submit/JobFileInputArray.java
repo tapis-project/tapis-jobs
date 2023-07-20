@@ -14,6 +14,7 @@ public class JobFileInputArray
     private String       description;
     private List<String> sourceUrls;
     private String       targetDir;
+    private Object       notes;
     
     @Schema(hidden = true)
     private boolean      optional = false;
@@ -113,4 +114,10 @@ public class JobFileInputArray
     public void setDestSharedAppCtx(String destSharedAppCtx) {
         this.destSharedAppCtx = destSharedAppCtx;
     }
+	public Object getNotes() {
+		return notes;
+	}
+	public void setNotes(Object notes) {
+		this.notes = notes;
+	}
 }

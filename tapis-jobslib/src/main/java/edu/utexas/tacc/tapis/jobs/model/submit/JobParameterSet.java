@@ -18,6 +18,7 @@ public class JobParameterSet
     private List<JobArgSpec>     schedulerOptions;
     private List<KeyValuePair>   envVariables;
     private IncludeExcludeFilter archiveFilter;
+    private LogConfig            logConfig; 
     
     // Constructors.
     public JobParameterSet() {this(true);}
@@ -32,6 +33,7 @@ public class JobParameterSet
         if (schedulerOptions == null) schedulerOptions = new ArrayList<JobArgSpec>();
         if (envVariables == null) envVariables = new ArrayList<KeyValuePair>();
         if (archiveFilter == null) archiveFilter = new IncludeExcludeFilter(); // initAll called
+        if (logConfig == null) logConfig = new LogConfig();
     }
     
     public List<JobArgSpec> getAppArgs() {
@@ -64,4 +66,10 @@ public class JobParameterSet
     public void setArchiveFilter(IncludeExcludeFilter archiveFilter) {
         this.archiveFilter = archiveFilter;
     }
+	public LogConfig getLogConfig() {
+		return logConfig;
+	}
+	public void setLogConfig(LogConfig logConfig) {
+		this.logConfig = logConfig;
+	}
 }

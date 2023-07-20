@@ -13,6 +13,7 @@ public class JobFileInput
     private Boolean autoMountLocal;
     private String  sourceUrl;
     private String  targetPath;
+    private Object  notes;
     
     @Schema(hidden = true)
     private boolean optional = false;
@@ -101,4 +102,10 @@ public class JobFileInput
     public void setDestSharedAppCtx(String destSharedAppCtx) {
         this.destSharedAppCtx = destSharedAppCtx;
     }
+	public Object getNotes() {
+		return notes;
+	}
+	public void setNotes(Object notes) {
+		this.notes = notes;
+	}
 }

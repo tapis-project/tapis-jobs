@@ -16,7 +16,7 @@ public final class TransferMonitorFactory
     public static TransferMonitor getMonitor()
      throws TapisRuntimeException
     {
-        // Try each monitor in the prefered order.
+        // Try each monitor in the preferred order.
         if (_eventDrivenAvailable) return new EventDrivenMonitor();
         if (_pollingAvailable)     return new PollingMonitor();
         

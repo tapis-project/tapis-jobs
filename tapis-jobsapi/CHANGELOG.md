@@ -9,6 +9,12 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.4.1 - 2023-07-20
+
+### Bug fixes:
+1. Canonicalize job request paths to start with a slash. This allows path equality tests to not return false negatives, which is especially important when setting up file transfers.
+
+-----------------------
 ## 1.4.0 - 2023-07-17
 
 ### New features:

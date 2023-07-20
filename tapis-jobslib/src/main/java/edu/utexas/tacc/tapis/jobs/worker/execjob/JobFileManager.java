@@ -256,7 +256,7 @@ public final class JobFileManager
         // Determine if archiving is necessary.
         if (_job.getRemoteOutcome() == JobRemoteOutcome.FAILED_SKIP_ARCHIVE) return;
         
-        // Determine if we are restarting a previous staging request.
+        // Determine if we are restarting a previous archiving request.
         var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
         String transferId = transferInfo.archiveTransactionId;
         String corrId     = transferInfo.archiveCorrelationId;
@@ -515,7 +515,7 @@ public final class JobFileManager
             {
                 // We need to filter each and every file, so we need to retrieve 
                 // the output directory file listing.  Get the client from the 
-                // context now to catch errors early.  We also set the 
+                // context now to catch errors early.  We initialize the unfiltered list.
                 FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
                 var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
                                                        _job.getExecSystemOutputDir());
@@ -651,7 +651,7 @@ public final class JobFileManager
         // Check the most common ways to express all strings using glob.
         if (filters.contains("**/*")) return true;
         
-        // Check the common way to expess all strings using a regex.
+        // Check the common way to express all strings using a regex.
         if (filters.contains("REGEX(.*)")) return true;
         
         // No no-op filters found.
@@ -876,7 +876,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on a file pathname and the execution system id.  
      * Implicit in the tapis protocol is that the Files service will prefix path 
-     * portion of the url with  the execution system's rootDir when actually 
+     * portion of the url with the execution system's rootDir when actually 
      * transferring files. 
      * 
      * The pathName can be null or empty.
@@ -894,7 +894,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on a file pathname and the execution system id.  
      * Implicit in the tapis protocol is that the Files service will prefix path 
-     * portion of the url with  the execution system's rootDir when actually 
+     * portion of the url with the execution system's rootDir when actually 
      * transferring files. 
      * 
      * The pathName can be null or empty.

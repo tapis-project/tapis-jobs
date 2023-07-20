@@ -39,7 +39,6 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
-import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
@@ -599,7 +598,7 @@ public final class SubmitContext
                 
         // Assign the archive system object if it's the same as the execution system.
         if (_submitReq.getArchiveSystemId().equals(_submitReq.getExecSystemId()))
-            _archiveSystem = _execSystem;
+            _archiveSystem = _execSystem;  // Note address equality assigned here
         else {
             // Load the archive system if it's different from the execution system,
             // which is the same as saying that it hasn't been assigned yet.
@@ -801,7 +800,7 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getArchiveSystemDir()))
             _submitReq.setArchiveSystemDir(_app.getJobAttributes().getArchiveSystemDir());
         if (StringUtils.isBlank(_submitReq.getArchiveSystemDir()))
-            if (_archiveSystem == _execSystem) 
+            if (_archiveSystem == _execSystem) // Address equality OK here (see resolveSystems())
                 // Leave the output in place when the exec system is also the archive system.
                 _submitReq.setArchiveSystemDir(_submitReq.getExecSystemOutputDir());
             else if (useDTN)
@@ -976,40 +975,58 @@ public final class SubmitContext
     {
         // --------------------- Canonicalize JobWorkingDir ----------------------
     	var dirName = JobTemplateVariables.JobWorkingDir.name();
-        try {_macros.put(dirName, Path.of(_macros.get(dirName)).toString());}
+        try {_macros.put(dirName, enforceSlashPolicy(_macros.get(dirName)));}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
                                              "JobWorkingDir", _macros.get(dirName));
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         // --------------------- Canonicalize ExecSystemInputDir -----------------
-        try {_submitReq.setExecSystemInputDir(Path.of(_submitReq.getExecSystemInputDir()).toString());}
+        try {_submitReq.setExecSystemInputDir(enforceSlashPolicy(_submitReq.getExecSystemInputDir()));}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
                                              "ExecSystemInputDir", _submitReq.getExecSystemInputDir());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         // --------------------- Canonicalize ExecSystemExecDir ------------------
-        try {_submitReq.setExecSystemExecDir(Path.of(_submitReq.getExecSystemExecDir()).toString());}
+        try {_submitReq.setExecSystemExecDir(enforceSlashPolicy(_submitReq.getExecSystemExecDir()));}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
                                              "ExecSystemExecDir", _submitReq.getExecSystemExecDir());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         // --------------------- Canonicalize ExecSystemOutputDir ----------------
-        try {_submitReq.setExecSystemOutputDir(Path.of(_submitReq.getExecSystemOutputDir()).toString());}
+        try {_submitReq.setExecSystemOutputDir(enforceSlashPolicy(_submitReq.getExecSystemOutputDir()));}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
                                              "ExecSystemOutputDir", _submitReq.getExecSystemOutputDir());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         // --------------------- Canonicalize ArchiveSystemDir -------------------
-        try {_submitReq.setArchiveSystemDir(Path.of(_submitReq.getArchiveSystemDir()).toString());}
+        try {_submitReq.setArchiveSystemDir(enforceSlashPolicy(_submitReq.getArchiveSystemDir()));}
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CANONICALIZE_PATH_ERROR",
                                              "ArchiveSystemDir", _submitReq.getArchiveSystemDir());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* enforceSlashPolicy:                                                          */
+    /* ---------------------------------------------------------------------------- */
+    /** Replace multiple slashes with a single slash, remove trailing slashes, and
+     * ensure that the output string begins with a slash.
+     * 
+     * This method is intended to work on posix path names only (not uri's).
+     * 
+     * @param s a non-null string representing a posix path
+     * @throws InvalidPathException (unchecked)
+     */
+    private String enforceSlashPolicy(String s)
+    {
+    	var t = Path.of(s).toString();
+    	if (!t.startsWith("/")) t = "/" + t;
+    	return t;
     }
     
     /* ---------------------------------------------------------------------------- */

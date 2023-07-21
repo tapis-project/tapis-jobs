@@ -34,6 +34,8 @@ public class JobFileInput
         reqInput.setSourceUrl(appInput.getSourceUrl());
         reqInput.setTargetPath(appInput.getTargetPath());
         
+        reqInput.setNotes(appInput.getNotes());
+        
         // The default input mode is optional.
         if (appInput.getInputMode() == null ||
             appInput.getInputMode() == FileInputModeEnum.OPTIONAL)

@@ -19,9 +19,9 @@ public class JobFileInputArray
     @Schema(hidden = true)
     private boolean      optional = false;
     @Schema(hidden = true)
-    private String      srcSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
+    private String       srcSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     @Schema(hidden = true)
-    private String     destSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
+    private String       destSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     
     public boolean emptySourceUrls()
     {return sourceUrls == null || sourceUrls.isEmpty();}
@@ -60,6 +60,7 @@ public class JobFileInputArray
         reqInput.setDescription(appInput.getDescription());
         reqInput.setSourceUrls(appInput.getSourceUrls());
         reqInput.setTargetDir(appInput.getTargetDir());
+        reqInput.setNotes(appInput.getNotes());
         if (appInput.getInputMode() == null ||
             appInput.getInputMode() == FileInputModeEnum.OPTIONAL)
             reqInput.setOptional(true);

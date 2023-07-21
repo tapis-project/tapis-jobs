@@ -1270,6 +1270,12 @@ public final class SubmitContext
         // Set the optional flag in the request input.
         if (inputMode == FileInputModeEnum.OPTIONAL) reqInput.setOptional(true);
         
+        // Choose a notes value and then validate that it's JSON and convert to string.
+        // Null notes are returned as the string form of the empty JSON object.
+        Object notes = reqInput.getNotes();
+        if (notes == null) notes = appDef.getNotes();
+        reqInput.setNotes(JobsApiUtils.convertInputObjectToString(notes));
+        
         // Successfully merged into a complete request.
         return true;
     }
@@ -1342,6 +1348,20 @@ public final class SubmitContext
                                          "autoMountLocal", reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+
+        // --- Notes
+        if (reqInput.getNotes() == null)
+        	reqInput.setNotes(JobsApiUtils.convertInputObjectToString(appDef.getNotes()));
+        else {
+        	var reqJson = JobsApiUtils.convertInputObjectToString(reqInput.getNotes());
+        	var appJson = JobsApiUtils.convertInputObjectToString(appDef.getNotes());
+        	if (!reqJson.equals(appJson)) {
+                String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                            "notes", reqInput.getName());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        	}
+        	reqInput.setNotes(reqJson); // converted to string representation
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1379,6 +1399,10 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         sanitizePath(reqInput.getTargetPath(), "fileInputs.targetPath");
+        
+        // Make sure the notes field is valid JSON and convert it into a string.
+        // Nulls are converted to the empty JSON object as string.
+        reqInput.setNotes(JobsApiUtils.convertInputObjectToString(reqInput.getNotes()));
 
         // Set the automount default value if needed.
         if (reqInput.getAutoMountLocal() == null) 
@@ -1592,6 +1616,12 @@ public final class SubmitContext
         // Set the optional flag in the request input.
         if (inputMode == FileInputModeEnum.OPTIONAL) reqInput.setOptional(true);
         
+        // Choose a notes value and then validate that it's JSON and convert to string.
+        // Null notes are returned as the string form of the empty JSON object.
+        Object notes = reqInput.getNotes();
+        if (notes == null) notes = appDef.getNotes();
+        reqInput.setNotes(JobsApiUtils.convertInputObjectToString(notes));
+        
         // Successfully merged into a complete request.
         return true;
     }
@@ -1656,6 +1686,20 @@ public final class SubmitContext
                                          "destination", reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        
+        // --- Notes
+        if (reqInput.getNotes() == null)
+        	reqInput.setNotes(JobsApiUtils.convertInputObjectToString(appDef.getNotes()));
+        else {
+        	var reqJson = JobsApiUtils.convertInputObjectToString(reqInput.getNotes());
+        	var appJson = JobsApiUtils.convertInputObjectToString(appDef.getNotes());
+        	if (!reqJson.equals(appJson)) {
+                String msg = MsgUtils.getMsg("JOBS_FIXED_INPUT_ERROR", _app.getId(), 
+                                            "notes", reqInput.getName());
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        	}
+        	reqInput.setNotes(reqJson); // converted to string representation
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1693,6 +1737,10 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         sanitizePath(reqInput.getTargetDir(), "fileInputArrays.targetDir");
+        
+        // Make sure the notes field is valid JSON and convert it into a string.
+        // Nulls are converted to the empty JSON object as string.
+        reqInput.setNotes(JobsApiUtils.convertInputObjectToString(reqInput.getNotes()));
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1753,6 +1801,9 @@ public final class SubmitContext
             }
             else name1 = curArray.getName() + suffix + "1"; 
             
+            // Convert the note field one time outside the sourceurl loop.
+            final var convertedNotes = JobsApiUtils.convertInputObjectToString(curArray.getNotes());
+            
             // Iterate through the source urls.
             for (int j = 0; j < curArray.getSourceUrls().size(); j++) {
                 // Create a new input object.
@@ -1769,6 +1820,7 @@ public final class SubmitContext
                 reqInput.setDescription(j == 0 ? curArray.getDescription() : null);
                 reqInput.setAutoMountLocal(Boolean.FALSE);
                 reqInput.setOptional(curArray.isOptional());
+                reqInput.setNotes(convertedNotes);
                 
                 // Assign source path and prohibit tapislocal urls.
                 reqInput.setSourceUrl(curArray.getSourceUrls().get(j));

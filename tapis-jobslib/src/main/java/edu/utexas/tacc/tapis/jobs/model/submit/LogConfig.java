@@ -8,13 +8,28 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class LogConfig 
 {
 	// Default is to merge stdout and stderr into a single file.
+	// These values are used in some runtimes and ignored in others.
     private String  stdoutFilename;
     private String  stderrFilename;
     
     @Schema(hidden = true)
-    public void safeInit() {
-    	if (StringUtils.isBlank(stdoutFilename)) stdoutFilename = JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE;
-    	if (StringUtils.isBlank(stderrFilename)) stderrFilename = JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE;
+    public void setToDefault() {
+    	stdoutFilename = JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE;
+    	stderrFilename = JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE;
+    }
+    
+    @Schema(hidden = true)
+    public boolean isComplete() {
+    	return !StringUtils.isBlank(stdoutFilename) && !StringUtils.isBlank(stderrFilename);
+    }
+    
+    @Schema(hidden = true)
+    public boolean canMerge() {
+    	// This method shouldn't be called until the object is complete,
+    	// but just the same we avoid blowing up. If the out and err files
+    	// are the same the intent is to target a single file.
+    	if (stdoutFilename == null) return false;
+    	return stdoutFilename.equals(stderrFilename);
     }
     
     // Accessors

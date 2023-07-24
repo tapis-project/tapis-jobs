@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.model;
 
 import java.nio.file.FileSystems;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -24,6 +25,7 @@ import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetLogConfig;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
@@ -41,6 +43,7 @@ import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
+import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
 import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
 import edu.utexas.tacc.tapis.jobs.utils.MacroResolver;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -466,10 +469,54 @@ public final class SubmitContext
         // Merge the archive filters.
         marshaller.mergeArchiveFilters(reqParmSet.getArchiveFilter(), appParmSet.getArchiveFilter());
         
+        // Assign the log configuration.
+        assignLogConfig(reqParmSet.getLogConfig(), appParmSet.getLogConfig());
+        
         // Validate parameter set components.
         validateArchiveFilters(reqParmSet.getArchiveFilter().getIncludes(), "includes");
         validateArchiveFilters(reqParmSet.getArchiveFilter().getExcludes(), "excludes");
         validateSchedulerProfile(reqParmSet.getSchedulerOptions());
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* assignLogConfig:                                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** Assign the log configuration using values with this precedence ordering:
+     * 
+     *  	1. job request
+     *  	2. app definition
+     *  	3. defaults
+     * 
+     * File name values, when present, have already been validated: either both file
+     * names are provided or neither is.  The changes are immediately reflected in the 
+     * submission request logConfig, which is always completely initialized when this 
+     * method returns.  
+     * 
+     * @param reqConfig non-null submission request configuration
+     * @param appConfig archive filter from application, possibly null\
+     * @throws TapisImplException
+     */
+    public void assignLogConfig(LogConfig reqConfig, ParameterSetLogConfig appConfig) 
+    {
+    	// We're done if the request already assigned its log configuration. Schema 
+    	// enforcement guarantees that either both or neither file names are assigned.
+    	if (reqConfig.isComplete()) return;
+    	
+    	// Should we use the defaults?
+    	if (appConfig == null) {
+    		reqConfig.setToDefault();
+    		return;
+    	}
+    	
+    	// Use the app's configuration which we know is well-formed because
+    	// of the checks in validateApp(), so either both of the file names
+    	// are provided or neither are.
+    	if (StringUtils.isBlank(appConfig.getStdoutFilename()))
+    		reqConfig.setToDefault();
+    	else {
+    		reqConfig.setStdoutFilename(appConfig.getStdoutFilename());
+    		reqConfig.setStderrFilename(appConfig.getStderrFilename());
+    	}
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2016,7 +2063,11 @@ public final class SubmitContext
         // the other substitutions have been resolved, so simple, non-recursive 
         // substitution is all that's needed.  _submitReq is directly updated.
         resolveSchedulerOptionMacros();
-}
+        
+        // Special case macro resolution that prohibits the appearance of the directory
+        // separater, /, in the resulting file name.
+        resolveLogConfigMacros();
+    }
     
     /* ---------------------------------------------------------------------------- */
     /* resolveMacros:                                                               */
@@ -2075,6 +2126,24 @@ public final class SubmitContext
         }
     }
     
+    /* ---------------------------------------------------------------------------- */
+    /* resolveLogConfigMacros:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** Resolve macros if they appear in the log configuration. */
+    private void resolveLogConfigMacros()
+    {
+        // Get the parameter set.
+        var parmset = _submitReq.getParameterSet();
+        if (parmset == null) return;
+        
+        // Get the log configuration which must be non-null by now. We call the
+        // simple non-recursive macro substitution method because all macros values
+        // should be fully resolved by now and HOST_EVAL is not allowed here.
+        var logConfig = parmset.getLogConfig();
+        logConfig.setStdoutFilename(replaceMacros(logConfig.getStdoutFilename()));
+        logConfig.setStderrFilename(replaceMacros(logConfig.getStderrFilename()));
+    }
+        
     /* ---------------------------------------------------------------------------- */
     /* getSystemsClient:                                                            */
     /* ---------------------------------------------------------------------------- */
@@ -2357,6 +2426,22 @@ public final class SubmitContext
                                              app.getId());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
+        }
+        
+        // Check that the log configuration is complete if it's provided.  Either both
+        // file names are null or both are provided; it's an error if only 1 is provided.
+        if (app.getJobAttributes() != null && app.getJobAttributes().getParameterSet() != null)
+        {
+        	var appConfig = app.getJobAttributes().getParameterSet().getLogConfig();
+        	if (appConfig != null) {
+        		boolean out = StringUtils.isBlank(appConfig.getStdoutFilename());
+        		boolean err = StringUtils.isBlank(appConfig.getStderrFilename());
+        		if (out ^ err) {
+        			String msg = MsgUtils.getMsg("JOBS_INCOMPLETE_APP_LOGCONFIG", 
+                                             	 _job.getUuid(), app.getId());
+        			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        		}
+        	}
         }
     }
     

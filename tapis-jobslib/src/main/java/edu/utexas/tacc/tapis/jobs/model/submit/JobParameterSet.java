@@ -33,7 +33,7 @@ public class JobParameterSet
         if (schedulerOptions == null) schedulerOptions = new ArrayList<JobArgSpec>();
         if (envVariables == null) envVariables = new ArrayList<KeyValuePair>();
         if (archiveFilter == null) archiveFilter = new IncludeExcludeFilter(); // initAll called
-        if (logConfig == null) logConfig = new LogConfig();
+        if (logConfig == null) logConfig = new LogConfig(); // internal members unassigned
     }
     
     public List<JobArgSpec> getAppArgs() {

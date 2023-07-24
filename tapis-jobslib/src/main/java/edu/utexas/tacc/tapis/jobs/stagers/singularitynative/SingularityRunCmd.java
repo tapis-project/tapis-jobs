@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
 
 public final class SingularityRunCmd 
  extends AbstractSingularityExecCmd
@@ -21,9 +22,10 @@ public final class SingularityRunCmd
     private boolean         vmErr;    // enable attaching stderr from VM
     private String          vmIP;     // IP Address to assign for container usage, default is DHCP in bridge network
     private String          vmRAM;    // amount of RAM in MiB to allocate to Virtual Machine (default "1024")
-    
-    // Redirect stdout/stderr to a file in the output directory.
-    private String          redirectFile;
+
+    // Redirect stdout/stderr to a combined file or to separate files in the output directory.
+    // The paths in this object are absolute, fully resolved to the job's output directory.
+    private LogConfig       logConfig;
     
     /* ********************************************************************** */
     /*                             Public Methods                             */
@@ -66,9 +68,7 @@ public final class SingularityRunCmd
             buf.append(getAppArguments()); // begins with space char
         
         // ------ Run as a background command with stdout/stderr redirected to a file.
-        buf.append(" > ");
-        buf.append(getRedirectFile());
-        buf.append(" 2>&1 &\n\n");
+        addOutputRedirection(buf);
         
         // ------ Collect the PID of the background process.
         buf.append("# Capture and return the PID of the background process.\n");
@@ -179,6 +179,30 @@ public final class SingularityRunCmd
             buf.append(getVmRAM());
         }
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* addRunSpecificArgs:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** Add the stdout and stderr redirection to either a single combined file
+     * or to two separate files. Append the background operator and proper new
+     * line spacing.
+     * 
+     * @param buf the command buffer
+     */
+    private void addOutputRedirection(StringBuilder buf)
+    {
+    	if (getLogConfig().canMerge()) {
+    		buf.append(" > ");
+    		buf.append(getLogConfig().getStdoutFilename());
+    		buf.append(" 2>&1 &\n\n");
+    	} else {
+    		buf.append(" 2> ");
+    		buf.append(getLogConfig().getStderrFilename());
+    		buf.append(" 1> ");
+    		buf.append(getLogConfig().getStdoutFilename());
+    		buf.append(" &\n\n");
+    	}
+    }
 
     /* ********************************************************************** */
     /*                               Accessors                                */
@@ -263,11 +287,11 @@ public final class SingularityRunCmd
         this.vmRAM = vmRAM;
     }
 
-    public String getRedirectFile() {
-        return redirectFile;
-    }
+	public LogConfig getLogConfig() {
+		return logConfig;
+	}
 
-    public void setRedirectFile(String redirectFile) {
-        this.redirectFile = redirectFile;
-    }
+	public void setLogConfig(LogConfig logConfig) {
+		this.logConfig = logConfig;
+	}
 }

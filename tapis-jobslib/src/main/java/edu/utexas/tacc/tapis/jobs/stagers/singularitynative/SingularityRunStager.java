@@ -6,8 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
-import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
@@ -108,9 +108,7 @@ public class SingularityRunStager
         singularityCmd.setImage(_jobCtx.getApp().getContainerImage());
         
         // Set the stdout/stderr redirection file.
-        var fm = _jobCtx.getJobFileManager();
-        singularityCmd.setRedirectFile(
-            fm.makeAbsExecSysOutputPath(JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE));
+        resolveLogConfig(singularityCmd);
 
         // ----------------- User and Tapis Definitions -----------------
         // Set all environment variables.
@@ -123,6 +121,36 @@ public class SingularityRunStager
         setAppArguments(singularityCmd);
                 
         return singularityCmd;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* resolveLogConfig:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Set the stdout and stderr logging file(s).  Assign the fully qualified
+     * paths to the combined or separate log files.  
+     * 
+     * @param singularityCmd the run command to be updated
+     * @throws TapisException 
+     */
+    private void resolveLogConfig(SingularityRunCmd singularityCmd) throws TapisException
+    {
+    	// Get the user-supplied or defaulted log configuration and
+    	// create the new log configuration for this command.
+        var origConfig     = _job.getParameterSetModel().getLogConfig();
+        var resolvedConfig = new LogConfig();
+        
+        // We must always fully qualify at least one of the paths.
+        var fm = _jobCtx.getJobFileManager();
+        
+        resolvedConfig.setStdoutFilename(fm.makeAbsExecSysOutputPath(origConfig.getStdoutFilename()));
+        // Avoid recalculating the fully qualified path when there's only one log file.
+        if (origConfig.canMerge()) 
+        	resolvedConfig.setStderrFilename(resolvedConfig.getStdoutFilename());
+         else
+            resolvedConfig.setStderrFilename(fm.makeAbsExecSysOutputPath(origConfig.getStderrFilename()));
+        
+        // Store the fully qualified configuration in the command.
+        singularityCmd.setLogConfig(resolvedConfig);
     }
 
     /* ---------------------------------------------------------------------- */

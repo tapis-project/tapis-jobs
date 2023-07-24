@@ -478,6 +478,20 @@ public final class Job
                 throw new JobException(msg);
             }
         }
+        
+        // This forces the parameter set json to be parsed.
+        if (getParameterSetModel() == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "parameterSet");
+            throw new JobException(msg);
+        }
+        
+        // The log configuration must always exist and be completely initialized
+        // even though it may be not be used in certain scenarios.
+        if (getParameterSetModel().getLogConfig() == null || 
+            !getParameterSetModel().getLogConfig().isComplete()) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "parameterSet.logConfig");
+            throw new JobException(msg);
+        }
     }
     
     /* ---------------------------------------------------------------------- */

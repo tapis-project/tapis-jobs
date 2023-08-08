@@ -16,6 +16,7 @@ import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
@@ -57,6 +58,7 @@ final class DBMigrationSharedAppCtx
 	 /*                                   Methods                                    */
 	 /* **************************************************************************** */
 	 public void migrate() throws Exception {
+			        
 		// Connect to db.
 		Connection conn = JobsDao.getDataSource().getConnection();
 		
@@ -66,7 +68,18 @@ final class DBMigrationSharedAppCtx
 		 // Select all the jobs where sharedAppCtx is true and needs update
         PreparedStatement pstmt = conn.prepareStatement(sql);
         ResultSet rs = pstmt.executeQuery();
-        ArrayList<JobSharedAppVersion>uuidAppList = new ArrayList<JobSharedAppVersion>();
+      	    
+	    try {
+	      // Return null if the results are empty
+	      if (!rs.next()) {
+	    	  System.out.println("**** DB MIGRATION: no jobs with sharedAppCtx=true is found. No jobs are updated ****\n");
+		      return ;
+	      }
+	    } catch (Exception e) {
+	      String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
+	      throw new TapisJDBCException(msg, e);
+	    }
+	    ArrayList<JobSharedAppVersion>uuidAppList = new ArrayList<JobSharedAppVersion>();
         do {
 	        String uuid = rs.getString(0);
 	        String appId = rs.getString(1);
@@ -75,6 +88,7 @@ final class DBMigrationSharedAppCtx
 	        JobSharedAppVersion jobSharedApp = new JobSharedAppVersion(uuid,appId,appVersion,tenant);
 	        uuidAppList.add(jobSharedApp);
         } while(rs.next());
+        
         
         // Clean up.
         rs.close();

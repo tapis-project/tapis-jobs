@@ -1,11 +1,14 @@
 package edu.utexas.tacc.tapis.jobs.api;
 
+import static edu.utexas.tacc.tapis.client.shared.Utils.DEFAULT_SELECT_ALL;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,20 +76,21 @@ final class DBMigrationSharedAppCtx
 	      // Return null if the results are empty
 	      if (!rs.next()) {
 	    	  System.out.println("**** DB MIGRATION: no jobs with sharedAppCtx=true is found. No jobs are updated ****\n");
-		      return ;
+		      return;
 	      }
 	    } catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_RESULT_ACCESS_ERROR", e.getMessage());
 	      throw new TapisJDBCException(msg, e);
 	    }
 	    ArrayList<JobSharedAppVersion>uuidAppList = new ArrayList<JobSharedAppVersion>();
-        do {
-	        String uuid = rs.getString(0);
-	        String appId = rs.getString(1);
-	        String appVersion = rs.getString(2);
-	        String tenant = rs.getString(3);
+	  do {
+	        String uuid = rs.getString(1);
+	        String appId = rs.getString(2);
+	        String appVersion = rs.getString(3);
+	        String tenant = rs.getString(4);
 	        JobSharedAppVersion jobSharedApp = new JobSharedAppVersion(uuid,appId,appVersion,tenant);
 	        uuidAppList.add(jobSharedApp);
+	       	               
         } while(rs.next());
         
         
@@ -106,7 +110,15 @@ final class DBMigrationSharedAppCtx
         			                         japp.getJobUuid(), japp.getTenant());
         	if (app == null) continue; // problem already logged, try next one
         	
-        	String appOwner = app.getSharedAppCtx();
+        	String appOwner = app.getOwner();
+        	
+        	_log.debug("appOwner: " + appOwner + " japp.getAppId(): " +  japp.getAppId()
+        	+ " AppVersion: " + japp.getAppVersion()+ " job uuid:"+ japp.getJobUuid() 
+        	+ " tenant:" +japp.getTenant());
+        	if(StringUtils.isBlank(appOwner)) {
+        		_log.debug("Do not update the jobtable with blank appowner");
+        		continue;
+        	}	
         	jobAppOwner.put(japp.getJobUuid(), appOwner); 
         } 
         
@@ -186,7 +198,7 @@ final class DBMigrationSharedAppCtx
 	   	String svcTenant = TenantManager.getInstance().getSiteAdminTenantId(_siteId);
 	   	
         try {
-            appsClient = ServiceClients.getInstance().getClient(TapisConstants.APPS_SERVICE, svcTenant, AppsClient.class);
+            appsClient = ServiceClients.getInstance().getClient(TapisConstants.SERVICE_NAME_JOBS, svcTenant, AppsClient.class);
         }
         catch (Exception e) {
             String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "Apps", "getClient", svcTenant, TapisConstants.APPS_SERVICE);
@@ -205,11 +217,14 @@ final class DBMigrationSharedAppCtx
     {
     	// Load the system definition.
     	TapisApp app = null;
-    	try {app = appsClient.getApp(appId, appVersion);} 
+    	try {
+    		 //app = appsClient.getApp(appId, appVersion);
+    	     app = appsClient.getApp(appId, appVersion, false, "admin", "allAttributes",tenant);} 
     	   	catch (TapisClientException e) {
     	   		// Determine why we failed.
     	        String appString = appId + "-" + appVersion;
     	        String msg;
+    	        String appStatus="";
   	            switch (e.getCode()) {
    	                case 400:
    	                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_INPUT_ERROR", appString, jobUuid, tenant);
@@ -221,12 +236,13 @@ final class DBMigrationSharedAppCtx
    	                
    	                case 404:
    	                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_NOT_FOUND", appString, "", tenant);
+   	                    appStatus="Probably the app " + appString +" has been deleted. Please check the app.";
    	                break;
    	                
    	                default:
    	                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_INTERNAL_ERROR", appString, "", tenant);
     	        }
-    	        _log.error(msg);
+    	          _log.debug(msg + " for job " + jobUuid + ". "+ appStatus);
     	   	}
     	    catch (Exception e) {
     	    	String appString = appId + "-" + appVersion;

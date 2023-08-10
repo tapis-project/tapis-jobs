@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.files.client.FilesClient.StreamedFile;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
+import edu.utexas.tacc.tapis.files.client.gen.model.FileTypeEnum;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -264,14 +265,14 @@ public class JobOutputDownloadResource extends AbstractResource{
     		  String pathInFileInfo = filesList.get(0).getPath();
     		  
     		  // directory with single file
-    		  if((filesList.get(0).getType().equals("dir") || !pathInFileInfo.endsWith(outputPath))
-    			 || (filesList.get(0).getType().equals("file") && filesList.get(0).getSize()> ONE_GB_IN_KB )) {
+    		  if((filesList.get(0).getType() == FileTypeEnum.DIR || !pathInFileInfo.endsWith(outputPath))
+    			 || (filesList.get(0).getType() == FileTypeEnum.FILE && filesList.get(0).getSize()> ONE_GB_IN_KB )) {
     		   compress = true;
     		  }
     	     // for single file, default is false
     	  }
     	   else {
-    		   compress = true;;
+    		   compress = true;
     	   
            }
        }  

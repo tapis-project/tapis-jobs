@@ -867,8 +867,9 @@ public final class JobFileManager
      */
     private String makeExecSysInputUrl(JobFileInput fileInput)
     {
-        return makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemInputDir(), 
-                              fileInput.getTargetPath());
+        // If a DTN is involved use it for the destination instead of the exec system
+        String destSysId = StringUtils.isBlank(_job.getDtnSystemId()) ? _job.getExecSystemId() : _job.getDtnSystemId();
+        return makeSystemUrl(destSysId, _job.getExecSystemInputDir(), fileInput.getTargetPath());
     }
     
     /* ---------------------------------------------------------------------- */
@@ -922,7 +923,9 @@ public final class JobFileManager
      */
     private String makeArchiveSysUrl(String pathName)
     {
-        return makeSystemUrl(_job.getArchiveSystemId(), _job.getArchiveSystemDir(), pathName);
+        // If a DTN is involved use it for the destination instead of the exec system
+        String destSysId = StringUtils.isBlank(_job.getDtnSystemId()) ? _job.getExecSystemId() : _job.getDtnSystemId();
+        return makeSystemUrl(destSysId, _job.getArchiveSystemDir(), pathName);
     }
     
     /* ---------------------------------------------------------------------- */

@@ -923,7 +923,7 @@ public final class JobFileManager
      */
     private String makeArchiveSysUrl(String pathName) throws TapisException
     {
-        // If a DTN is involved use it for the destination instead of the exec system
+        // If a DTN is involved use it for the destination instead of the archive system
         String archiveDtnSysId = _jobCtx.getArchiveSystem().getDtnSystemId();
         String destSysId = StringUtils.isBlank(archiveDtnSysId) ? _job.getArchiveSystemId() : archiveDtnSysId;
         return makeSystemUrl(destSysId, _job.getArchiveSystemDir(), pathName);

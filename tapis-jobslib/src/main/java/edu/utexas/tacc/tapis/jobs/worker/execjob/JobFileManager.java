@@ -588,7 +588,7 @@ public final class JobFileManager
      * 
      * @param tasks the task collection into which new transfer tasks are inserted
      */
-    private void addLaunchFiles(ReqTransfer tasks)
+    private void addLaunchFiles(ReqTransfer tasks) throws TapisException
     {
         // There's nothing to do if the exec and archive 
         // directories are same and on the same system.
@@ -619,7 +619,7 @@ public final class JobFileManager
      * @param tasks the archive tasks
      * @param fileList the filtered list of files in the job's output directory
      */
-    private void addOutputFiles(ReqTransfer tasks, List<FileInfo> fileList)
+    private void addOutputFiles(ReqTransfer tasks, List<FileInfo> fileList) throws TapisException
     {
         // Add each output file as a task element.
         for (var f : fileList) {
@@ -867,8 +867,9 @@ public final class JobFileManager
      */
     private String makeExecSysInputUrl(JobFileInput fileInput)
     {
-        return makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemInputDir(), 
-                              fileInput.getTargetPath());
+        // If a DTN is involved use it for the destination instead of the exec system
+        String destSysId = StringUtils.isBlank(_job.getDtnSystemId()) ? _job.getExecSystemId() : _job.getDtnSystemId();
+        return makeSystemUrl(destSysId, _job.getExecSystemInputDir(), fileInput.getTargetPath());
     }
     
     /* ---------------------------------------------------------------------- */
@@ -920,9 +921,12 @@ public final class JobFileManager
      * @param pathName a file path name
      * @return the tapis url indicating a path on the archive system.
      */
-    private String makeArchiveSysUrl(String pathName)
+    private String makeArchiveSysUrl(String pathName) throws TapisException
     {
-        return makeSystemUrl(_job.getArchiveSystemId(), _job.getArchiveSystemDir(), pathName);
+        // If a DTN is involved use it for the destination instead of the archive system
+        String archiveDtnSysId = _jobCtx.getArchiveSystem().getDtnSystemId();
+        String destSysId = StringUtils.isBlank(archiveDtnSysId) ? _job.getArchiveSystemId() : archiveDtnSysId;
+        return makeSystemUrl(destSysId, _job.getArchiveSystemDir(), pathName);
     }
     
     /* ---------------------------------------------------------------------- */

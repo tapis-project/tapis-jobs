@@ -9,10 +9,20 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.4.1 - 2023-07-20
+## 1.4.1 - 2023-08-16
+
+### New features:
+1. Added the logConfig option to the job submission requests to allow stdout and stderr to written to different files when using Singularity containers.  Also allows those files to have user-specified names. 
+
 
 ### Bug fixes:
 1. Canonicalize job request paths to start with a slash. This allows path equality tests to not return false negatives, which is especially important when setting up file transfers.
+
+2. Handle the new FileInfo enum type to avoid missing some files during archiving and output downloading.
+
+3. Fix DTN management during archiving.
+
+4. Stop application sharing migration error message from displaying when not necessary.
 
 -----------------------
 ## 1.4.0 - 2023-07-17

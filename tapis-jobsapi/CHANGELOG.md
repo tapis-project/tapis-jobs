@@ -9,6 +9,12 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.4.2 - 2023-08-23
+
+### Bug fixes:
+1. Fix JWT timeout on calls to Files while monitoring transfers.
+
+-----------------------
 ## 1.4.1 - 2023-08-16
 
 ### New features:

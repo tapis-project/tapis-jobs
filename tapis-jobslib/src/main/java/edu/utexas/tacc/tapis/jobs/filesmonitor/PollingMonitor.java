@@ -79,7 +79,6 @@ public final class PollingMonitor
     {
         // Get the client from the context.
         var jobCtx = job.getJobCtx(); 
-        FilesClient filesClient = jobCtx.getServiceClient(FilesClient.class);
 
         // Poll the Files service until the transfer completes or fails.
         boolean lastAttemptFailed = false; // no failed monitoring attempts yet!
@@ -93,8 +92,11 @@ public final class PollingMonitor
             }
 
             // ----------------------- Poll Files -----------------------
-            // Get the transfer information.  Recoveryable and unrecoverable
-            // exceptions can be thrown here,
+            // Get the transfer information.  We query the client cache for
+            // a client with a fresh JWT, which is necessary on long running
+            // transfers that outlive the JWT.  Recoverable and unrecoverable
+            // exceptions can be thrown here.
+            FilesClient filesClient = jobCtx.getServiceClient(FilesClient.class);
             TransferTask task = getTransferTask(job, transferId, filesClient);
             
             // Check result integrity.

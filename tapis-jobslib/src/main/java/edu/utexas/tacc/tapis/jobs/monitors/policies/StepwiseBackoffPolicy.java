@@ -70,12 +70,12 @@ public final class StepwiseBackoffPolicy
     {
         // Check input.
         if (job == null) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "StepwiseBackoff", "job");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "StepwiseBackoff", "job");
             _log.error(msg);
             throw new JobException(msg);
         }
         if (policyParameters == null) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "StepwiseBackoff", "policyParameters");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "StepwiseBackoff", "policyParameters");
             _log.error(msg);
             throw new JobException(msg);
         }

@@ -125,15 +125,17 @@ public final class SlurmMonitor
                                        _jobCtx.getExecutionSystem().getHost(), 
                                        _jobCtx.getExecutionSystem().getPort(), cmd));
         
-        // Query the container.
+        // Execute the query with retry capability.
         String result = null;
+        int rc;
         try {
-            int rc = runCmd.execute(cmd);
-            runCmd.logNonZeroExitCode();
-            result = runCmd.getOutAsString();
+        	// Unpack results.
+        	var resp = runJobMonitorCmd(runCmd, cmd);
+        	rc = resp.rc;
+        	result = resp.result;
         }
         catch (Exception e) {
-            _log.error(e.getMessage(), e);
+            // Exception already logged.
             return JobRemoteStatus.NULL;
         }
         

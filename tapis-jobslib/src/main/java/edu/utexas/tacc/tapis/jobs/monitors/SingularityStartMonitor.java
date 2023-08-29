@@ -82,15 +82,17 @@ public class SingularityStartMonitor
         // Get the command text for this job's container.
         String cmd = JobExecutionUtils.SINGULARITY_START_MONITOR;
         
-        // Query the container.
+        // Execute the query with retry capability.
         String result = null;
+        int rc;
         try {
-            int rc = runCmd.execute(cmd);
-            runCmd.logNonZeroExitCode();
-            result = runCmd.getOutAsString();
+        	// Unpack results.
+        	var resp = runJobMonitorCmd(runCmd, cmd);
+        	rc = resp.rc;
+        	result = resp.result;
         }
         catch (Exception e) {
-            _log.error(e.getMessage(), e);
+            // Exception already logged.
             return JobRemoteStatus.NULL;
         }
         

@@ -11,8 +11,10 @@ import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisSSHChannelException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 
 /** This clas implements the main monitoring loop when the job is both in the 
  * QUEUE and RUNNING states.  Connections to the execution system are closed
@@ -32,6 +34,9 @@ abstract class AbstractJobMonitor
 
     // Zero is recognized as the application success code.
     protected static final String SUCCESS_RC = "0";
+    
+    // The number of times we'll try a new connection after a channel error.
+    private static final int CHANNEL_ERROR_RETRIES = 1;
     
     /* ********************************************************************** */
     /*                                 Fields                                 */
@@ -333,5 +338,78 @@ abstract class AbstractJobMonitor
             // Give the specific monitor a chance to clean up.
             if (exceptionThrown || initialStatus == JobStatusType.RUNNING) cleanUpRemoteJob();
         }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* runJobMonitorCmd:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Execute the job monitoring command with one reconnection try if we get
+     * an error on the channel.
+     * 
+     * @param runCmd the run command object
+     * @param cmd the actual command string to run
+     * @return the result package
+     * @throws TapisException if unable to run the command
+     */
+    protected JobMonitorCmdResponse runJobMonitorCmd(TapisRunCommand runCmd, String cmd)
+      throws TapisException
+    {
+    	// We try to reconnect once if we encounter a channel error.
+    	JobMonitorCmdResponse resp = null;
+    	for (int i = 0; i <= CHANNEL_ERROR_RETRIES; i++) 
+    	{
+    		// Query the container.
+    		resp = new JobMonitorCmdResponse();
+    		try {
+    			// Issue the command and get the result.
+    			resp.rc = runCmd.execute(cmd);
+    			runCmd.logNonZeroExitCode();
+    			resp.result = runCmd.getOutAsString();
+    		}
+    		// Retry monitor command after reconnecting 
+    		catch (TapisSSHChannelException e) {
+    			_log.error(e.getMessage(), e);
+    			
+    			// Have we maxed out the retries?
+    			if (i >= CHANNEL_ERROR_RETRIES) throw e;
+    			
+    			// Log intention to retry.
+    			_log.debug(MsgUtils.getMsg("JOBS_MONITOR_RECONNECTING", 
+    					                   _job.getUuid(), _job.getExecSystemId()));
+    			
+    			// Close the current connection and try to reconnect.
+    			// We can do this here for monitoring because we don't share
+    			// the connection outside of this class and its subclasses.
+    			// Even if two jobs for the same user are running on the same 
+    			// machine concurrently they will have different connections
+    			// for monitoring--not the most efficient but convenient in 
+    			// this case.
+    			_jobCtx.closeExecSystemConnection();
+    			try {_jobCtx.getExecSystemTapisSSH();}
+    				catch (Exception e1) {
+    					_log.error(e.getMessage(), e1);
+    					throw e1;
+    				}
+    			
+    			// Run the command again.
+    			continue;
+    		}
+    		catch (Exception e) {
+    			_log.error(e.getMessage(), e);
+    			throw e;
+    		}
+    	}
+    	
+    	// Response will never be null.
+    	return resp;
+    }
+    
+    /* ********************************************************************** */
+    /*                          class JobMonitorCmdResponse                   */
+    /* ********************************************************************** */
+    protected static final class JobMonitorCmdResponse
+    {
+    	public int rc;
+    	public String result;
     }
 }

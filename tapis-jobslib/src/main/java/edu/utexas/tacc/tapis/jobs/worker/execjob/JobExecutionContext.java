@@ -433,12 +433,15 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------------- */
     /* closeExecSystemConnection:                                                   */
     /* ---------------------------------------------------------------------------- */
-    /** Close the ssh session to the execution system if one exists. */
+    /** Close the ssh session to the execution system if one exists. Exceptions thrown 
+     * during closing are ignored and the SSH field in this class is always set to null.
+     * */
     public synchronized void closeExecSystemConnection()
     {
         // Close the ssh session.
         if (_execSysTapisSSH != null) {
-            _execSysTapisSSH.closeConnection();
+            try {_execSysTapisSSH.closeConnection();}
+            	catch (Exception e) {}
             _execSysTapisSSH = null;
             
             // Log the action.

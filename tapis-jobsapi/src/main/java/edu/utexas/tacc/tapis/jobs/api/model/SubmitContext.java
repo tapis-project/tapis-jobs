@@ -2062,11 +2062,7 @@ public final class SubmitContext
         // Special case macro resolution.  The substitutions here happen after all 
         // the other substitutions have been resolved, so simple, non-recursive 
         // substitution is all that's needed.  _submitReq is directly updated.
-        resolveSchedulerOptionMacros();
-        
-        // Special case macro resolution that prohibits the appearance of the directory
-        // separater, /, in the resulting file name.
-        resolveLogConfigMacros();
+        resolveParameterSetMacros();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2097,45 +2093,59 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* resolveSchedulerOptionMacros:                                                */
+    /* resolveParameterSetMacros:                                                   */
     /* ---------------------------------------------------------------------------- */
     /** Resolve macros in certain distinguished fields if those fields are assigned
-     * values.
+     * values.  The substitutions here happen after all the other substitutions have 
+     * been resolved, so simple, non-recursive substitution is all that's needed. In
+     * particular, HOST_EVAL() resolution is never triggered during this method's 
+     * execution.  
+     * 
+     * Note: _submitReq is directly updated.
      */
-    private void resolveSchedulerOptionMacros()
+    private void resolveParameterSetMacros()
     {
         // Get the parameter set.
         var parmset = _submitReq.getParameterSet();
         if (parmset == null) return;
         
-        // Get the scheduler options.
+        // ---- schedOptions
+        // Iterate through the options looking for the ones that might 
+        // contain macros we're interested in.
         var schedOptions = parmset.getSchedulerOptions();
-        if (schedOptions == null) return;
-        
-        // Iterate through the options looking for the 
-        // ones that might contain macros.
-        for (var argSpec : schedOptions) {
-            var arg = argSpec.getArg();
-            if (arg == null) continue; // shouldn't happen
+        if (schedOptions != null)
+        	for (var argSpec : schedOptions) {
+        		var arg = argSpec.getArg();
+        		if (arg == null) continue; // shouldn't happen
             
-            // We only perform macro substitution on specific arguments.
-            // The substitution is simple and non-recursive because the 
-            // replacement value does not itself contain macros.
-            if (arg.startsWith("--job-name ") || arg.startsWith("-J "))
-               argSpec.setArg(replaceMacros(arg));
-        }
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* resolveLogConfigMacros:                                                      */
-    /* ---------------------------------------------------------------------------- */
-    /** Resolve macros if they appear in the log configuration. */
-    private void resolveLogConfigMacros()
-    {
-        // Get the parameter set.
-        var parmset = _submitReq.getParameterSet();
-        if (parmset == null) return;
+        		// We only perform macro substitution on specific arguments.
+        		// The substitution is simple and non-recursive because the 
+        		// replacement value does not itself contain macros.
+        		if (arg.startsWith("--job-name ") || arg.startsWith("-J "))
+        			argSpec.setArg(replaceMacros(arg));
+        	}
         
+        // ---- appArgs
+        // Iterate through the options looking for the ones that might 
+        // contain macros we're interested in.
+        var appArgs = parmset.getAppArgs();
+        if (appArgs != null)
+        	for (var argSpec : appArgs) {
+        		var arg = argSpec.getArg();
+        		if (arg != null) argSpec.setArg(replaceMacros(arg));
+        	}
+        
+        // ---- containerArgs
+        // Iterate through the options looking for the ones that might 
+        // contain macros we're interested in.
+        var containerArgs = parmset.getContainerArgs();
+        if (containerArgs != null)
+        	for (var argSpec : containerArgs) {
+        		var arg = argSpec.getArg();
+        		if (arg != null) argSpec.setArg(replaceMacros(arg));
+        	}
+        
+        // ---- logConfig
         // Get the log configuration which must be non-null by now. We call the
         // simple non-recursive macro substitution method because all macros values
         // should be fully resolved by now and HOST_EVAL is not allowed here.
@@ -2143,7 +2153,7 @@ public final class SubmitContext
         logConfig.setStdoutFilename(replaceMacros(logConfig.getStdoutFilename()));
         logConfig.setStderrFilename(replaceMacros(logConfig.getStderrFilename()));
     }
-        
+    
     /* ---------------------------------------------------------------------------- */
     /* getSystemsClient:                                                            */
     /* ---------------------------------------------------------------------------- */

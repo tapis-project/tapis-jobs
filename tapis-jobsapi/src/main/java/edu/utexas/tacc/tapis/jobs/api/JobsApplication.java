@@ -8,6 +8,7 @@ import javax.ws.rs.ApplicationPath;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.jobs.events.NotificationLiveness;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
@@ -183,6 +184,9 @@ extends ResourceConfig
        // ----- Database Migration for release 1.3.1 onwards
        // This code will be removed or made optional after some time.
        runMigration();
+       
+       // ----- Start the notification liveness thread.
+       // startNotificationLiveness();  // Not implemented yet
    }
    
    /** Initialize rabbitmq vhost and our standard queues and exchanges.  VHost initialization
@@ -214,5 +218,13 @@ extends ResourceConfig
 		   // We ignore migration errors and simply print an error message. 
 		   System.out.println("**** FAILURE TO RUN DB MIGRATION: jobs.sharedAppCtx not updated ****\n" + e.getMessage());
 	   }
+   }
+   
+   /** Start the notification liveness thread to continuously test whether events
+    * get delivered to Notifications and that notifications are processed. 
+    */
+   private void startNotificationLiveness() 
+   {
+	   NotificationLiveness.getInstance();
    }
 }

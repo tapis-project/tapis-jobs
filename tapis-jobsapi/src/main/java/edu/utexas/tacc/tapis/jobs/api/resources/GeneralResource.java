@@ -8,6 +8,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -282,6 +283,42 @@ public final class GeneralResource
           MsgUtils.getMsg("TAPIS_READY", "Jobs Service"), false, r)).build();
   }
 
+  /* ---------------------------------------------------------------------------- */
+  /* notificationsLiveness:                                                       */
+  /* ---------------------------------------------------------------------------- */
+  @POST
+  @Path("/livenessNotification")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Operation(
+          description = "Call back webhook used to test liveness of notification delivery.",
+          tags = "general",
+          responses = 
+              {@ApiResponse(responseCode = "200", description = "Liveness acknowledged.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class))),
+               @ApiResponse(responseCode = "400", description = "Input error.",
+                   content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+               @ApiResponse(responseCode = "401", description = "Not authorized.",
+                   content = @Content(schema = @Schema(
+                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+               @ApiResponse(responseCode = "500", description = "Jobs service error.",
+                   content = @Content(schema = @Schema(
+                       implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class)))}
+      )
+  public Response livenessNotification()
+  {
+	  // We only accept calls from the Notifications service.
+	  
+	  // TODO: Maybe NotificationLiveness needs 2 threads, a sender and a receiver.
+	  
+	  
+      // ---------------------------- Success -------------------------------
+      // Create the response payload.
+      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+          MsgUtils.getMsg("TAPIS_LIVENESS_ACK", "Jobs Service"), false)).build();
+  }
+  
   /* **************************************************************************** */
   /*                               Private Methods                                */
   /* **************************************************************************** */

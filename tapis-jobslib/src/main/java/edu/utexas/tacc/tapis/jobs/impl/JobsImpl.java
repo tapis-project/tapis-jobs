@@ -1293,8 +1293,8 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getSKClient:                                                           */
     /* ---------------------------------------------------------------------- */
-   
-     SKClient getSKClient() throws TapisImplException{
+    SKClient getSKClient() throws TapisImplException 
+    {
     	SKClient skClient = null;
 	   	 TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
 	   	 String siteId = threadContext.getSiteId();

@@ -524,6 +524,41 @@ public final class JobEventManager
         return jobEvent;
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* sendInternalUserEvent:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Write a User event to database and notification service.  
+     * 
+     * The connection parameter can be null if the event insertion is not to 
+     * be part of an in-progress transaction.  The eventData and eventDetail 
+     * lengths are checked during json deserialization.
+     * 
+     * @param jobUuid the job targeted by the event
+     * @param tenant the job tenant
+     * @param sender the tapis user that sent the event
+     * @param eventData the user provided body of the event
+     * @param eventDetail the event subtype or key
+     * @param conn existing connection or null
+     * @throws TapisException on error
+     */
+    public JobEvent sendInternalUserEvent(String jobUuid, String tenant, String sender,
+                                          String eventData, String eventDetail)
+    {
+        // Create the Job event.
+        var jobEvent = new JobEvent();
+        jobEvent.setEvent(JobEventType.JOB_USER_EVENT);
+        jobEvent.setJobUuid(jobUuid);
+        jobEvent.setTenant(tenant);
+        
+        jobEvent.setDescription(eventData);
+        jobEvent.setEventDetail(eventDetail); 
+        
+        // Send to notifications service asynchronously
+        // without recording it in the database.
+        postEventToNotificationService(jobEvent);
+        return jobEvent;
+    }
+
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */

@@ -186,7 +186,7 @@ extends ResourceConfig
        runMigration();
        
        // ----- Start the notification liveness thread.
-       // startNotificationLiveness();  // Not implemented yet
+       startNotificationLiveness();  // Not implemented yet
    }
    
    /** Initialize rabbitmq vhost and our standard queues and exchanges.  VHost initialization

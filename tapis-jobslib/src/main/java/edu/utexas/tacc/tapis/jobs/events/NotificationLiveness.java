@@ -93,6 +93,9 @@ public final class NotificationLiveness
     	var threadGroup = new ThreadGroup(THREADGROUP_NAME);
     	_senderThread   = startSenderThread(threadGroup);
     	_checkerThread  = startCheckerThread(threadGroup);
+    	
+    	// Announce ourselves.
+    	_log.info(MsgUtils.getMsg("JOBS_EVENT_LIVENESS_STARTED", SEND_EVENT_WAIT_MILLIS/1000));
     }
     
     /* ********************************************************************** */
@@ -212,7 +215,8 @@ public final class NotificationLiveness
         /* ---------------------------------------------------------------------- */
         private void checkSubscription() throws TapisRuntimeException
         {
-        	// Get a notification client.
+        	// Get a notification client. We don't explicitly close 
+        	// the client since it's cached and could be used again. 
         	NotificationsClient client;
             try {client = JobUtils.getNotificationsClient(_siteAdminTenant);} 
             catch (Exception e) {
@@ -230,15 +234,11 @@ public final class NotificationLiveness
                 String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "Notifications",
                                              _siteAdminTenant, TapisConstants.SERVICE_NAME_JOBS);
                 _log.error(msg, e);
-                client.close();
                 throw new TapisRuntimeException(msg, e);
     		}
      
             // Already subscribed?
-            if (sub != null) {
-            	client.close();
-            	return;
-            }
+            if (sub != null) return;
             
             // Create the subscription input.
             var subreq = new ReqPostSubscription();
@@ -265,7 +265,6 @@ public final class NotificationLiveness
                 _log.error(msg, e);
                 throw new TapisRuntimeException(msg, e);
             }
-            finally {client.close();}
         }
         
         /* ---------------------------------------------------------------------- */
@@ -291,7 +290,7 @@ public final class NotificationLiveness
         	
             // Assign our webhook address, the receiving Jobs endpoint for liveness notifications.
             if (baseUrl.endsWith("/")) baseUrl = baseUrl.substring(0, baseUrl.length()-1); 
-            return baseUrl + "/v3/jobs/livenessNotification";
+            return baseUrl + "/v3/jobs/eventLiveness";
         }
         
     }

@@ -28,6 +28,8 @@ import edu.utexas.tacc.tapis.jobs.api.responses.RespProbe;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
@@ -107,6 +109,9 @@ public final class GeneralResource
     
      // Count the number of healthchecks requests received.
      private static final AtomicLong _readyChecks = new AtomicLong();
+     
+     // Count the number of liveness events received.
+     private static final AtomicLong _livenessEvents = new AtomicLong();
      
   /* **************************************************************************** */
   /*                                Public Methods                                */
@@ -287,10 +292,10 @@ public final class GeneralResource
   /* notificationsLiveness:                                                       */
   /* ---------------------------------------------------------------------------- */
   @POST
-  @Path("/livenessNotification")
+  @Path("/eventLiveness")
   @Produces(MediaType.APPLICATION_JSON)
   @Operation(
-          description = "Call back webhook used to test liveness of notification delivery.",
+          description = "Call back webhook used to test liveness of event send and notification delivery.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Liveness acknowledged.",
@@ -306,11 +311,36 @@ public final class GeneralResource
                    content = @Content(schema = @Schema(
                        implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class)))}
       )
-  public Response livenessNotification()
+  public Response eventLiveness()
   {
+      // Print a log message every so often.
+	  long count = _livenessEvents.incrementAndGet();
+      if (((count % 20) == 0) && _log.isInfoEnabled()) {
+        String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "eventLiveness", 
+                                     "  " + _request.getRequestURL());
+        _log.info(msg);
+      }
+      
 	  // We only accept calls from the Notifications service.
 	  
 	  // TODO: Maybe NotificationLiveness needs 2 threads, a sender and a receiver.
+	  
+      // ------------------------- Create Context ---------------------------
+      // Validate the threadlocal content here so no subsequent code on this request needs to.
+      TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+      if (!threadContext.validate()) {
+          var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+          _log.error(msg);
+          return Response.status(Status.INTERNAL_SERVER_ERROR).
+                  entity(TapisRestUtils.createErrorResponse(msg, false)).build();
+      }
+      
+      // ------------------------- Check Authz ------------------------------
+      // Authorize the user.  Job tenant and oboTenant are guaranteed to match.
+      var oboUser = threadContext.getOboUser();
+      var oboTenant = threadContext.getOboTenantId();
+      var response = checkAuthorization(oboTenant, oboUser, jobUuid, dto.getOwner(), prettyPrint);
+//      if (response != null) return response;
 	  
 	  
       // ---------------------------- Success -------------------------------

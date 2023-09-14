@@ -289,7 +289,7 @@ public final class NotificationLiveness
             			                        FAKE_JOBID, "Invalid tenant definition."));
             }
         	
-            // Assign our webhook address.
+            // Assign our webhook address, the receiving Jobs endpoint for liveness notifications.
             if (baseUrl.endsWith("/")) baseUrl = baseUrl.substring(0, baseUrl.length()-1); 
             return baseUrl + "/v3/jobs/livenessNotification";
         }

@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
+import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -21,21 +23,31 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 import edu.utexas.tacc.tapis.jobs.api.responses.RespProbe;
+import edu.utexas.tacc.tapis.jobs.events.JobEventData;
+import edu.utexas.tacc.tapis.jobs.events.JobEventData.JobEventLivenessData;
+import edu.utexas.tacc.tapis.jobs.events.NotificationLiveness;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext.AccountType;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @Path("/")
@@ -294,9 +306,15 @@ public final class GeneralResource
   @POST
   @Path("/eventLiveness")
   @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
   @Operation(
           description = "Call back webhook used to test liveness of event send and notification delivery.",
           tags = "general",
+          requestBody = 
+              @RequestBody(
+                  required = true,
+                  content = @Content(schema = @Schema(
+                      implementation = com.google.gson.JsonObject.class))),
           responses = 
               {@ApiResponse(responseCode = "200", description = "Liveness acknowledged.",
                    content = @Content(schema = @Schema(
@@ -311,37 +329,40 @@ public final class GeneralResource
                    content = @Content(schema = @Schema(
                        implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class)))}
       )
-  public Response eventLiveness()
+  public Response eventLiveness(InputStream payloadStream)
   {
       // Print a log message every so often.
 	  long count = _livenessEvents.incrementAndGet();
-      if (((count % 20) == 0) && _log.isInfoEnabled()) {
-        String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "eventLiveness", 
+      if (_log.isInfoEnabled() && (((count % 20) == 0) || count == 1)) {
+    	String method = "eventLiveness" + "[count=" + count + "]";
+        String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), method, 
                                      "  " + _request.getRequestURL());
         _log.info(msg);
       }
       
-	  // We only accept calls from the Notifications service.
-	  
-	  // TODO: Maybe NotificationLiveness needs 2 threads, a sender and a receiver.
-	  
-      // ------------------------- Create Context ---------------------------
-      // Validate the threadlocal content here so no subsequent code on this request needs to.
-      TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-      if (!threadContext.validate()) {
-          var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-          _log.error(msg);
-          return Response.status(Status.INTERNAL_SERVER_ERROR).
+      // ------------------------- Validate Payload -------------------------
+      // Read the payload into a string.
+      String json = null;
+      try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+        catch (Exception e) {
+          String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job send event", e.getMessage());
+          _log.error(msg, e);
+          return Response.status(Status.BAD_REQUEST).
                   entity(TapisRestUtils.createErrorResponse(msg, false)).build();
+        }
+      
+      // ------------------------- Parse JSON -------------------------------
+      // Get the Jobs created event out of the payload.
+      try {
+    	  Gson gson = TapisGsonUtils.getGson();
+    	  var jsonObj = gson.fromJson(json, JsonObject.class);
+    	  var event   = (JsonObject) jsonObj.get("event");
+    	  var eventLiveness = NotificationLiveness.getInstance().initAndCheckEventLivenessData(event);
+      } 
+      catch (Exception e) {
+    	  
       }
       
-      // ------------------------- Check Authz ------------------------------
-      // Authorize the user.  Job tenant and oboTenant are guaranteed to match.
-      var oboUser = threadContext.getOboUser();
-      var oboTenant = threadContext.getOboTenantId();
-      var response = checkAuthorization(oboTenant, oboUser, jobUuid, dto.getOwner(), prettyPrint);
-//      if (response != null) return response;
-	  
 	  
       // ---------------------------- Success -------------------------------
       // Create the response payload.

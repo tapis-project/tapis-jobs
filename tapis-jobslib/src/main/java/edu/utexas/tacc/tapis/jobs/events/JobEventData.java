@@ -1,5 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.events;
 
+import java.time.Instant;
+
+import com.google.gson.JsonObject;
+
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferStatusEnum;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager.SubscriptionActions;
@@ -145,18 +149,19 @@ public final class JobEventData
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getInternalUserEventData:                                              */
+    /* getEventLivenessData:                                                  */
     /* ---------------------------------------------------------------------- */
-    static String getInternalUserEventData(String jobUuid, String jobName, 
+    static String getEventLivenessData(String jobUuid, String jobName, 
     		                               String jobOwner, String msg, 
     		                               int eventnum)
     {
-        var d = new JobInternalUserData();
-        d.jobUuid  = jobUuid;
-        d.jobName  = jobName;
-        d.jobOwner = jobOwner;
-        d.message  = msg;
-        d.eventnum = eventnum;
+        var d = new JobEventLivenessData();
+        d.jobUuid    = jobUuid;
+        d.jobName    = jobName;
+        d.jobOwner   = jobOwner;
+        d.message    = msg;
+        d.eventnum   = eventnum;
+        d.createtime = Instant.now().toString(); // Zulu format
         return TapisGsonUtils.getGson().toJson(d);
     }
     
@@ -281,11 +286,13 @@ public final class JobEventData
     }
     
     /* ********************************************************************** */
-    /*                         JobInternalUserData class                      */
+    /*                        JobEventLivenessData class                      */
     /* ********************************************************************** */
-    public static class JobInternalUserData 
-     extends JobExtendedData
+    /** Jobs internal use only */
+    public static class JobEventLivenessData 
+     extends JobBaseData
     {
        public int eventnum;
+       public String createtime;
     }
 }

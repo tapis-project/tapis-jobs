@@ -4,9 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.jobs.events.JobEventData.JobEventLivenessData;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
@@ -119,6 +122,66 @@ public final class NotificationLiveness
 	}
 	
     /* ---------------------------------------------------------------------- */
+    /* initAndCheckEventLivenessData:                                         */
+    /* ---------------------------------------------------------------------- */
+    public JobEventLivenessData initAndCheckEventLivenessData(JsonObject jsonObj)
+      throws JobException
+    {
+    	// The result object.
+        var d = new JobEventLivenessData();
+        
+        // No fields should be null, but we check anyway.
+        var jobUuid = jsonObj.get("jobUuid");
+        if (jobUuid != null) d.jobUuid = jobUuid.getAsString();
+        
+        var jobName = jsonObj.get("jobName");
+        if (jobName != null) d.jobName = jobName.getAsString();
+        
+        var jobOwner = jsonObj.get("jobOwner");
+        if (jobOwner != null) d.jobOwner = jobOwner.getAsString();
+        
+        var message = jsonObj.get("message");
+        if (message != null) d.message = message.getAsString();
+        
+        var eventnum = jsonObj.get("eventnum");
+        if (eventnum != null) d.eventnum = eventnum.getAsInt();
+
+        var createtime = jsonObj.get("createtime");
+        if (createtime != null) d.createtime = createtime.getAsString();
+        
+        // Basic checking doesn't stop spoofing but might exposed unexpected behavior.
+        if (!FAKE_JOBID.equals(d.jobUuid)) {
+        	
+        }
+        
+        if (!_subscriptionName.equals(d.jobName)) {
+        	
+        }
+        
+        if (!SUBSCRIPTION_OWNER.equals(d.jobOwner)) {
+        	
+        }
+        
+        if (!EVENT_MSG.equals(d.message)) {
+        	
+        }
+        
+        if (d.eventnum < 1) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "initAndCheckEventLivenessData", 
+            		                     "eventnum", d.eventnum);
+            throw new JobException(msg);
+        }
+        
+        if (d.createtime == null) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "initAndCheckEventLivenessData", "createtime");
+            throw new JobException(msg);
+        }
+        
+        // The fully initialized object.
+    	return d;
+    }
+    
+    /* ---------------------------------------------------------------------- */
     /* uncaughtException:                                                     */
     /* ---------------------------------------------------------------------- */
     /** Note the unexpected death of our refresh thread.  We just let it die
@@ -201,7 +264,7 @@ public final class NotificationLiveness
                 }
             	
                 // Create the user payload json.
-            	var eventData = JobEventData.getInternalUserEventData(FAKE_JOBID, _subscriptionName,
+            	var eventData = JobEventData.getEventLivenessData(FAKE_JOBID, _subscriptionName,
         		          SUBSCRIPTION_OWNER, EVENT_MSG, ++_eventnum);
 
             	// Send the event.

@@ -153,7 +153,7 @@ public final class JobEventData
     /* ---------------------------------------------------------------------- */
     static String getEventLivenessData(String jobUuid, String jobName, 
     		                               String jobOwner, String msg, 
-    		                               int eventnum)
+    		                               int eventnum, Instant ts)
     {
         var d = new JobEventLivenessData();
         d.jobUuid    = jobUuid;
@@ -161,7 +161,7 @@ public final class JobEventData
         d.jobOwner   = jobOwner;
         d.message    = msg;
         d.eventnum   = eventnum;
-        d.createtime = Instant.now().toString(); // Zulu format
+        d.createtime = ts.toString(); // Zulu format
         return TapisGsonUtils.getGson().toJson(d);
     }
     

@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.events;
 
+import java.time.Instant;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +69,11 @@ public final class NotificationLiveness
     // Shutdown flag consulted on thread interrupt.
     private boolean _shutdown;
     
+    // Incoming event data access must 
+    // be limited to 1 thread at a time.
+    private JobEventLivenessData _lastEventRecv;
+    private Instant              _lastSentEventTS;
+    
     /* ********************************************************************** */
     /*                       SingletonInitializer class                       */
     /* ********************************************************************** */
@@ -122,12 +129,59 @@ public final class NotificationLiveness
 	}
 	
     /* ---------------------------------------------------------------------- */
-    /* initAndCheckEventLivenessData:                                         */
+    /* recordLivenessData:                                                    */
     /* ---------------------------------------------------------------------- */
-    public JobEventLivenessData initAndCheckEventLivenessData(JsonObject jsonObj)
+	/** The parse the payload that's made up of the original event data that
+	 * the SenderThread sent.  Assign the last received event data field.
+	 * 
+	 * @param jsonObj the data member of the notification's event field
+	 * @throws JobException missing or invalid data
+	 */
+    public void recordLivenessData(JsonObject jsonObj)
       throws JobException
     {
-    	// The result object.
+    	// Parse the notification's payload containing the event data we sent.
+    	var livenessData = getEventLivenessData(jsonObj);
+    	setLastEventRecv(livenessData);
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* uncaughtException:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Note the unexpected death of our refresh thread.  We just let it die
+     * after logging our final message.
+     */
+    @Override
+    public void uncaughtException(Thread t, Throwable e) 
+    {
+        // Record the error.
+        _log.error(MsgUtils.getMsg("TAPIS_THREAD_UNCAUGHT_EXCEPTION", 
+                                   t.getName(), e.toString()));
+        e.printStackTrace(); // stderr for emphasis
+    }
+
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* Accessors:                                                             */
+    /* ---------------------------------------------------------------------- */
+    private synchronized JobEventLivenessData getLastEventRecv() {return _lastEventRecv;}
+    private synchronized void setLastEventRecv(JobEventLivenessData d) {_lastEventRecv = d;}
+    
+    /* ---------------------------------------------------------------------- */
+    /* getEventLivenessData:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private JobEventLivenessData getEventLivenessData(JsonObject jsonObj)
+      throws JobException
+    {
+    	// Bad data.
+  	  	if (jsonObj == null) {
+  	  		String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getEventLivenessData", "jsonObj");
+  	  		throw new JobException(msg);
+  	  	}
+    	
+  	  	// The result object.
         var d = new JobEventLivenessData();
         
         // No fields should be null, but we check anyway.
@@ -151,29 +205,37 @@ public final class NotificationLiveness
         
         // Basic checking doesn't stop spoofing but might exposed unexpected behavior.
         if (!FAKE_JOBID.equals(d.jobUuid)) {
-        	
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getEventLivenessData", 
+            		                     "jobUuid", d.jobUuid);
+            throw new JobException(msg);
         }
         
         if (!_subscriptionName.equals(d.jobName)) {
-        	
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getEventLivenessData", 
+            						     "jobName", d.jobName);
+            throw new JobException(msg);
         }
         
         if (!SUBSCRIPTION_OWNER.equals(d.jobOwner)) {
-        	
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getEventLivenessData", 
+            		                     "jobOwner", d.jobOwner);
+            throw new JobException(msg);
         }
         
         if (!EVENT_MSG.equals(d.message)) {
-        	
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getEventLivenessData", 
+            		                     "message", d.message);
+            throw new JobException(msg);
         }
         
         if (d.eventnum < 1) {
-            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "initAndCheckEventLivenessData", 
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getEventLivenessData", 
             		                     "eventnum", d.eventnum);
             throw new JobException(msg);
         }
         
         if (d.createtime == null) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "initAndCheckEventLivenessData", "createtime");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getEventLivenessData", "createtime");
             throw new JobException(msg);
         }
         
@@ -181,24 +243,6 @@ public final class NotificationLiveness
     	return d;
     }
     
-    /* ---------------------------------------------------------------------- */
-    /* uncaughtException:                                                     */
-    /* ---------------------------------------------------------------------- */
-    /** Note the unexpected death of our refresh thread.  We just let it die
-     * after logging our final message.
-     */
-    @Override
-    public void uncaughtException(Thread t, Throwable e) 
-    {
-        // Record the error.
-        _log.error(MsgUtils.getMsg("TAPIS_THREAD_UNCAUGHT_EXCEPTION", 
-                                   t.getName(), e.toString()));
-        e.printStackTrace(); // stderr for emphasis
-    }
-
-    /* ********************************************************************** */
-    /*                            Private Methods                             */
-    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* startSenderThread:                                                     */
     /* ---------------------------------------------------------------------- */
@@ -264,8 +308,9 @@ public final class NotificationLiveness
                 }
             	
                 // Create the user payload json.
+                _lastSentEventTS = Instant.now();
             	var eventData = JobEventData.getEventLivenessData(FAKE_JOBID, _subscriptionName,
-        		          SUBSCRIPTION_OWNER, EVENT_MSG, ++_eventnum);
+        		          SUBSCRIPTION_OWNER, EVENT_MSG, ++_eventnum, _lastSentEventTS);
 
             	// Send the event.
             	JobEventManager.getInstance().sendInternalUserEvent(FAKE_JOBID, _siteAdminTenant, 

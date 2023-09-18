@@ -34,6 +34,7 @@ import edu.utexas.tacc.tapis.jobs.api.responses.RespProbe;
 import edu.utexas.tacc.tapis.jobs.events.JobEventData;
 import edu.utexas.tacc.tapis.jobs.events.JobEventData.JobEventLivenessData;
 import edu.utexas.tacc.tapis.jobs.events.NotificationLiveness;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
@@ -353,16 +354,10 @@ public final class GeneralResource
       
       // ------------------------- Parse JSON -------------------------------
       // Get the Jobs created event out of the payload.
-      try {
-    	  Gson gson = TapisGsonUtils.getGson();
-    	  var jsonObj = gson.fromJson(json, JsonObject.class);
-    	  var event   = (JsonObject) jsonObj.get("event");
-    	  var eventLiveness = NotificationLiveness.getInstance().initAndCheckEventLivenessData(event);
-      } 
+      try {processLivenessNotification(json);}
       catch (Exception e) {
     	  
       }
-      
 	  
       // ---------------------------- Success -------------------------------
       // Create the response payload.
@@ -373,6 +368,31 @@ public final class GeneralResource
   /* **************************************************************************** */
   /*                               Private Methods                                */
   /* **************************************************************************** */
+  /* ---------------------------------------------------------------------------- */
+  /* processLivenessNotification:                                                 */
+  /* ---------------------------------------------------------------------------- */
+  private void processLivenessNotification(String json) throws JobException
+  {
+	  // Perform optional tracing.
+	  if (_log.isTraceEnabled()) 
+		  _log.trace(MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_RECEIVED", json));
+	  
+	  // Parse the notification.
+	  Gson gson = TapisGsonUtils.getGson();
+	  var jsonObj = gson.fromJson(json, JsonObject.class);
+	  
+	  // Get the event object and then its data member.
+	  var event = (JsonObject) jsonObj.get("event");
+	  if (event == null) {
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "recordLivenessData", "event");
+          throw new JobException(msg);
+	  }
+	  var eventData = (JsonObject) event.get("data");
+	  
+	  // Send the notification payload to the liveness processor.
+	  NotificationLiveness.getInstance().recordLivenessData(eventData);
+  }
+  
   /* ---------------------------------------------------------------------------- */
   /* queryDB:                                                                     */
   /* ---------------------------------------------------------------------------- */

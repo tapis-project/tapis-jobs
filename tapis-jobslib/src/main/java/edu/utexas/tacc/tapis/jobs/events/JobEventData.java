@@ -152,8 +152,8 @@ public final class JobEventData
     /* getEventLivenessData:                                                  */
     /* ---------------------------------------------------------------------- */
     static String getEventLivenessData(String jobUuid, String jobName, 
-    		                               String jobOwner, String msg, 
-    		                               int eventnum, Instant ts)
+    		                           String jobOwner, String msg, 
+    		                           int eventnum, Instant ts)
     {
         var d = new JobEventLivenessData();
         d.jobUuid    = jobUuid;

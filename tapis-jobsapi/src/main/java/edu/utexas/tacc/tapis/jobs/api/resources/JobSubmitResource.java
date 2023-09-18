@@ -789,7 +789,7 @@ public class JobSubmitResource
                // log msg that we tried to send email notice to support.
                RuntimeParameters runtime = RuntimeParameters.getInstance();
                String recipient = runtime == null ? "unknown" : runtime.getSupportEmail();
-               String msg = MsgUtils.getMsg("ALOE_SUPPORT_EMAIL_ERROR", recipient, subject, e1.getMessage());
+               String msg = MsgUtils.getMsg("TAPIS_SUPPORT_EMAIL_ERROR", recipient, subject, e1.getMessage());
                _log.error(msg, e1);
          }
      }

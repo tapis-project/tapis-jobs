@@ -31,16 +31,11 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.jobs.api.responses.RespProbe;
-import edu.utexas.tacc.tapis.jobs.events.JobEventData;
-import edu.utexas.tacc.tapis.jobs.events.JobEventData.JobEventLivenessData;
 import edu.utexas.tacc.tapis.jobs.events.NotificationLiveness;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext.AccountType;
-import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
@@ -346,7 +341,7 @@ public final class GeneralResource
       String json = null;
       try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
         catch (Exception e) {
-          String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job send event", e.getMessage());
+          String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "liveness notification", e.getMessage());
           _log.error(msg, e);
           return Response.status(Status.BAD_REQUEST).
                   entity(TapisRestUtils.createErrorResponse(msg, false)).build();
@@ -356,7 +351,10 @@ public final class GeneralResource
       // Get the Jobs created event out of the payload.
       try {processLivenessNotification(json);}
       catch (Exception e) {
-    	  
+          String msg = MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_FAILURE", json, e.getMessage());
+          _log.error(msg, e);
+          return Response.status(Status.BAD_REQUEST).
+                  entity(TapisRestUtils.createErrorResponse(msg, false)).build();
       }
 	  
       // ---------------------------- Success -------------------------------
@@ -384,7 +382,7 @@ public final class GeneralResource
 	  // Get the event object and then its data member.
 	  var event = (JsonObject) jsonObj.get("event");
 	  if (event == null) {
-          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "recordLivenessData", "event");
+          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "processLivenessNotification", "event");
           throw new JobException(msg);
 	  }
 	  var eventData = (JsonObject) event.get("data");

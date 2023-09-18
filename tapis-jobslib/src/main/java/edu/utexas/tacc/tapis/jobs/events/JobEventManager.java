@@ -16,8 +16,10 @@ import edu.utexas.tacc.tapis.jobs.model.JobShared;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /** This class records noteworthy job events and asynchronously send notifications
  * to subscribers.  The threads that call a record method synchronously write to the
@@ -539,6 +541,7 @@ public final class JobEventManager
      * @param eventData the user provided body of the event
      * @param eventDetail the event subtype or key
      * @param conn existing connection or null
+     * @return the JobEvent on success or null on failure
      * @throws TapisException on error
      */
     public JobEvent sendInternalUserEvent(String jobUuid, String tenant, String sender,
@@ -555,8 +558,8 @@ public final class JobEventManager
         
         // Send to notifications service asynchronously
         // without recording it in the database.
-        postEventToNotificationService(jobEvent);
-        return jobEvent;
+        if (postEventToNotificationService(jobEvent)) return jobEvent;
+          else return null;
     }
 
     /* ********************************************************************** */
@@ -568,11 +571,19 @@ public final class JobEventManager
     /** Best effort attempt to post event to the event reader's queue.
      * 
      * @param jobEvent the event ultimately destined for notifications
+     * @return true if post succeeded, false otherwise
      */
-    private void postEventToNotificationService(JobEvent jobEvent)
+    private boolean postEventToNotificationService(JobEvent jobEvent)
     {
         // Error already logged.
         try {JobQueueManager.getInstance().postEventQueue(jobEvent);}
-            catch (Exception e) {}
+            catch (Exception e) {
+            	String msg = MsgUtils.getMsg("JOBS_EVENT_POST_ERROR", 
+            			        jobEvent.getEvent().name(),  
+            			        JobQueueManagerNames.getEventQueueName());
+            	_log.warn(msg, e);
+            	return false;
+            }
+        return true; // success
     }
 }

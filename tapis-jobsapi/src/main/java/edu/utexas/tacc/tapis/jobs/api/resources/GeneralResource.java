@@ -60,6 +60,9 @@ public final class GeneralResource
     private static final long DB_READY_TIMEOUT_MS  = 6000;   // 6 seconds.
     private static final long DB_HEALTH_TIMEOUT_MS = 60000;  // 1 minute.
     
+    // Limit the amount of logging on liveness calls.
+    private static final int liveness_modulus = 20;
+    
     // The table we query during readiness checks.
     private static final String QUERY_TABLE = "jobs";
     
@@ -328,9 +331,9 @@ public final class GeneralResource
   public Response eventLiveness(InputStream payloadStream)
   {
       // Print a log message every so often.
-	  final int modulus = 20;
 	  long count = _livenessEvents.incrementAndGet();
-      if (_log.isInfoEnabled() && (((count % modulus) == 0) || count == 1)) {
+	  boolean loggingEnabled = (((count % liveness_modulus) == 0) || count == 1);
+      if (loggingEnabled && _log.isInfoEnabled()) {
     	String method = "eventLiveness" + "[count=" + count + "]";
         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), method, 
                                      "  " + _request.getRequestURL());
@@ -350,7 +353,7 @@ public final class GeneralResource
       
       // ------------------------- Parse JSON -------------------------------
       // Get the Jobs created event out of the payload.
-      try {processLivenessNotification(json);}
+      try {processLivenessNotification(json, loggingEnabled);}
       catch (Exception e) {
           String msg = MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_FAILURE", json, e.getMessage());
           _log.error(msg, e);
@@ -370,11 +373,12 @@ public final class GeneralResource
   /* ---------------------------------------------------------------------------- */
   /* processLivenessNotification:                                                 */
   /* ---------------------------------------------------------------------------- */
-  private void processLivenessNotification(String json) throws JobException
+  private void processLivenessNotification(String json, boolean loggingEnabled) 
+	throws JobException
   {
 	  // Perform optional tracing.
-	  if (_log.isTraceEnabled()) 
-		  _log.trace(MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_RECEIVED", json));
+	  if (loggingEnabled && _log.isInfoEnabled()) 
+		  _log.info(MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_RECEIVED", json));
 	  
 	  // Parse the notification.
 	  Gson gson = TapisGsonUtils.getGson();

@@ -1,14 +1,13 @@
 package edu.utexas.tacc.tapis.jobs.events;
 
 import java.time.Instant;
+import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
 
-import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.events.JobEventData.JobEventLivenessData;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -486,7 +485,7 @@ public final class NotificationLiveness
             DeliveryTarget target = new DeliveryTarget();
             target.setDeliveryMethod(DeliveryMethod.WEBHOOK);
             target.setDeliveryAddress(getDeliveryAddress());
-            subreq.setDeliveryTargets(Lists.asList(target, null));
+            subreq.setDeliveryTargets(Arrays.asList(target));
             
             // Create the subscription.
             try {client.postSubscription(subreq);}
@@ -495,6 +494,11 @@ public final class NotificationLiveness
                                  SUBSCRIPTION_OWNER, _siteAdminTenant, e.getMessage());
                 _log.error(msg, e);
                 throw new TapisException(msg, e);
+            }
+            
+            // Write the log on success.
+            if (_log.isInfoEnabled()) {
+            	_log.info(MsgUtils.getMsg("JOBS_LIVENESS_SUBSCRIPTION_CREATED", _subscriptionName));
             }
         }
         
@@ -514,15 +518,19 @@ public final class NotificationLiveness
             Tenant adminTenant;
             try {adminTenant = TenantManager.getInstance().getTenant(_siteAdminTenant);}
             catch (Exception e) {
-            	throw new TapisException(e.getMessage(), e);
+            	var msg = MsgUtils.getMsg("TAPIS_SITE_NO_ADMIN_TENANT", _site, _siteAdminTenant);
+            	_log.error(msg, e);
+            	throw new TapisException(msg, e);
             }
             
             // The tenant will not be null.
             String baseUrl = adminTenant.getBaseUrl();
             if (baseUrl == null) {
             	// This should never happen.
-            	throw new TapisRuntimeException(MsgUtils.getMsg("JOBS_TENANT_NO_BASE_URL", adminTenant, 
-            			                        FAKE_JOBID, "Invalid tenant definition."));
+            	var msg = MsgUtils.getMsg("JOBS_TENANT_NO_BASE_URL", adminTenant, FAKE_JOBID, 
+            			                  "Invalid tenant definition.");
+            	_log.error(msg);
+            	throw new TapisRuntimeException(msg);
             }
         	
             // Assign our webhook address, the receiving Jobs endpoint for liveness notifications.

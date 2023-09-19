@@ -6,6 +6,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
@@ -26,6 +27,7 @@ import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 /** This class implements liveness checking between Jobs and Notifications.  The
@@ -181,14 +183,14 @@ public final class NotificationLiveness
 	/** The parse the payload that's made up of the original event data that
 	 * the SenderThread sent.  Assign the last received event data field.
 	 * 
-	 * @param jsonObj the data member of the notification's event field
+	 * @param jsonStr the data member of the notification's event field
 	 * @throws JobException missing or invalid data
 	 */
-    public void recordLivenessData(JsonObject jsonObj)
+    public void recordLivenessData(String jsonStr)
       throws JobException
     {
     	// Parse the notification's payload containing the event data we sent.
-    	var livenessData = getEventLivenessData(jsonObj);
+    	var livenessData = getEventLivenessData(jsonStr);
     	setLastEventRecv(livenessData);
     }
     
@@ -247,37 +249,26 @@ public final class NotificationLiveness
     /* ---------------------------------------------------------------------- */
     /* getEventLivenessData:                                                  */
     /* ---------------------------------------------------------------------- */
-    private JobEventLivenessData getEventLivenessData(JsonObject jsonObj)
+    private JobEventLivenessData getEventLivenessData(String jsonStr)
       throws JobException
     {
     	// Bad data.
-  	  	if (jsonObj == null) {
-  	  		String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getEventLivenessData", "jsonObj");
+  	  	if (jsonStr == null) {
+  	  		String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getEventLivenessData", "jsonStr");
   	  		throw new JobException(msg);
   	  	}
     	
   	  	// The result object.
-        var d = new JobEventLivenessData();
-        
-        // No fields should be null, but we check anyway.
-        var jobUuid = jsonObj.get("jobUuid");
-        if (jobUuid != null) d.jobUuid = jobUuid.getAsString();
-        
-        var jobName = jsonObj.get("jobName");
-        if (jobName != null) d.jobName = jobName.getAsString();
-        
-        var jobOwner = jsonObj.get("jobOwner");
-        if (jobOwner != null) d.jobOwner = jobOwner.getAsString();
-        
-        var message = jsonObj.get("message");
-        if (message != null) d.message = message.getAsString();
-        
-        var eventnum = jsonObj.get("eventnum");
-        if (eventnum != null) d.eventnum = eventnum.getAsInt();
+  	    JobEventLivenessData d = null;
+  	  	Gson gson = TapisGsonUtils.getGson();
+  	  	try {d = gson.fromJson(jsonStr, JobEventLivenessData.class);}
+  	  	catch (Exception e) {
+  	  		String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getEventLivenessData",
+                                         jsonStr, e.getMessage());
+  	  		_log.error(msg, e);
+  	  		throw new JobException(msg, e);
+  	  	}
 
-        var createtime = jsonObj.get("createtime");
-        if (createtime != null) d.createtime = createtime.getAsString();
-        
         // Basic checking doesn't stop spoofing but might exposed unexpected behavior.
         if (!FAKE_JOBID.equals(d.jobUuid)) {
             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "getEventLivenessData", 
@@ -463,7 +454,8 @@ public final class NotificationLiveness
     			sub = client.getSubscriptionByName(_subscriptionName, SUBSCRIPTION_OWNER);
     		} catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "Notifications",
-                                             _siteAdminTenant, TapisConstants.SERVICE_NAME_JOBS);
+                                             "getSubscriptionByName", _siteAdminTenant, 
+                                             TapisConstants.SERVICE_NAME_JOBS);
                 _log.warn(msg, e);
     		}
      

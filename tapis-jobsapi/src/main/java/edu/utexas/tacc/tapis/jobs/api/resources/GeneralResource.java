@@ -390,7 +390,9 @@ public final class GeneralResource
           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "processLivenessNotification", "event");
           throw new JobException(msg);
 	  }
-	  var eventData = (JsonObject) event.get("data");
+	  
+	  // Get the data element which is always a string. 
+	  String eventData = event.get("data").getAsString();
 	  
 	  // Send the notification payload to the liveness processor.
 	  NotificationLiveness.getInstance().recordLivenessData(eventData);

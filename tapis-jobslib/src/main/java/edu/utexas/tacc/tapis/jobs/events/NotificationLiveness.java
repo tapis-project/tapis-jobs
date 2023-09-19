@@ -368,6 +368,11 @@ public final class NotificationLiveness
     	@Override
     	public void run()
     	{
+    		// Announce ourselves.
+    		if (_log.isInfoEnabled())
+    			_log.info(MsgUtils.getMsg("JOBS_WEBAPP_THREAD_STARTED", 
+    					                  Thread.currentThread().getName()));
+    		
     		// Create the liveness subscription if it doesn't already exist.
     		// We wait forever until Notifications becomes available and we
     		// can successfully retrieve or create our subscription.  The
@@ -568,6 +573,11 @@ public final class NotificationLiveness
     	@Override
     	public void run()
     	{
+    		// Announce ourselves.
+    		if (_log.isInfoEnabled())
+    			_log.info(MsgUtils.getMsg("JOBS_WEBAPP_THREAD_STARTED", 
+    					                  Thread.currentThread().getName()));
+    		
     		// Periodically check when the last liveness event arrived.
     		while (true) {
             	// Wait the configured number of milliseconds between event verifications.

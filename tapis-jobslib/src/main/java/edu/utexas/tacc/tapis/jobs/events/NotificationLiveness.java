@@ -64,7 +64,7 @@ public final class NotificationLiveness
     private static final String CHECKER_THREAD_NAME = "NotifLiveCheckerThread";
     
     // Subscription information.
-    private static final String SUBSCRIPTION_OWNER   = "JobsService";
+    private static final String SUBSCRIPTION_OWNER  = TapisConstants.SERVICE_NAME_JOBS;
     private static final String FAKE_JOBID = "00000000-0000-0000-0000-000000000000-007";
     private static final String SUBJECT_FILTER = FAKE_JOBID;
     private static final String SUBSCRIPTION_DETAIL = "EventLiveness";

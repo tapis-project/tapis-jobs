@@ -328,8 +328,9 @@ public final class GeneralResource
   public Response eventLiveness(InputStream payloadStream)
   {
       // Print a log message every so often.
+	  final int modulus = 20;
 	  long count = _livenessEvents.incrementAndGet();
-      if (_log.isInfoEnabled() && (((count % 20) == 0) || count == 1)) {
+      if (_log.isInfoEnabled() && (((count % modulus) == 0) || count == 1)) {
     	String method = "eventLiveness" + "[count=" + count + "]";
         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), method, 
                                      "  " + _request.getRequestURL());

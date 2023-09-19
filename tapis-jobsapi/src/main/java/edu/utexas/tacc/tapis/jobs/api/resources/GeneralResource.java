@@ -306,6 +306,7 @@ public final class GeneralResource
   @Path("/eventLiveness")
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
+  @Schema(hidden = true)
   @Operation(
           description = "Call back webhook used to test liveness of event send and notification delivery.",
           tags = "general",

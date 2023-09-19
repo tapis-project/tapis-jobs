@@ -462,11 +462,10 @@ public final class NotificationLiveness
             TapisSubscription sub;
             try {
     			sub = client.getSubscriptionByName(_subscriptionName, SUBSCRIPTION_OWNER);
-    		} catch (TapisClientException e) {
+    		} catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "Notifications",
                                              _siteAdminTenant, TapisConstants.SERVICE_NAME_JOBS);
                 _log.error(msg, e);
-                throw new TapisException(msg, e);
     		}
      
             // Already subscribed?

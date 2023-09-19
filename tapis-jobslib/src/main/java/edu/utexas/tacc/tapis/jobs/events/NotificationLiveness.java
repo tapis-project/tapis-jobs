@@ -465,7 +465,7 @@ public final class NotificationLiveness
     		} catch (Exception e) {
                 String msg = MsgUtils.getMsg("TAPIS_CLIENT_ERROR", "Notifications",
                                              _siteAdminTenant, TapisConstants.SERVICE_NAME_JOBS);
-                _log.error(msg, e);
+                _log.warn(msg, e);
     		}
      
             // Already subscribed?

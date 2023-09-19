@@ -29,6 +29,27 @@ import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
+/** This class implements liveness checking between Jobs and Notifications.  The
+ * goal is to detect when events sent by Jobs are for any reason not causing the
+ * expected notifications to be sent by the Notifications service.
+ * 
+ * This class is a key component in a liveness facility that includes the /eventLiveness
+ * endpoint implemented in the GeneralResource of tapis-jobsapi.  The two threads 
+ * managed by this class, the SenderThread and the CheckThread, send events and 
+ * process the expected notifications, respectively.  These threads are started 
+ * as part of JobApplication initialization at which time the SenderThread will
+ * create a non-expiring notification subscription if it does not already exist.
+ * 
+ * If the checker thread does not receive an expected notification within a certain 
+ * time period, an error is logged  and an email is sent to the support address.  
+ * Output throttling avoids log and email flooding. 
+ * 
+ * When a problem is detected a condition code indicates the specific problem. 
+ * The fix will usually involve the Notifications service, the Jobs EventReader
+ * or this class itself.
+ * 
+ * @author rcardone
+ */
 public final class NotificationLiveness 
  implements Thread.UncaughtExceptionHandler
 {
@@ -68,7 +89,8 @@ public final class NotificationLiveness
     private enum AlertCondition {
     	NO_NOTIFICATIONS_EVER_RECEIVED,
     	NO_RECENT_NOTIFICATION_RECEIVED,
-    	INVALID_NOTIFICATION_RECEIVED
+    	INVALID_NOTIFICATION_RECEIVED,
+    	NO_EVENTS_SENT
     }
     
     /* ********************************************************************** */
@@ -83,13 +105,16 @@ public final class NotificationLiveness
     private final SenderThread  _senderThread;
     private final CheckerThread _checkerThread;
     
-    // Initialize the event count that gets 
-    // incremented every time we send an event.
-    // This is a monotonically increasing value.
-    private int _eventnum = 0;
-    
     // Shutdown flag consulted on thread interrupt.
     private boolean _shutdown;
+    
+    // Initialize the event count that gets incremented 
+    // every time we send an event.  This is a 
+    // monotonically increasing value that must always be 
+    // accessed by the CheckThread in a synchronized block 
+    // for atomicity; the SenderThread only needs synchronized
+    // access when writing. 
+    private int _eventnum = 0;
     
     // Incoming event data access and outgoing timestapm
     // must be limited to 1 thread at a time.  Use only 
@@ -189,19 +214,20 @@ public final class NotificationLiveness
     /* ---------------------------------------------------------------------- */
     /* Accessors:                                                             */
     /* ---------------------------------------------------------------------- */
+    private synchronized int getEventNum() {return _eventnum;}
     private synchronized JobEventLivenessData getLastEventRecv() {return _lastEventRecv;}
     private synchronized Instant getLastSentEventTS() {return _lastSentEventTS;}
 
     /* ---------------------------------------------------------------------- */
     /* setLastSentEventInfo:                                                  */
     /* ---------------------------------------------------------------------- */
-    /** Increment the eventnum
+    /** Increment the eventnum and set the last outgoing event's timestamp in
+     * one atomic operation.
      * 
      * @param ts last event's timestamp
      */
     private synchronized void setLastSentEventInfo(Instant ts) 
     {_eventnum++; _lastSentEventTS = ts;}
-    
     
     /* ---------------------------------------------------------------------- */
     /* setLastEventRecv:                                                      */
@@ -389,7 +415,7 @@ public final class NotificationLiveness
                 }
             	
                 // Create the user payload json.
-                var eventnum = _eventnum + 1; 
+                var eventnum = _eventnum + 1; // Direct reads from sender thread are thread-safe. 
                 var ts = Instant.now();
             	var eventData = JobEventData.getEventLivenessData(FAKE_JOBID, _subscriptionName,
         		          		SUBSCRIPTION_OWNER, EVENT_MSG, eventnum, ts);
@@ -400,9 +426,8 @@ public final class NotificationLiveness
             			        _siteAdminTenant, SUBSCRIPTION_OWNER, eventData, SUBSCRIPTION_DETAIL);
             	
             	// On success update the actual number of queued events
-            	// and the last event's timestamp.
-            	if (jobEvent != null) 
-            		setLastSentEventInfo(ts);
+            	// and the last event's timestamp as one atomic operation.
+            	if (jobEvent != null) setLastSentEventInfo(ts);
             }
     	}
     	
@@ -560,7 +585,13 @@ public final class NotificationLiveness
                 
                 // If we haven't sent any events yet there's nothing
                 // read, so we just go back to waiting.
-    			if (_eventnum < 1) continue; // no need for synchronization
+                var eventnum = getEventNum();
+    			if (eventnum < 1) {
+    				_noEventsSentChecks++;
+    				if (_noEventsSentChecks > MAX_FAILED_CHECKS)
+    					raiseAlert(null, AlertCondition.NO_EVENTS_SENT);
+    				continue;
+    			} else _noEventsSentChecks = 0;
     			
     			// Get the last read notification.
     			var lastEvent = getLastEventRecv();
@@ -569,7 +600,7 @@ public final class NotificationLiveness
     				if (_noLastEventChecks > MAX_FAILED_CHECKS)
     					raiseAlert(lastEvent, AlertCondition.NO_NOTIFICATIONS_EVER_RECEIVED);
     				continue;
-    			} _noLastEventChecks = 0; // reset counter after receiving 1st notification
+    			} else _noLastEventChecks = 0; // reset counter after receiving 1st notification
     			
     			// Has time expired before we received a new notification?
     			// Create time must be expressed as UTC in zulu format.
@@ -597,7 +628,17 @@ public final class NotificationLiveness
         /* ---------------------------------------------------------------------- */
         /* raiseAlert:                                                            */
         /* ---------------------------------------------------------------------- */
-    	private void raiseAlert(JobEventLivenessData lastEvent, AlertCondition condition)
+    	/** Avoid excessive logging and email alerts by ignoring most calls to this
+    	 * method.  The number of failed checks since the last time this method was
+    	 * called determines whether this method executes.
+    	 * 
+    	 * When executed, this method creates an error message based on the detected 
+    	 * condition, logs the message and then sends an email to alert the operator.
+    	 * 
+    	 * @param lastEventRecv can be null depending on condition
+    	 * @param condition the detected error condition
+    	 */
+    	private void raiseAlert(JobEventLivenessData lastEventRecv, AlertCondition condition)
     	{
     		// Don't create alot of noise.  Every cycle number of failures causes
     		// logging and an email to be sent.  The amount of time this amounts to
@@ -616,10 +657,17 @@ public final class NotificationLiveness
     			case NO_RECENT_NOTIFICATION_RECEIVED:
     				yield("The last notification was received more than " +
     				      (STALENESS_THRESHOLD_MILLIS/1000) + 
-    				      " seconds ago. The cooresponding event (#" + lastEvent.eventnum +
-    				      ") was sent at " + lastEvent.createtime + 
+    				      " seconds ago. The cooresponding event (#" + lastEventRecv.eventnum +
+    				      ") was sent at " + lastEventRecv.createtime + 
     				      " and should have generated a notification by now.");
+    			case NO_EVENTS_SENT:
+    				yield("No events sent after waiting for " +
+      					  (MAX_FAILED_CHECKS * CHECK_EVENT_WAIT_MILLIS / 1000) + " seconds.");
     		};
+    		
+    		// Add information to the message where possible.
+    		var sentTS = getLastSentEventTS();
+    		if (sentTS != null) emsg += " The last event was sent at " + sentTS.toString() + ".";
     		
     		// Log the error message and send email.
             String msg = MsgUtils.getMsg("JOBS_MISSING_NOTIFICATION_ERROR", emsg);
@@ -637,7 +685,7 @@ public final class NotificationLiveness
          */
         private static void sendLivenessEmail(String livenessMsg)
         {
-            String subject = "Jobs Event Alert: Notifications not received by Jobs." ;
+            String subject = "Expected notifications not received by Jobs." ;
             try {
                   RuntimeParameters runtime = RuntimeParameters.getInstance();
                   EmailClient client = EmailClientFactory.getClient(runtime);
@@ -655,5 +703,4 @@ public final class NotificationLiveness
             }
         }
     }
-    
 }

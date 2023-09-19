@@ -220,7 +220,7 @@ extends ResourceConfig
 	   }
    }
    
-   /** Start the notification liveness thread to continuously test whether events
+   /** Start the notification liveness threads to continuously test whether events
     * get delivered to Notifications and that notifications are processed. 
     */
    private void startNotificationLiveness() 

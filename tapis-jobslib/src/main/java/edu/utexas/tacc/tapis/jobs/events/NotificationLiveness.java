@@ -459,7 +459,7 @@ public final class NotificationLiveness
             }
             
             // See if our subscription has already been created.
-            TapisSubscription sub;
+            TapisSubscription sub = null;
             try {
     			sub = client.getSubscriptionByName(_subscriptionName, SUBSCRIPTION_OWNER);
     		} catch (Exception e) {

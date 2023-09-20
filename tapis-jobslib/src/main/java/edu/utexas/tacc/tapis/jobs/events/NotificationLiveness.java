@@ -74,11 +74,17 @@ public final class NotificationLiveness
     // Number of check cycles before sending alert email and logging error.
     private static final int    QUIET_CHECKING_CYCLE = 60; // quiet modulus
     
-    // Time periods in milliseconds.
-    private static final long   GET_SUBCRIPTION_RETRY_MILLIS = 30 * 1000;
+    // Time periods in milliseconds.  Making the check wait time half that
+    // of the send directs the checking thread to wake up twice as often as
+    // the thread that sends events.  Combining this ratio with the maximum
+    // number of failed checks of 5 means that two missed notifications
+    // will be detected as a failure.  The staleness threshold is what's 
+    // actually used to compare the current time with the timestamp on the 
+    // last notification received.  
+    private static final long   GET_SUBCRIPTION_RETRY_MILLIS =  30 * 1000;
     private static final long   SEND_EVENT_WAIT_MILLIS       = 180 * 1000;
     private static final long   CHECK_EVENT_WAIT_MILLIS      =  90 * 1000;
-    private static final int    MAX_FAILED_CHECKS = 5;
+    private static final int    MAX_FAILED_CHECKS            = 5;
     private static final long   STALENESS_THRESHOLD_MILLIS = 
     		                       MAX_FAILED_CHECKS * CHECK_EVENT_WAIT_MILLIS;
 
@@ -109,11 +115,13 @@ public final class NotificationLiveness
     private boolean _shutdown;
     
     // Initialize the event count that gets incremented 
-    // every time we send an event.  This is a 
-    // monotonically increasing value that must always be 
-    // accessed by the CheckThread in a synchronized block 
-    // for atomicity; the SenderThread only needs synchronized
-    // access when writing. 
+    // every time we send an event.  This is a monotonically 
+    // increasing value that must always be accessed by the 
+    // CheckThread in a synchronized block.  The value is 
+    // only updated by the SenderThread in an atomic operation
+    // that also update the last sent timestamp.  The SenderThread 
+    // can read this value without locking it since it's the only
+    // thread that writes it.
     private int _eventnum = 0;
     
     // Incoming event data access and outgoing timestapm
@@ -233,7 +241,7 @@ public final class NotificationLiveness
     /* setLastEventRecv:                                                      */
     /* ---------------------------------------------------------------------- */
     /** Only set the last event if it was actually created after the currently
-     * assigned one.  We insulate ourselves from indeterminent ordering that
+     * assigned one.  We insulate ourselves from indeterminate ordering that
      * due to asynchronous processing in Notification and our front end.  
      * 
      * @param d newly received event
@@ -242,7 +250,7 @@ public final class NotificationLiveness
     {
     	// Only replace existing data objects with newer ones.
     	if (_lastEventRecv == null || _lastEventRecv.eventnum < d.eventnum)
-    	_lastEventRecv = d;
+    	   _lastEventRecv = d;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -421,6 +429,7 @@ public final class NotificationLiveness
             	
             	// On success update the actual number of queued events
             	// and the last event's timestamp as one atomic operation.
+            	// This also increments the eventnum field.
             	if (jobEvent != null) setLastSentEventInfo(ts);
             }
     	}

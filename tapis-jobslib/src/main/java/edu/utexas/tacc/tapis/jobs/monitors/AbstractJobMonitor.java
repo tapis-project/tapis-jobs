@@ -15,6 +15,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisSSHChannelException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 /** This clas implements the main monitoring loop when the job is both in the 
  * QUEUE and RUNNING states.  Connections to the execution system are closed
@@ -302,7 +303,10 @@ abstract class AbstractJobMonitor
             // Are we dealing with a recoverable condition?  Connection problems are always
             // treated as recoverable, see the recovery code in TenantQueueProcessor.
             exceptionThrown = true;
-            if (e instanceof TapisRecoverableException) 
+            
+            // See if a recoverable exception was thrown.
+            var found = TapisUtils.findInChain(e, TapisRecoverableException.class);
+            if (found != null) 
             {
                 // Do not set the outcome when monitoring will resume in the future.
                 recoverableExceptionThrown = true;

@@ -9,6 +9,16 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.4.3 - 2023-09-28
+
+### New features:
+1. Macro expand appArgs & containerArgs on job requests.
+2. Implement events probes to test for notification liveness.
+
+### Bug fixes:
+1. Recognize recoverable SSH exceptions that occur during job monitoring.
+
+-----------------------
 ## 1.4.2 - 2023-08-31
 
 ### Bug fixes:

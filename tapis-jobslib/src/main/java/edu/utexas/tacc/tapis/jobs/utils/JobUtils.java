@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.lang.reflect.Constructor;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,6 +134,9 @@ public final class JobUtils
         return recoveryException;
     }
     
+    /* **************************************************************************** */
+    /*                               Public Methods                                 */
+    /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* getLastLine:                                                                 */
     /* ---------------------------------------------------------------------------- */
@@ -226,4 +230,5 @@ public final class JobUtils
     {
         return TapisConstants.SERVICE_NAME_JOBS + "." + jobEventType.name() + "." + detail;
     }
+    
 }

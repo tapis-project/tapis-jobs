@@ -11,6 +11,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class SingularityRunSlurmStager 
   extends AbstractSingularityStager
@@ -57,9 +58,14 @@ public final class SingularityRunSlurmStager
         // Create the wrapper script.
         String wrapperScript = generateWrapperScript();
         
+        String envVarFile = generateEnvVarFile();
+        
         // Install the wrapper script on the execution system.
         var fm = _jobCtx.getJobFileManager();
         fm.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
+        
+        // Install the env variable definition file.
+        fm.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
     }
     
     /* ********************************************************************** */
@@ -90,12 +96,35 @@ public final class SingularityRunSlurmStager
     /* ---------------------------------------------------------------------- */
     /* generateEnvVarFile:                                                    */
     /* ---------------------------------------------------------------------- */
+    /** Create strings of 'export key=value' separated by new line characters, 
+     * which is appropriate for writing to a file that will be sourced by a 
+     * script.
+     * 
+     * @param values NON-EMPTY list of pair values, one per occurrence
+     * @return the string that contains all assignments
+     */
     @Override
     protected String generateEnvVarFile() throws TapisException 
     {
-        String msg = MsgUtils.getMsg("JOBS_SINGULARITY_INVALID_ENV_CALL", 
-                                     _job.getUuid(), "generateEnvVarFile");
-        throw new TapisException(msg);
+    	// This is essentially the same code as in 
+    	// AbstractSingularityExecCmd.getPairListArgs(),
+    	// but here we insert the export keyword for sourcing
+    	// by a bash script.
+    	
+        // Get a buffer to accumulate the key/value pairs.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+        
+        // Create a list of key=value assignment, each followed by a new line.
+        var pairs = _wrappedStager.getSingularityRunCmd().getEnv();
+        for (var v : pairs) {
+        	buf.append("export ");
+            buf.append(v.getLeft());
+            buf.append("=");
+            buf.append(TapisUtils.conditionalQuote(v.getRight()));
+            buf.append("\n");
+        }
+        return buf.toString();
     }
     /* ********************************************************************** */
     /*                            Private Methods                             */

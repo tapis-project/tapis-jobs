@@ -178,7 +178,7 @@ abstract class AbstractSingularityExecCmd
         for (var v : pairs) {
             buf.append(v.getLeft());
             buf.append("=");
-            buf.append(conditionalQuote(v.getRight()));
+            buf.append(TapisUtils.conditionalQuote(v.getRight()));
             buf.append("\n");
         }
         return buf.toString();
@@ -225,23 +225,6 @@ abstract class AbstractSingularityExecCmd
             buf.append(TapisUtils.safelyDoubleQuoteString(v.getRight()));
         }
         return buf.toString();
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* conditionalQuote:                                                      */
-    /* ---------------------------------------------------------------------- */
-    /** Double quote a string only if it contains at least on space character
-     * and it isn't already quoted.
-     * 
-     * @param s string value to be possibly be double quoted
-     * @return the string as is or double quoted
-     */
-    private String conditionalQuote(String s)
-    {
-    	if (StringUtils.isBlank(s)) return s;
-    	if (!(s.startsWith("\"") && s.endsWith("\"")) && s.contains(" ")) 
-    		return TapisUtils.safelyDoubleQuoteString(s);
-    	  else return s;
     }
     
     /* ********************************************************************** */

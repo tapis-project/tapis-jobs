@@ -165,6 +165,8 @@ abstract class AbstractSingularityExecCmd
     /* ---------------------------------------------------------------------- */
     /** Create the string of key=value pairs separated by new line characters.
      * 
+     * Similar code can be found at AbstractJobExecStager.getExportPairListArgs().
+     * 
      * @param values NON-EMPTY list of pair values, one per occurrence
      * @return the string that contains all assignments
      */

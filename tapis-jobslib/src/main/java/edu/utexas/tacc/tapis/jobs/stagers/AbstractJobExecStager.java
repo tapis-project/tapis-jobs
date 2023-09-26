@@ -1,8 +1,10 @@
 package edu.utexas.tacc.tapis.jobs.stagers;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +15,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public abstract class AbstractJobExecStager 
  implements JobExecStager
@@ -161,6 +164,38 @@ public abstract class AbstractJobExecStager
             String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", runtimeName, option);
             throw new JobException(msg);
         }
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getExportPairListArgs:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Create strings of 'export key=value' separated by new line characters, 
+     * which is appropriate for writing to a file that will be sourced by a 
+     * script.
+     * 
+     * @param values NON-EMPTY list of pair values, one per occurrence
+     * @return the string that contains all assignments
+     */
+    protected String getExportPairListArgs(List<Pair<String,String>> pairs) 
+    {
+    	// This is essentially the same code as in 
+    	// AbstractSingularityExecCmd.getPairListArgs(),
+    	// but here we insert the export keyword for sourcing
+    	// by a bash script.
+    	
+        // Get a buffer to accumulate the key/value pairs.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+        
+        // Create a list of key=value assignment, each followed by a new line.
+        for (var v : pairs) {
+        	buf.append("export ");
+            buf.append(v.getLeft());
+            buf.append("=");
+            buf.append(TapisUtils.conditionalQuote(v.getRight()));
+            buf.append("\n");
+        }
+        return buf.toString();
     }
      
     /* ********************************************************************** */

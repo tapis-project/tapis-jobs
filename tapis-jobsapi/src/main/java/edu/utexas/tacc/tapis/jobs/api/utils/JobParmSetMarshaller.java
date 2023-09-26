@@ -17,6 +17,7 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
@@ -622,6 +623,13 @@ public final class JobParmSetMarshaller
     	// Is this a fixed argument originating in the application?
     	if (scratchSpec._inputMode != ArgInputModeEnum.FIXED) return;
     	
+    	// Get the original arg spec that we cannot override.
+    	var appArg = scratchSpec._jobArg;
+
+    	// Canonicalize the notes fields.
+    	var reqNotes = reqArg.getNotes() == null ? TapisConstants.EMPTY_JSON : reqArg.getNotes();
+    	var appNotes = appArg.getNotes() == null ? TapisConstants.EMPTY_JSON : appArg.getNotes();
+    	
     	// Make sure the request doesn't materially change the argument's definition.
     	// Returning from here means that at most the description values may have 
     	// changed.  Since those values are additive and are only for human consumption,
@@ -629,13 +637,11 @@ public final class JobParmSetMarshaller
     	//
     	// We protect ourselves from npe's when even in the case of argument values
     	// when it's unlikely that they can be null because FIXED is being used.
-    	var appArg = scratchSpec._jobArg;
     	if (reqArg.getArg() != null && appArg.getArg() != null 
     		&&
     		reqArg.getArg().equals(appArg.getArg()) 
     		&& 
-    		((reqArg.getNotes() == null && appArg.getNotes() == null) 
-    			|| (reqArg.getNotes() != null && reqArg.getNotes().equals(appArg.getNotes()))))
+    		reqNotes.equals(appNotes))
     	  return;
     	
     	// Bail out, we detected a change in the actionable part of the argument definition. 
@@ -665,6 +671,10 @@ public final class JobParmSetMarshaller
     		           edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair fixedSysKv)
      throws TapisImplException
     {
+    	// Canonicalize the notes fields.
+    	var appNotes = appKv.getNotes() == null      ? TapisConstants.EMPTY_JSON : appKv.getNotes();
+    	var fixNotes = fixedSysKv.getNotes() == null ? TapisConstants.EMPTY_JSON : fixedSysKv.getNotes();
+    	
     	// Make sure the app doesn't materially change the system env variable's definition.
     	// Returning from here means that at most the description values may be different.  
     	// Since those values are additive and are only for human consumption, we allow it.
@@ -674,8 +684,7 @@ public final class JobParmSetMarshaller
     		&&
     		appKv.getValue().equals(fixedSysKv.getValue())
     		&&
-    		((appKv.getNotes() == null && fixedSysKv.getNotes() == null)
-    			|| (appKv.getNotes() != null && appKv.getNotes().equals(fixedSysKv.getNotes()))))
+    		appNotes.equals(fixNotes))
     	  return;
     	
     	// Bail out, we detected a change in the actionable part of the system env variable definition. 
@@ -703,6 +712,10 @@ public final class JobParmSetMarshaller
     		           edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair fixedAppKv)
      throws TapisImplException
     {
+    	// Canonicalize the notes fields.
+    	var reqNotes = reqKv.getNotes() == null      ? TapisConstants.EMPTY_JSON : reqKv.getNotes();
+    	var fixNotes = fixedAppKv.getNotes() == null ? TapisConstants.EMPTY_JSON : fixedAppKv.getNotes();
+    	
     	// Make sure the request doesn't materially change the app env variable's definition.
     	// Returning from here means that at most the description values may be different.  
     	// Since those values are additive and are only for human consumption, we allow it.
@@ -710,8 +723,7 @@ public final class JobParmSetMarshaller
     	// We protect ourselves from npe's when dealing with notes fields, which may not be set.
     	if (reqKv.getValue().equals(fixedAppKv.getValue()) 
     		&&
-    		((reqKv.getNotes() == null && fixedAppKv.getNotes() == null)
-    		  || (reqKv.getNotes() != null && reqKv.getNotes().equals(fixedAppKv.getNotes()))))
+    		reqNotes.equals(fixNotes))
     	  return;
     	
     	// Bail out, we detected a change in the actionable part of the system env variable definition. 

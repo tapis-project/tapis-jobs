@@ -626,9 +626,12 @@ public final class JobParmSetMarshaller
     	// Get the original arg spec that we cannot override.
     	var appArg = scratchSpec._jobArg;
 
-    	// Canonicalize the notes fields.
-    	var reqNotes = reqArg.getNotes() == null ? TapisConstants.EMPTY_JSON : reqArg.getNotes();
-    	var appNotes = appArg.getNotes() == null ? TapisConstants.EMPTY_JSON : appArg.getNotes();
+    	// Canonicalize the notes fields by equating null, the empty string and
+    	// the empty json object to be the same.
+    	var reqNotes = reqArg.getNotes() == null || "".equals(reqArg.getNotes()) ? 
+    			TapisConstants.EMPTY_JSON : reqArg.getNotes();
+    	var appNotes = appArg.getNotes() == null || "".equals(appArg.getNotes()) ? 
+    			TapisConstants.EMPTY_JSON : appArg.getNotes();
     	
     	// Make sure the request doesn't materially change the argument's definition.
     	// Returning from here means that at most the description values may have 
@@ -671,9 +674,12 @@ public final class JobParmSetMarshaller
     		           edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair fixedSysKv)
      throws TapisImplException
     {
-    	// Canonicalize the notes fields.
-    	var appNotes = appKv.getNotes() == null      ? TapisConstants.EMPTY_JSON : appKv.getNotes();
-    	var fixNotes = fixedSysKv.getNotes() == null ? TapisConstants.EMPTY_JSON : fixedSysKv.getNotes();
+    	// Canonicalize the notes fields by equating null, the empty string and
+    	// the empty json object to be the same.
+    	var appNotes = appKv.getNotes() == null || "".equals(appKv.getNotes()) ? 
+    			TapisConstants.EMPTY_JSON : appKv.getNotes();
+    	var fixNotes = fixedSysKv.getNotes() == null || "".equals(fixedSysKv.getNotes()) ? 
+    			TapisConstants.EMPTY_JSON : fixedSysKv.getNotes();
     	
     	// Make sure the app doesn't materially change the system env variable's definition.
     	// Returning from here means that at most the description values may be different.  
@@ -712,9 +718,12 @@ public final class JobParmSetMarshaller
     		           edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair fixedAppKv)
      throws TapisImplException
     {
-    	// Canonicalize the notes fields.
-    	var reqNotes = reqKv.getNotes() == null      ? TapisConstants.EMPTY_JSON : reqKv.getNotes();
-    	var fixNotes = fixedAppKv.getNotes() == null ? TapisConstants.EMPTY_JSON : fixedAppKv.getNotes();
+    	// Canonicalize the notes fields by equating null, the empty string and
+    	// the empty json object to be the same.
+    	var reqNotes = reqKv.getNotes() == null || "".equals(reqKv.getNotes()) ? 
+    			TapisConstants.EMPTY_JSON : reqKv.getNotes();
+    	var fixNotes = fixedAppKv.getNotes() == null || "".equals(fixedAppKv.getNotes()) ? 
+    			TapisConstants.EMPTY_JSON : fixedAppKv.getNotes();
     	
     	// Make sure the request doesn't materially change the app env variable's definition.
     	// Returning from here means that at most the description values may be different.  

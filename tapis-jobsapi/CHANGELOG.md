@@ -9,6 +9,15 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.5.0 - 2023-10-06
+
+### New features:
+1. Write a source-able environment file when running slurm singularity jobs.
+
+### Bug fixes:
+1. Fix problem when a certain combination of inputs would incorrectly process FIXED arguments.
+
+-----------------------
 ## 1.4.3 - 2023-09-28
 
 ### New features:

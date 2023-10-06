@@ -183,7 +183,11 @@ extends ResourceConfig
        
        // ----- Database Migration for release 1.3.1 onwards
        // This code will be removed or made optional after some time.
-       runMigration();
+       if(parms.getJobsRunDBMigration()) {
+    	   runMigration();
+       } else {
+    	   System.out.println("****  Not running DB migration ****. \n");
+       }
        
        // ----- Start the notification liveness thread.
        startNotificationLiveness();  // Not implemented yet

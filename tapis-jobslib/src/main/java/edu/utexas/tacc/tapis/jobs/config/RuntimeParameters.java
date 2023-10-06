@@ -71,6 +71,9 @@ public final class RuntimeParameters
     // Support defaults.
     private static final String DEFAULT_SUPPORT_NAME = "Oracle of Delphi";
     
+    // DB run migration default
+    private static final boolean DEFAULT_RUN_DB_MIGRATION = false;
+    
     /* ********************************************************************** */
     /*                                 Fields                                 */
     /* ********************************************************************** */
@@ -134,6 +137,9 @@ public final class RuntimeParameters
 	// The slf4j/logback target directory and file.
 	private String  logDirectory;
 	private String  logFile;
+	
+	//Allow run db migration
+	private boolean runDBMigration = DEFAULT_RUN_DB_MIGRATION;
 	
 	/* ********************************************************************** */
 	/*                              Constructors                              */
@@ -562,6 +568,24 @@ public final class RuntimeParameters
       else if (DEFAULT_EMAIL_PROVIDER.equals(getEmailProviderType().name()))
           setSupportEmail(DEFAULT_EMAIL_PROVIDER);
     
+	// ------------------- DB Migration ------------------------------
+    // Optional. Default value for TAPIS_JOBS_RUN_MIGRATION is false.
+    // Set TAPIS_JOBS_DB_RUN_MIGRATION to true for release < = 1.3.1
+    parm = inputProperties.getProperty(EnvVar.TAPIS_JOBS_RUN_DB_MIGRATION.getEnvName());
+    if (StringUtils.isBlank(parm)) setJobsRunDBMigration(false);
+      else {
+        try {setJobsRunDBMigration(Boolean.valueOf(parm));}
+          catch (Exception e) {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "jobsRunDBMigration",
+                                         e.getMessage());
+            _log.error(msg, e);
+            throw new TapisRuntimeException(msg, e);
+          }
+      }
+    
 	}
 	
 	/* ---------------------------------------------------------------------- */
@@ -697,6 +721,10 @@ public final class RuntimeParameters
         buf.append(formatter.format(Runtime.getRuntime().totalMemory()));
         buf.append("\nfreeMemory: ");
         buf.append(formatter.format(Runtime.getRuntime().freeMemory()));
+        
+        buf.append("\n------- Jobs DB run migration ------------------------");
+        buf.append("\ntapis.jobs.run.db.migration: ");
+	    buf.append(TapisEnv.getBoolean(EnvVar.TAPIS_JOBS_RUN_DB_MIGRATION));
 	}
 	
     /* ********************************************************************** */
@@ -1056,4 +1084,12 @@ public final class RuntimeParameters
 	public void setServicePassword(String servicePassword) {
 		this.servicePassword = servicePassword;
 	}
+	
+	public boolean getJobsRunDBMigration() {
+		return runDBMigration;
+	}
+	public void setJobsRunDBMigration(boolean runDBMigration ) {
+		this.runDBMigration = runDBMigration ;
+	}
+	
 }

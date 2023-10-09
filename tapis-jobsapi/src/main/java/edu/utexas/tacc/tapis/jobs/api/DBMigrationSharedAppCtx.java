@@ -235,7 +235,7 @@ final class DBMigrationSharedAppCtx
    	                break;
    	                
    	                case 404:
-   	                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_NOT_FOUND", appString, "", tenant);
+   	                    msg = MsgUtils.getMsg("TAPIS_APPLOAD_NOT_FOUND", appString, "unknown", tenant);
    	                    appStatus="Probably the app " + appString +" has been deleted. Please check the app.";
    	                break;
    	                

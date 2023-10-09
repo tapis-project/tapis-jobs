@@ -13,6 +13,7 @@ https://tapis-project.github.io/live-docs
 
 ### New features:
 1. Write a source-able environment file when running slurm singularity jobs.
+2. Added an optional environment variable tapis.jobs.run.db.migration to allow DB migration
 
 ### Bug fixes:
 1. Fix problem when a certain combination of inputs would incorrectly process FIXED arguments.

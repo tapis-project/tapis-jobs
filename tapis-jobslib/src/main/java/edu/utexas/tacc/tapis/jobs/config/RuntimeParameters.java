@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.config;
 
-import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Properties;
@@ -58,9 +57,6 @@ public final class RuntimeParameters
   
     // Default database metering interval in minutes.
     private static final int DEFAULT_DB_METER_INTERVAL_MINUTES = 60 * 24;
-    
-    // Automatic hostname discovery value.
-    private static final String AUTO_GET_HOSTNAME = "auto";
     
     // Email defaults.
     private static final String DEFAULT_EMAIL_PROVIDER = "LOG";
@@ -232,23 +228,7 @@ public final class RuntimeParameters
     // by the deploying framework, such as Kubernetes.  If this set
     // then more extensive SSH logging will take place.
     parm = inputProperties.getProperty(EnvVar.TAPIS_LOCAL_NODE_NAME.getEnvName());
-    if (!StringUtils.isBlank(parm)) 
-    	if (!parm.equals(AUTO_GET_HOSTNAME)) setLocalNodeName(parm);
-    	  else {
-    		  // Initialize the hostname to be the input in case of failure.
-    		  String hostname = parm;
-    		  try {
-    			  // Dynamically query the OS for host name.
-    			  var process = Runtime.getRuntime().exec("hostname");
-    			  hostname = process.inputReader().readLine();
-    			  process.destroyForcibly();
-    		  } catch (Exception e) {
-    			  // This really shouldn't happen.
-				e.printStackTrace();
-    		  }
-    		  // Always set the hostname.
-    		  setLocalNodeName(hostname);
-    	  }
+    if (!StringUtils.isBlank(parm)) setLocalNodeName(parm);
                  
     // Optional test header parameter switch.
     parm = inputProperties.getProperty(EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS.getEnvName());

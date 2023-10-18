@@ -1981,6 +1981,10 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.JobCreateTimestamp.name(), _job.getCreated().toString());
         _macros.put(JobTemplateVariables.JobCreateDate.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
         _macros.put(JobTemplateVariables.JobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
+
+        // The stdout and stderr file names, _tapisStdoutFilename, _tapisStderrFilename
+        _macros.put(JobTemplateVariables.StdoutFilename.name(), _submitReq.getParameterSet().getLogConfig().getStdoutFilename());
+        _macros.put(JobTemplateVariables.StderrFilename.name(), _submitReq.getParameterSet().getLogConfig().getStderrFilename());
         
         // ---------- Ground, optional
         if (_dtnSystem != null) {

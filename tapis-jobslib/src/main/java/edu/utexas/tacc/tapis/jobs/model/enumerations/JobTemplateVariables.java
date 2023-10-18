@@ -25,7 +25,10 @@ public enum JobTemplateVariables
 	ExecSystemOutputDir,
 	DynamicExecSystem,
 	JobWorkingDir,
-	
+
+	StdoutFilename,
+	StderrFilename,
+
 	ExecSystemLogicalQueue,
 	ExecSystemHPCQueue,
 	

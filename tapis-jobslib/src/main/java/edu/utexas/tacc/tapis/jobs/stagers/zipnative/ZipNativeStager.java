@@ -65,7 +65,7 @@ public class ZipNativeStager
 
         // Extract the application archive file into execSystemExecDir.
         String appArchivePath = _zipRunCmd.getImage();
-        fm.extractAppArchive(appArchivePath);
+        fm.extractAppArchive(appArchivePath, _zipRunCmd.getAppArguments());
 
         // Create the environment variable definition file.
         String envVarFile = generateEnvVarFile();

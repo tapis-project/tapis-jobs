@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -339,9 +340,69 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* extractAppArchive:                                                     */
     /* ---------------------------------------------------------------------- */
+    /** Extract the application archive file into the exec system directory.
+     *
+     * @param archiveAbsolutePath location of archive file
+     * @throws TapisException on error
+     */
     public void extractAppArchive(String archiveAbsolutePath)
             throws TapisException
     {
+        // Calculate the file path to where archive will be unpacked.
+        String execSysExecPath = makePath(_jobCtx.getExecutionSystem().getRootDir(), _job.getExecSystemExecDir());
+        // Build the command to extract the archive, include any custom command arguments based on containerArgs
+        String cmd = getExtractCommand(archiveAbsolutePath);
+        // Log the command we are about to issue.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), cmd));
+
+        // TODO Run the command to extract the archive
+
+        // TODO ?????????????
+        // TODO code from docker native launch
+        // Run the command to extract the zip archive
+        var runCmd     = _jobCtx.getExecSystemTapisSSH().getRunCommand();
+        int exitStatus = runCmd.execute(cmd);
+        runCmd.logNonZeroExitCode();
+        String result  = runCmd.getOutAsString();
+        if (StringUtils.isBlank(result)) result = "";
+
+        // Exit code fix up.
+        if (exitStatus == -1  && !StringUtils.isBlank(result)) {
+            // Maybe it actually did work but the networking code couldn't retrieve the proper exit
+            // code.  If the result is a 64 character string of alphanumerics, we assume the launch
+            // was successful and reset the exitStatus to zero.
+            String temp = result.trim();
+            if (temp.length() == 64 && _nonEmptyAlphaNumeric.matcher(temp).matches()) {
+                if (_log.isWarnEnabled()) {
+                    String msg = MsgUtils.getMsg("JOBS_LAUNCH_EXITCODE_FIXUP", getClass().getSimpleName(),
+                            _job.getUuid(), exitStatus);
+                    _log.warn(msg);
+                }
+                // Let's go forward as if we got a zero return code.
+                exitStatus = 0;
+            }
+        }
+        // Inspect the actual or fixed up exit code.
+        String cid = UNKNOWN_CONTAINER_ID;
+        if (exitStatus == 0) {
+            cid = result.trim();
+            if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
+            else cid = extractCID(cid);
+            if (_log.isDebugEnabled()) {
+                String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(),
+                        _job.getUuid(), cid, exitStatus);
+                _log.debug(msg);
+            }
+        } else {
+            // Our one chance at launching the container failed with a non-communication
+            // error, which we assume is unrecoverable so we abort the job now.
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(),
+                    _job.getUuid(), cmd, result, exitStatus);
+            throw new TapisException(msg);
+        }
+        // TODO ?????????????
+        // TODO ?
     }
 
     /* ---------------------------------------------------------------------- */
@@ -423,6 +484,34 @@ public final class JobFileManager
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* getExtractCommand:                                                     */
+    /* ---------------------------------------------------------------------- */
+
+    /**
+     * Create the command that changes the directory to the execution directory and extracts the zip archive.
+     * The directory is expressed as an absolute path on the system.
+     *
+     * @param zipArchivePath
+     * @return Command to extract a zip archive
+     * @throws TapisException on error
+     */
+    private String getExtractCommand(String zipArchivePath)
+            throws TapisException
+    {
+        String execDir = Paths.get(_jobCtx.getExecutionSystem().getRootDir(), _job.getExecSystemExecDir()).toString();
+        // TODO Best way to get container args?
+        StringBuilder sb = new StringBuilder();
+        var containerArgList = _job.getParameterSetModel().getContainerArgs();
+        if (containerArgList != null)
+        {
+            for (JobArgSpec arg : containerArgList) {
+                if (!StringUtils.isBlank(arg.getArg())) sb.append(String.format(" %s", arg.getArg()));
+            }
+        }
+        return String.format("cd %s; tar%s -xf %s", execDir, sb, zipArchivePath);
+    }
+
     /* ---------------------------------------------------------------------- */
     /* getDirectoryKey:                                                       */
     /* ---------------------------------------------------------------------- */

@@ -16,7 +16,7 @@ public class JobLauncherFactory
     /* getInstance:                                                           */
     /* ---------------------------------------------------------------------- */
     /** Create a launcher based on the type of job and its execution environment.
-     * This method either returns the appropriate luuncher or throws an exception.
+     * This method either returns the appropriate launcher or throws an exception.
      * 
      * @param jobCtx job context
      * @return the launcher designated for the current job type and environment
@@ -38,6 +38,7 @@ public class JobLauncherFactory
             launcher = switch (runtime) {
                 case DOCKER      -> new DockerNativeLauncher(jobCtx);
                 case SINGULARITY -> getSingularityOption(jobCtx, app);
+                case ZIP         -> new ZipNativeLauncher(jobCtx);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobLauncherFactory");

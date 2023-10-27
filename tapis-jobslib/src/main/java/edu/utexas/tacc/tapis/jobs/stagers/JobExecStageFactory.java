@@ -9,6 +9,8 @@ import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerSlurmStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityRunStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityStartStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularityslurm.SingularityRunSlurmStager;
+import edu.utexas.tacc.tapis.jobs.stagers.zipnative.ZipNativeStager;
+import edu.utexas.tacc.tapis.jobs.stagers.zipnative.ZipSlurmStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -42,6 +44,7 @@ public final class JobExecStageFactory
             stager = switch (runtime) {
                 case DOCKER      -> new DockerNativeStager(jobCtx);
                 case SINGULARITY -> getSingularityOption(jobCtx, app);
+                case ZIP         -> new ZipNativeStager(jobCtx);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobExecStageFactory");
@@ -66,6 +69,7 @@ public final class JobExecStageFactory
             stager = switch (runtime) {
                 case DOCKER      -> getBatchDockerStager(jobCtx, scheduler);
                 case SINGULARITY -> getBatchSingularityStager(jobCtx, scheduler);
+                case ZIP         -> getBatchZipStager(jobCtx, scheduler);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobExecStageFactory");
@@ -156,5 +160,31 @@ public final class JobExecStageFactory
         };
         
         return stager;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getBatchZipStager:                                                     */
+    /* ---------------------------------------------------------------------- */
+    private static JobExecStager getBatchZipStager(JobExecutionContext jobCtx,
+                                                   SchedulerTypeEnum scheduler)
+            throws TapisException
+    {
+        // TODO: Support ZIP for batch jobs
+        String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",scheduler + "(ZIP)", "JobExecStageFactory");
+        throw new JobException(msg);
+// TODO
+//        // Get the scheduler's docker stager.
+//        JobExecStager stager = switch (scheduler) {
+//            case SLURM -> new ZipSlurmStager(jobCtx);
+//
+//            default -> {
+//                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+//                        scheduler + "(ZIP)",
+//                        "JobExecStageFactory");
+//                throw new JobException(msg);
+//            }
+//        };
+//
+//        return stager;
     }
 }

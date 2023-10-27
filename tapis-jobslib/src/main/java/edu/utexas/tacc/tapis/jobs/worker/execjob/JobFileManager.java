@@ -335,7 +335,15 @@ public final class JobFileManager
             throw new JobException(msg, e);
         } 
     }
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* extractAppArchive:                                                     */
+    /* ---------------------------------------------------------------------- */
+    public void extractAppArchive(String archiveAbsolutePath)
+            throws TapisException
+    {
+    }
+
     /* ---------------------------------------------------------------------- */
     /* makeAbsExecSysInputPath:                                               */
     /* ---------------------------------------------------------------------- */

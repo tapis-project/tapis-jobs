@@ -203,7 +203,17 @@ public final class JobSharedAppCtx
         // Sharing's in effect if the app and job directories are the same.
         if (appDir.equals(jobDir)) _sharedAppCtxAttribs.add(attrib);
     }
-    
+
+    /* ---------------------------------------------------------------------------- */
+    /* getSharingExecSystemInputDirAppOwner:                                        */
+    /* ---------------------------------------------------------------------------- */
+    public String getSharingContainerImageUrlAppOwner() {
+        // containerImage can only be defined in the app so it is always considered
+        //   shared if we are in a shared app context.
+        if (_sharingEnabled) return _sharedAppOwner;
+        else return NOT_SHARED_APP_OWNER;
+    }
+
     /* ---------------------------------------------------------------------------- */
     /* isSharingExecSystemId:                                                       */
     /* ---------------------------------------------------------------------------- */
@@ -231,7 +241,7 @@ public final class JobSharedAppCtx
     /* ---------------------------------------------------------------------------- */
     public boolean isSharingExecSystemInputDir() 
     {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR);}
-    
+
     /* ---------------------------------------------------------------------------- */
     /* getSharingExecSystemInputDirAppOwner:                                        */
     /* ---------------------------------------------------------------------------- */

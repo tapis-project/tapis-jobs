@@ -157,7 +157,8 @@ public final class JobsDao
     /* ********************************************************************** */
     // Determine which file transfer value is updated.
     public enum TransferValueType {InputTransferId, InputCorrelationId, 
-                                   ArchiveTransferId, ArchiveCorrelationId}
+                                   ArchiveTransferId, ArchiveCorrelationId,
+                                   StageAppTransferId, StageAppCorrelationId}
     
 	/* ********************************************************************** */
 	/*                              Constructors                              */
@@ -3523,6 +3524,8 @@ public final class JobsDao
     // Container for file transfer information.
     public static final class JobTransferInfo
     {
+		public String appAssetTransactionId;
+		public String appAssetCorrelationId;
         public String inputTransactionId;
         public String inputCorrelationId;
         public String archiveTransactionId;

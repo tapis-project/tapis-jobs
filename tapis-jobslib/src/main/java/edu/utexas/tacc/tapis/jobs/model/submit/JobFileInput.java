@@ -6,8 +6,14 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.regex.Pattern;
+
 public class JobFileInput 
 {
+    // Regex pattern for validating sourceUrl.
+    // Copied from Files service. edu.utexas.tacc.tapis.files.lib.models.TransferURI
+    public static final Pattern URL_PATTERN = Pattern.compile("(http:\\/\\/|https:\\/\\/|tapis:\\/\\/)([\\w -\\.]+)\\/?(.*)");
+
     private String  name;
     private String  description;
     private Boolean autoMountLocal;

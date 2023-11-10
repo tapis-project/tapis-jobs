@@ -1,16 +1,16 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +62,7 @@ public final class JobFileManager
     /*                                Enums                                   */
     /* ********************************************************************** */
     // We transfer files in these phases of job processing.
-    private enum JobTransferPhase {INPUT, ARCHIVE}
+    private enum JobTransferPhase {INPUT, ARCHIVE, STAGE_APP}
     
     // Archive filter types.
     private enum FilterType {INCLUDES, EXCLUDES}
@@ -204,7 +204,84 @@ public final class JobFileManager
             }
         }
     }
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* stageAppAssets:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Perform or restart the app assets staging process. Both recoverable
+     * and non-recoverable exceptions can be thrown from here.
+     * Return the path to the application archive file
+     *
+     * @throws TapisException on error
+     */
+    public String stageAppAssets() throws TapisException
+    {
+        String appArchivePath, appArchiveFile, msg;
+        // For convenience and clarity set the containerImage property.
+        String containerImage = _jobCtx.getApp().getContainerImage();
+        boolean containerImageIsUrl = false;
+        // Determine the location of the app archive using containerImage as either a path or url.
+        // If it starts with "/" then it should an absolute path, else it should be a URL
+        if (containerImage.startsWith("/")) {
+            // Process as an absolute path
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", _job.getUuid(), "PATH", containerImage);
+            _log.debug(msg);
+            appArchivePath = FilenameUtils.normalize(containerImage);
+            appArchiveFile = Path.of(appArchivePath).getFileName().toString();
+        }
+        else {
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", _job.getUuid(), "URL", containerImage);
+            _log.debug(msg);
+            // Not a path, so should be a URL in a format supported by Files service. Validate it.
+            Matcher matcher = JobFileInput.URL_PATTERN.matcher(containerImage);
+            if (!matcher.find())
+            {
+                msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", _job.getUuid(), containerImage);
+                throw new JobException(msg);
+            }
+            containerImageIsUrl = true;
+            // Extract and normalize the path in the URL. If no path set then use /
+            String urlPathStr = Optional.ofNullable(matcher.group(3)).orElse("/");
+            // Get file name from the path and set full path to app archive
+            Path urlPath = Path.of(FilenameUtils.normalize(urlPathStr));
+            String rootDir = Optional.ofNullable(_jobCtx.getExecutionSystem().getRootDir()).orElse("/");
+            appArchiveFile = urlPath.getFileName().toString();
+            appArchivePath = Paths.get(rootDir, _job.getExecSystemExecDir(), appArchiveFile).toString();
+        }
+
+        // Do simple validation of app archive file name.
+        if (StringUtils.isBlank(appArchiveFile) || "/".equals(appArchiveFile))
+        {
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", _job.getUuid(), containerImage, appArchiveFile);
+            throw new JobException(msg);
+        }
+
+        // If a url, then start a file transfer and wait for it to finish.
+        if (containerImageIsUrl)
+        {
+            // Create the transfer request. sourceUrl is the containerImage
+            String sourceUrl = containerImage;
+            // Build destUrl from exec system and path = execSystemExecDir
+            String destUrl = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemExecDir(), "");
+
+            // Determine sharing info for sourceUrl and destinationUrl
+            String sharingOwnerSourceUrl = _jobCtx.getJobSharedAppCtx().getSharingContainerImageUrlAppOwner();;
+            String sharingOwnerDestUrl = _jobCtx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
+
+            var reqTransfer = new ReqTransfer();
+            var task = new ReqTransferElement().sourceURI(sourceUrl).destinationURI(destUrl);
+            task.setOptional(false);
+            task.setSrcSharedCtx(sharingOwnerSourceUrl);
+            task.setDestSharedCtx(sharingOwnerDestUrl);
+            reqTransfer.addElementsItem(task);
+            // Transfer the app archive file. This method will start or restart the transfer and monitor
+            //   it until it completes.
+            stageAppArchiveFile(reqTransfer);
+        }
+
+        return appArchivePath;
+    }
+
     /* ---------------------------------------------------------------------- */
     /* stageInputs:                                                           */
     /* ---------------------------------------------------------------------- */
@@ -349,60 +426,28 @@ public final class JobFileManager
             throws TapisException
     {
         // Calculate the file path to where archive will be unpacked.
-        String execSysExecPath = makePath(_jobCtx.getExecutionSystem().getRootDir(), _job.getExecSystemExecDir());
+        String execDir = Paths.get(_jobCtx.getExecutionSystem().getRootDir(), _job.getExecSystemExecDir()).toString();
         // Build the command to extract the archive, include any custom command arguments based on containerArgs
-        String cmd = getExtractCommand(archiveAbsolutePath);
+        String cmd = getExtractCommand(execDir, archiveAbsolutePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), cmd));
 
-        // TODO Run the command to extract the archive
-
-        // TODO ?????????????
-        // TODO code from docker native launch
-        // Run the command to extract the zip archive
-        var runCmd     = _jobCtx.getExecSystemTapisSSH().getRunCommand();
+        // Run the command to extract the app archive
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         int exitStatus = runCmd.execute(cmd);
-        runCmd.logNonZeroExitCode();
         String result  = runCmd.getOutAsString();
         if (StringUtils.isBlank(result)) result = "";
+        // Log exit code and result
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_EXIT", _job.getUuid(), exitStatus, result));
 
-        // Exit code fix up.
-        if (exitStatus == -1  && !StringUtils.isBlank(result)) {
-            // Maybe it actually did work but the networking code couldn't retrieve the proper exit
-            // code.  If the result is a 64 character string of alphanumerics, we assume the launch
-            // was successful and reset the exitStatus to zero.
-            String temp = result.trim();
-            if (temp.length() == 64 && _nonEmptyAlphaNumeric.matcher(temp).matches()) {
-                if (_log.isWarnEnabled()) {
-                    String msg = MsgUtils.getMsg("JOBS_LAUNCH_EXITCODE_FIXUP", getClass().getSimpleName(),
-                            _job.getUuid(), exitStatus);
-                    _log.warn(msg);
-                }
-                // Let's go forward as if we got a zero return code.
-                exitStatus = 0;
-            }
-        }
-        // Inspect the actual or fixed up exit code.
-        String cid = UNKNOWN_CONTAINER_ID;
-        if (exitStatus == 0) {
-            cid = result.trim();
-            if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
-            else cid = extractCID(cid);
-            if (_log.isDebugEnabled()) {
-                String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(),
-                        _job.getUuid(), cid, exitStatus);
-                _log.debug(msg);
-            }
-        } else {
-            // Our one chance at launching the container failed with a non-communication
-            // error, which we assume is unrecoverable so we abort the job now.
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(),
-                    _job.getUuid(), cmd, result, exitStatus);
+        // If non-zero exit code consider it a failure. Throw non-recoverable exception.
+        if (exitStatus != 0) {
+            String msg = MsgUtils.getMsg("JOBS_ZIP_EXTRACT_ERROR", getClass().getSimpleName(),
+                    _job.getUuid(), cmd, exitStatus, result);
             throw new TapisException(msg);
         }
-        // TODO ?????????????
-        // TODO ?
     }
 
     /* ---------------------------------------------------------------------- */
@@ -480,27 +525,94 @@ public final class JobFileManager
     {
         return makePath(execSystemRootDir, TapisUtils.extractFilename(sourceUrl));
     }
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* makeSystemUrl:                                                         */
+    /* ---------------------------------------------------------------------- */
+    /** Create a tapis url based on the systemId, a base path on that system
+     * and a file pathname.
+     *
+     * Implicit in the tapis protocol is that the Files service will prefix path
+     * portion of the url with  the execution system's rootDir when actually
+     * transferring files.
+     *
+     * The pathName can be null or empty.
+     *
+     * @param systemId the target tapis system
+     * @param basePath the jobs base path (input, output, exec) relative to the system's rootDir
+     * @param pathName the file pathname relative to the basePath
+     * @return the tapis url indicating a path on the exec system.
+     */
+    public String makeSystemUrl(String systemId, String basePath, String pathName)
+    {
+        // Start with the system id.
+        String url = TapisUrl.TAPIS_PROTOCOL_PREFIX + systemId;
+
+        // Add the job's put input path.
+        if (basePath.startsWith("/")) url += basePath;
+        else url += "/" + basePath;
+
+        // Add the suffix.
+        if (StringUtils.isBlank(pathName)) return url;
+        if (url.endsWith("/") && pathName.startsWith("/")) url += pathName.substring(1);
+        else if (!url.endsWith("/") && !pathName.startsWith("/")) url += "/" + pathName;
+        else url += pathName;
+        return url;
+    }
+
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
+
+    /* ---------------------------------------------------------------------- */
+    /* stageAppAssets:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /** Perform or restart the app assets file staging process. Both recoverable
+     * and non-recoverable exceptions can be thrown from here.
+     *
+     * @throws TapisException on error
+     */
+    private void stageAppArchiveFile(ReqTransfer reqTransfer) throws TapisException
+    {
+        // Determine if we are restarting a previous request.
+        var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
+        String transferId = transferInfo.appAssetTransactionId;
+        String corrId     = transferInfo.appAssetCorrelationId;
+        // See if the transfer id has been set for this job (this implies the
+        // correlation id has also been set).  If so, then the job had already
+        // submitted its transfer request, and we are now in recovery processing.
+        // There's no need to resubmit the transfer request in this case.
+        //
+        // It's possible that the corrId was set, but we died before the transferId
+        // was saved.  In this case, we simply generate a new corrId.
+        if (StringUtils.isBlank(transferId)) {
+            corrId = UUID.randomUUID().toString();
+            transferId = submitTransferTask(reqTransfer, corrId, JobTransferPhase.STAGE_APP);
+        }
+
+        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(),
+                _job.getStatus().name(), transferId, corrId));
+
+        // Block until the transfer is complete. If the transfer fails because of
+        // a communication, api or transfer problem, an exception is thrown from here.
+        var monitor = TransferMonitorFactory.getMonitor();
+        monitor.monitorTransfer(_job, transferId, corrId);
+    }
+
     /* ---------------------------------------------------------------------- */
     /* getExtractCommand:                                                     */
     /* ---------------------------------------------------------------------- */
-
     /**
-     * Create the command that changes the directory to the execution directory and extracts the zip archive.
-     * The directory is expressed as an absolute path on the system.
+     * Create the command that changes the directory to the execution directory and
+     * extracts the app archive using tar.
      *
-     * @param zipArchivePath
-     * @return Command to extract a zip archive
-     * @throws TapisException on error
+     * @param execDir
+     * @param appArchivePath
+     * @return Command to extract the app archive using the tar command
      */
-    private String getExtractCommand(String zipArchivePath)
-            throws TapisException
+    private String getExtractCommand(String execDir, String appArchivePath)
     {
-        String execDir = Paths.get(_jobCtx.getExecutionSystem().getRootDir(), _job.getExecSystemExecDir()).toString();
-        // TODO Best way to get container args?
+        // Extract container args
         StringBuilder sb = new StringBuilder();
         var containerArgList = _job.getParameterSetModel().getContainerArgs();
         if (containerArgList != null)
@@ -509,7 +621,7 @@ public final class JobFileManager
                 if (!StringUtils.isBlank(arg.getArg())) sb.append(String.format(" %s", arg.getArg()));
             }
         }
-        return String.format("cd %s; tar%s -xf %s", execDir, sb, zipArchivePath);
+        return String.format("cd %s; tar%s -xf %s", execDir, sb, appArchivePath);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -651,7 +763,11 @@ public final class JobFileManager
         // Database assignment keys.
         TransferValueType tid;
         TransferValueType corrId;
-        if (phase == JobTransferPhase.INPUT) {
+        if (phase == JobTransferPhase.STAGE_APP) {
+            tid = TransferValueType.StageAppTransferId;
+            corrId = TransferValueType.StageAppCorrelationId;
+        }
+        else if (phase == JobTransferPhase.INPUT) {
             tid = TransferValueType.InputTransferId;
             corrId = TransferValueType.InputCorrelationId;
         } else {
@@ -1026,40 +1142,6 @@ public final class JobFileManager
         return makeSystemUrl(destSysId, _job.getArchiveSystemDir(), pathName);
     }
     
-    /* ---------------------------------------------------------------------- */
-    /* makeSystemUrl:                                                         */
-    /* ---------------------------------------------------------------------- */
-    /** Create a tapis url based on the systemId, a base path on thate system
-     * and a file pathname.  
-     *   
-     * Implicit in the tapis protocol is that the Files service will prefix path 
-     * portion of the url with  the execution system's rootDir when actually 
-     * transferring files.
-     * 
-     * The pathName can be null or empty.
-     * 
-     * @param systemId the target tapis system
-     * @param basePath the jobs base path (input, output, exec) relative to the system's rootDir
-     * @param pathName the file pathname relative to the basePath
-     * @return the tapis url indicating a path on the exec system.
-     */
-    private String makeSystemUrl(String systemId, String basePath, String pathName)
-    {
-        // Start with the system id.
-        String url = TapisUrl.TAPIS_PROTOCOL_PREFIX + systemId;
-        
-        // Add the job's put input path.
-        if (basePath.startsWith("/")) url += basePath;
-          else url += "/" + basePath;
-        
-        // Add the suffix.
-        if (StringUtils.isBlank(pathName)) return url;
-        if (url.endsWith("/") && pathName.startsWith("/")) url += pathName.substring(1);
-        else if (!url.endsWith("/") && !pathName.startsWith("/")) url += "/" + pathName;
-        else url += pathName;
-        return url;
-    }
-
     /* ---------------------------------------------------------------------- */
     /* makePath:                                                              */
     /* ---------------------------------------------------------------------- */

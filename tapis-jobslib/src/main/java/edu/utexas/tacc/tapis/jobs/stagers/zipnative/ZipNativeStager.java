@@ -56,22 +56,25 @@ public class ZipNativeStager
     public void stageJob() throws TapisException
     {
         // Get the job file manager used to make directories, upload files, transfer files, etc.
-        var fm = _jobCtx.getJobFileManager();
+        var jobFileManager = _jobCtx.getJobFileManager();
 
-        // TODO Determine if the containerImage is an https or tapis url indicating we need to use the Files service
-        //  to transfer the archive file from a remote system.
-        // TODO For now, assume the containerImage is an absolute path on the exec system pointing to the
-        //  application archive file .
+        // Stage the app archive. This may involve a transfer
+        String appArchivePath = jobFileManager.stageAppAssets();
 
-        // Extract the application archive file into execSystemExecDir.
-        String appArchivePath = _zipRunCmd.getImage();
-        fm.extractAppArchive(appArchivePath, _zipRunCmd.getAppArguments());
+        // Run a remote command to extract the application archive file into execSystemExecDir.
+        jobFileManager.extractAppArchive(appArchivePath);
+
+        // Create the wrapper script.
+        String wrapperScript = generateWrapperScript();
 
         // Create the environment variable definition file.
         String envVarFile = generateEnvVarFile();
 
+        // Install the wrapper script on the execution system.
+        jobFileManager.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
+
         // Install the exported env variable file.
-        fm.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
+        jobFileManager.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
     }
 
     /* ********************************************************************** */
@@ -80,7 +83,7 @@ public class ZipNativeStager
     /* ---------------------------------------------------------------------- */
     /* generateWrapperScript:                                                 */
     /* ---------------------------------------------------------------------- */
-    // TODO is this method needed for ZIP?
+    // TODO is this method needed for ZIP? Yes
     /** This method generates the wrapper script content.
      *
      * @return the wrapper script content

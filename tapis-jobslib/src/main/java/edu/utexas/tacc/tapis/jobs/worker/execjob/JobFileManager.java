@@ -9,7 +9,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -27,6 +26,7 @@ import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
@@ -210,6 +210,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /** Perform or restart the app assets staging process. Both recoverable
      * and non-recoverable exceptions can be thrown from here.
+     * This may involve calling the Files service to start or resume a transfer.
      * Return the path to the application archive file
      *
      * @throws TapisException on error
@@ -217,26 +218,28 @@ public final class JobFileManager
     public String stageAppAssets() throws TapisException
     {
         String appArchivePath, appArchiveFile, msg;
-        // For convenience and clarity set the containerImage property.
+        // For convenience and clarity set some variables.
         String containerImage = _jobCtx.getApp().getContainerImage();
+        String jobUuid = _job.getUuid();
+        containerImage = containerImage == null ? "" : containerImage;
         boolean containerImageIsUrl = false;
         // Determine the location of the app archive using containerImage as either a path or url.
         // If it starts with "/" then it should an absolute path, else it should be a URL
         if (containerImage.startsWith("/")) {
             // Process as an absolute path
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", _job.getUuid(), "PATH", containerImage);
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "PATH", containerImage);
             _log.debug(msg);
             appArchivePath = FilenameUtils.normalize(containerImage);
             appArchiveFile = Path.of(appArchivePath).getFileName().toString();
         }
         else {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", _job.getUuid(), "URL", containerImage);
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "URL", containerImage);
             _log.debug(msg);
             // Not a path, so should be a URL in a format supported by Files service. Validate it.
             Matcher matcher = JobFileInput.URL_PATTERN.matcher(containerImage);
             if (!matcher.find())
             {
-                msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", _job.getUuid(), containerImage);
+                msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", jobUuid, containerImage);
                 throw new JobException(msg);
             }
             containerImageIsUrl = true;
@@ -252,11 +255,11 @@ public final class JobFileManager
         // Do simple validation of app archive file name.
         if (StringUtils.isBlank(appArchiveFile) || "/".equals(appArchiveFile))
         {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", _job.getUuid(), containerImage, appArchiveFile);
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, containerImage, appArchiveFile);
             throw new JobException(msg);
         }
 
-        // If a url, then start a file transfer and wait for it to finish.
+        // If a url, then start or restart a file transfer and wait for it to finish.
         if (containerImageIsUrl)
         {
             // Create the transfer request. sourceUrl is the containerImage
@@ -565,7 +568,7 @@ public final class JobFileManager
     /* ********************************************************************** */
 
     /* ---------------------------------------------------------------------- */
-    /* stageAppAssets:                                                        */
+    /* stageAppArchiveFile:                                                   */
     /* ---------------------------------------------------------------------- */
     /** Perform or restart the app assets file staging process. Both recoverable
      * and non-recoverable exceptions can be thrown from here.
@@ -606,8 +609,8 @@ public final class JobFileManager
      * Create the command that changes the directory to the execution directory and
      * extracts the app archive using tar.
      *
-     * @param execDir
-     * @param appArchivePath
+     * @param execDir execSystemExecDir
+     * @param appArchivePath Absolute path to app archive file
      * @return Command to extract the app archive using the tar command
      */
     private String getExtractCommand(String execDir, String appArchivePath)

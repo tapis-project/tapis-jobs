@@ -1748,6 +1748,8 @@ public final class JobsDao
               case InputCorrelationId   -> SqlStatements.UPDATE_INPUT_CORR_ID;
               case ArchiveTransferId    -> SqlStatements.UPDATE_ARCHIVE_TRANSFER_ID;
               case ArchiveCorrelationId -> SqlStatements.UPDATE_ARCHIVE_CORR_ID;
+			  case StageAppTransferId -> SqlStatements.UPDATE_STAGEAPP_TRANSFER_ID;
+			  case StageAppCorrelationId -> SqlStatements.UPDATE_STAGEAPP_CORR_ID;
           };
           
           // Prepare the chosen statement.
@@ -1778,6 +1780,8 @@ public final class JobsDao
               case InputCorrelationId:   job.setInputCorrelationId(value); break;
               case ArchiveTransferId:    job.setArchiveTransactionId(value); break;
               case ArchiveCorrelationId: job.setArchiveCorrelationId(value); break;
+			  case StageAppTransferId:    job.setStageAppTransactionId(value); break;
+			  case StageAppCorrelationId: job.setStageAppCorrelationId(value); break;
           }
         }
         catch (Exception e)
@@ -2170,6 +2174,8 @@ public final class JobsDao
                   result.inputCorrelationId   = rs.getString(2);
                   result.archiveTransactionId = rs.getString(3);
                   result.archiveCorrelationId = rs.getString(4);
+				  result.appAssetTransactionId = rs.getString(5);
+				  result.appAssetCorrelationId = rs.getString(6);
               }
               
               // Close the result and statement.
@@ -3115,13 +3121,15 @@ public final class JobsDao
 	        obj.setInputCorrelationId(rs.getString(48));
 	        obj.setArchiveTransactionId(rs.getString(49));
 	        obj.setArchiveCorrelationId(rs.getString(50));
+			obj.setStageAppTransactionId(rs.getString(51));
+			obj.setStageAppCorrelationId(rs.getString(52));
 
-	        obj.setTapisQueue(rs.getString(51));
-	        obj.setVisible(rs.getBoolean(52));
-	        obj.setCreatedby(rs.getString(53));
-	        obj.setCreatedbyTenant(rs.getString(54));
+	        obj.setTapisQueue(rs.getString(53));
+	        obj.setVisible(rs.getBoolean(54));
+	        obj.setCreatedby(rs.getString(55));
+	        obj.setCreatedbyTenant(rs.getString(56));
 	        
-	        Array tagsArray = rs.getArray(55);
+	        Array tagsArray = rs.getArray(57);
 	        if (tagsArray != null) {
 	            var stringArray = (String[])tagsArray.getArray();
 	            if (stringArray != null && stringArray.length > 0) { 
@@ -3132,17 +3140,17 @@ public final class JobsDao
 	        }
 	        
 	        // Could be null until databases are migrated.
-	        String jobType = rs.getString(56);
+	        String jobType = rs.getString(58);
 	        if (jobType != null) obj.setJobType(JobType.valueOf(jobType));
 	        
 	        // MPI and command prefix.
-	        obj.setMpi(rs.getBoolean(57));
-	        obj.setMpiCmd(rs.getString(58));
-	        obj.setCmdPrefix(rs.getString(59));
+	        obj.setMpi(rs.getBoolean(59));
+	        obj.setMpiCmd(rs.getString(60));
+	        obj.setCmdPrefix(rs.getString(61));
 	        
 	        // Shared application context.
-	        obj.setSharedAppCtx(rs.getString(60));
-	        Array attribArray = rs.getArray(61);
+	        obj.setSharedAppCtx(rs.getString(62));
+	        Array attribArray = rs.getArray(63);
 	        if (attribArray != null) {
 	            var stringArray = (String[])attribArray.getArray();
                 if (stringArray != null && stringArray.length > 0) { 
@@ -3153,7 +3161,7 @@ public final class JobsDao
 	        }
 	        
 	        // Notes non-null json value.
-	        obj.setNotes(rs.getString(62));
+	        obj.setNotes(rs.getString(64));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
@@ -3524,12 +3532,12 @@ public final class JobsDao
     // Container for file transfer information.
     public static final class JobTransferInfo
     {
-		public String appAssetTransactionId;
-		public String appAssetCorrelationId;
         public String inputTransactionId;
         public String inputCorrelationId;
         public String archiveTransactionId;
         public String archiveCorrelationId;
+		public String appAssetTransactionId;
+		public String appAssetCorrelationId;
     }
 
     /* ********************************************************************** */

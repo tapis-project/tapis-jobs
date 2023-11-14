@@ -126,7 +126,9 @@ public final class Job
     private String              inputCorrelationId;
     private String              archiveTransactionId;
     private String              archiveCorrelationId;
-    
+    private String              stageAppTransactionId;
+    private String              stageAppCorrelationId;
+
     private String   			tapisQueue;
     private boolean  			visible = true;
     private String   			createdby;
@@ -965,6 +967,22 @@ public final class Job
 
     public void setArchiveCorrelationId(String archiveCorrelationId) {
         this.archiveCorrelationId = archiveCorrelationId;
+    }
+
+    public String getStageAppTransactionId() {
+        return stageAppTransactionId;
+    }
+
+    public void setStageAppTransactionId(String stageAppTransactionId) {
+        this.stageAppTransactionId = stageAppTransactionId;
+    }
+
+    public String getStageAppCorrelationId() {
+        return stageAppCorrelationId;
+    }
+
+    public void setStageAppCorrelationId(String stageAppCorrelationId) {
+        this.stageAppCorrelationId = stageAppCorrelationId;
     }
 
     public boolean isMpi() {

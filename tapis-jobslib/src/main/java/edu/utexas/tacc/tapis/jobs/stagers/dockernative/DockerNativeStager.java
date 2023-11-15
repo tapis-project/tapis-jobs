@@ -75,7 +75,7 @@ public class DockerNativeStager
         // Build the command file content.
         initBashScript();
         
-        // Add the docker command to the command file.
+        // Add the docker command the the command file.
         _cmd.append(dockerCmd);
                 
         return _cmd.toString();

@@ -428,8 +428,13 @@ public final class JobFileManager
     public void extractAppArchive(String archiveAbsolutePath)
             throws TapisException
     {
+        // Make sure rootDir is not null. If null Paths.get() would throw null ptr exception.
+        String rootDir = _jobCtx.getExecutionSystem().getRootDir();
+        rootDir = rootDir == null ? "" : rootDir;
+
         // Calculate the file path to where archive will be unpacked.
-        String execDir = Paths.get(_jobCtx.getExecutionSystem().getRootDir(), _job.getExecSystemExecDir()).toString();
+        String execDir = Paths.get(rootDir, _job.getExecSystemExecDir()).toString();
+
         // Build the command to extract the archive, include any custom command arguments based on containerArgs
         String cmd = getExtractCommand(execDir, archiveAbsolutePath);
         // Log the command we are about to issue.
@@ -441,6 +446,7 @@ public final class JobFileManager
         int exitStatus = runCmd.execute(cmd);
         String result  = runCmd.getOutAsString();
         if (StringUtils.isBlank(result)) result = "";
+
         // Log exit code and result
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_EXIT", _job.getUuid(), exitStatus, result));

@@ -241,7 +241,7 @@ public final class JobSharedAppCtx
     /* ---------------------------------------------------------------------------- */
     public boolean isSharingExecSystemInputDir() 
     {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR);}
-
+    
     /* ---------------------------------------------------------------------------- */
     /* getSharingExecSystemInputDirAppOwner:                                        */
     /* ---------------------------------------------------------------------------- */

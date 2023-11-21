@@ -27,10 +27,6 @@ public class ZipStager
     public static final String MANIFEST_FILE = "tapisjob.manifest";
     // Property name for optional relative path to executable specified in manifest file.
     public static final String MANIFEST_EXEC_PROPERTY = "tapisjob_executable";
-    // Path to file used to capture process id.
-    public static final String PID_FILE = "tapisjob.pid";
-    // Path to file used to capture process id.
-    public static final String ENV_FILE = "tapisjob.env";
 
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -70,16 +66,26 @@ public class ZipStager
         // Run a remote command to extract the application archive file into execSystemExecDir.
         jobFileManager.extractAppArchive(appArchivePath);
 
+        // Now that app archive is unpacked we can determine the app executable
+        // First generate the script that we will run to determine the executable.
+        String setAppExecutableScript = generateSetAppExecutableScript();
+
+        // Install the script. Creates tapisjob_setexec.sh
+        jobFileManager.installExecFile(setAppExecutableScript, JobExecutionUtils.JOB_ZIP_SET_EXEC_FILE, JobFileManager.RWXRWX);
+
+        // Run the script to determine the executable. Creates tapisjob.exec
+        jobFileManager.runSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_FILE);
+
         // Create the wrapper script.
         String wrapperScript = generateWrapperScript();
+
+        // Install the wrapper script on the execution system. Creates tapisjob.sh
+        jobFileManager.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
 
         // Create the environment variable definition file.
         String envVarFile = generateEnvVarFile();
 
-        // Install the wrapper script on the execution system.
-        jobFileManager.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
-
-        // Install the exported env variable file.
+        // Install the exported env variable file. Creates tapisjob.env
         jobFileManager.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
     }
 
@@ -121,7 +127,7 @@ public class ZipStager
     {
         return _zipRunCmd.generateEnvVarFileContent();
     }
-    
+
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
@@ -156,6 +162,46 @@ public class ZipStager
     }
 
     /* ---------------------------------------------------------------------- */
+    /* generateSetExecutableScript:                                           */
+    /* ---------------------------------------------------------------------- */
+    /** This method generates script to determine a ZIP runtime executable
+     *
+     * @return the script content
+     */
+    private String generateSetAppExecutableScript()
+    {
+        // Use a text block for simplicity and clarity.
+        return
+            """
+            #!/bin/sh
+            #
+            # Script to determine Tapis application executable for application defined as runtime type of ZIP.
+            #
+            # Set a default
+            APP_EXEC="tapisjob_app.sh"
+            
+            # If default does not exist but manifest file is present then search manifest file
+            if [ ! -f "./tapisjob_app.sh" ] && [ -f "./tapisjob.manifest" ]; then
+              APP_EXEC=$(grep -v "^#" tapisjob.manifest | grep "^tapisjob_executable=" | sed -E 's/(.*)=//')
+            fi
+            
+            # Check for errors. If all OK then ensure that file is executable.
+            if [ -z "$APP_EXEC" ]; then
+              echo "ERROR: Unable to determine application executable"
+              echo "ERROR: Please provide tapisjob_app.sh or a manifest specifying tapisjob_executable."
+              exit 1
+            elif [ ! -f "./$APP_EXEC" ]; then
+              echo "ERROR: Looking for application executable = $APP_EXEC but file does not exist"
+              exit 2
+            else
+              chmod +x "./$APP_EXEC"
+            fi
+            echo "Found application executable = $APP_EXEC"
+            echo "$APP_EXEC" > "./tapisjob.exec"
+            """;
+    }
+
+    /* ---------------------------------------------------------------------- */
     /* configureRunCmd:                                                       */
     /* ---------------------------------------------------------------------- */
     private ZipRunCmd configureRunCmd()
@@ -168,11 +214,6 @@ public class ZipStager
         // Set the stdout/stderr redirection file.
         resolveLogConfig(zipRunCmd);
 
-        // TODO Set the app executable as tapisjob_app.sh or the path from the manifest.
-        // TODO For now, assume it is the default tapisjob_app.sh
-        String appExecPath = DEFAULT_APP_EXECUTABLE;//getAppExecutableRelativePath();
-        zipRunCmd.setAppExecutable(appExecPath);
-        
         // ----------------- User and Tapis Definitions -----------------
         // Set all environment variables.
         setEnvVariables(zipRunCmd);

@@ -30,7 +30,7 @@ public class SqlStatements
         	+ "remote_started, remote_ended, remote_submit_retries, remote_checks_success, "
         	+ "remote_checks_failed, remote_last_status_check, "
         	+ "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
-            + "app_asset_transaction_id, app_asset_correlation_id, "
+        	+ "app_asset_transaction_id, app_asset_correlation_id, "
         	+ "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
         	+ "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes"
             + " FROM jobs ORDER BY id";

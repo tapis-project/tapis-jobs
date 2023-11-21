@@ -9,8 +9,6 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.cancellers.JobCanceler;
 import edu.utexas.tacc.tapis.jobs.cancellers.JobCancelerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
-import edu.utexas.tacc.tapis.jobs.killers.JobKiller;
-import edu.utexas.tacc.tapis.jobs.killers.JobKillerFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg;
@@ -34,7 +32,12 @@ public final class JobExecutionUtils
     public static final String JOB_ENV_FILE             = "tapisjob.env";
     public static final String JOB_OUTPUT_REDIRECT_FILE = "tapisjob.out";
     public static final String JOB_OUTPUT_EXITCODE_FILE = "tapisjob.exitcode";
-    
+    public static final String JOB_ZIP_PID_FILE         = "tapisjob.pid";
+    public static final String JOB_ZIP_MANIFEST_FILE    = "tapisjob.manifest";
+    public static final String JOB_ZIP_EXEC_FILE        = "tapisjob.exec";
+    public static final String JOB_ZIP_SET_EXEC_FILE    = "tapisjob_setexec.sh";
+    public static final String JOB_ZIP_USER_APP_FILE    = "tapisjob_app.sh";
+
     // ----------------------------- Docker Section -----------------------------
     // Docker command templates.
     private static final String DOCKER_ID = "docker ps -a --no-trunc -f \"%s\" --format \"{{.ID}}\"";

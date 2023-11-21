@@ -173,7 +173,7 @@ public abstract class AbstractJobExecStager
      * which is appropriate for writing to a file that will be sourced by a 
      * script.
      * 
-     * @param pairs NON-EMPTY list of pair values, one per occurrence
+     * @param values NON-EMPTY list of pair values, one per occurrence
      * @return the string that contains all assignments
      */
     protected String getExportPairListArgs(List<Pair<String,String>> pairs) 

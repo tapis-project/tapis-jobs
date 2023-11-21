@@ -1748,8 +1748,8 @@ public final class JobsDao
               case InputCorrelationId   -> SqlStatements.UPDATE_INPUT_CORR_ID;
               case ArchiveTransferId    -> SqlStatements.UPDATE_ARCHIVE_TRANSFER_ID;
               case ArchiveCorrelationId -> SqlStatements.UPDATE_ARCHIVE_CORR_ID;
-			  case StageAppTransferId -> SqlStatements.UPDATE_STAGEAPP_TRANSFER_ID;
-			  case StageAppCorrelationId -> SqlStatements.UPDATE_STAGEAPP_CORR_ID;
+              case StageAppTransferId -> SqlStatements.UPDATE_STAGEAPP_TRANSFER_ID;
+              case StageAppCorrelationId -> SqlStatements.UPDATE_STAGEAPP_CORR_ID;
           };
           
           // Prepare the chosen statement.
@@ -1780,8 +1780,8 @@ public final class JobsDao
               case InputCorrelationId:   job.setInputCorrelationId(value); break;
               case ArchiveTransferId:    job.setArchiveTransactionId(value); break;
               case ArchiveCorrelationId: job.setArchiveCorrelationId(value); break;
-			  case StageAppTransferId:    job.setStageAppTransactionId(value); break;
-			  case StageAppCorrelationId: job.setStageAppCorrelationId(value); break;
+              case StageAppTransferId:    job.setStageAppTransactionId(value); break;
+              case StageAppCorrelationId: job.setStageAppCorrelationId(value); break;
           }
         }
         catch (Exception e)
@@ -2174,8 +2174,8 @@ public final class JobsDao
                   result.inputCorrelationId   = rs.getString(2);
                   result.archiveTransactionId = rs.getString(3);
                   result.archiveCorrelationId = rs.getString(4);
-				  result.appAssetTransactionId = rs.getString(5);
-				  result.appAssetCorrelationId = rs.getString(6);
+                  result.appAssetTransactionId = rs.getString(5);
+                  result.appAssetCorrelationId = rs.getString(6);
               }
               
               // Close the result and statement.
@@ -3121,8 +3121,8 @@ public final class JobsDao
 	        obj.setInputCorrelationId(rs.getString(48));
 	        obj.setArchiveTransactionId(rs.getString(49));
 	        obj.setArchiveCorrelationId(rs.getString(50));
-			obj.setStageAppTransactionId(rs.getString(51));
-			obj.setStageAppCorrelationId(rs.getString(52));
+		obj.setStageAppTransactionId(rs.getString(51));
+		obj.setStageAppCorrelationId(rs.getString(52));
 
 	        obj.setTapisQueue(rs.getString(53));
 	        obj.setVisible(rs.getBoolean(54));
@@ -3536,8 +3536,8 @@ public final class JobsDao
         public String inputCorrelationId;
         public String archiveTransactionId;
         public String archiveCorrelationId;
-		public String appAssetTransactionId;
-		public String appAssetCorrelationId;
+        public String appAssetTransactionId;
+        public String appAssetCorrelationId;
     }
 
     /* ********************************************************************** */

@@ -9,8 +9,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
-import static edu.utexas.tacc.tapis.jobs.stagers.zip.ZipStager.ENV_FILE;
-import static edu.utexas.tacc.tapis.jobs.stagers.zip.ZipStager.PID_FILE;
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.*;
 
 /** This class represents the bash compatible shell command used to launch an application
  * defined using runtime type of ZIP.
@@ -26,8 +25,6 @@ public final class ZipRunCmd
     /*                                Fields                                  */
     /* ********************************************************************** */
     private List<Pair<String,String>> env = new ArrayList<Pair<String,String>>();
-    private String                    envFile;
-    private String                    appExecutable;
     private String                    appArguments;
     // Redirect stdout/stderr to a combined file or to separate files in the output directory.
     // The paths in this object are absolute, fully resolved to the job's output directory.
@@ -44,9 +41,11 @@ public final class ZipRunCmd
     public String generateExecCmd(Job job) 
     {
         // Generate the command that will launch either tapisjob_app.sh or the executable from the manifest file.
+        // tapisjob.env contains all environment variables
+        // tapisjob.exec contains the relative path to the application executable. By default, it is tapisjob_app.sh
         // Format:
         //   export $(cat ./tapisjob.env | xargs)
-        //   nohup ./tapisjob_app.sh <appArgs> > tapisjob.out 2>&1 &
+        //   nohup ./$(cat ./tapisjob.exec) <appArgs> > tapisjob.out 2>&1 &
         //   pid=$!
         //   echo $pid > ./tapisjob.pid
         
@@ -59,11 +58,11 @@ public final class ZipRunCmd
 
         // Export environment variables from file
         buf.append("# Export Tapis and user defined environment variables.\n");
-        buf.append("export $(cat ./").append(ENV_FILE).append(" | xargs)\n\n");
+        buf.append("export $(cat ./").append(JOB_ENV_FILE).append(" | xargs)\n\n");
 
         // Run the executable using nohup
         buf.append("# Launch app executable and capture PID of background process.\n");
-        buf.append("nohup ").append("./").append(appExecutable);
+        buf.append("nohup ./$(cat ./").append(JOB_ZIP_EXEC_FILE);
 
         // ------ Append the application arguments.
         if (!StringUtils.isBlank(appArguments))
@@ -75,7 +74,7 @@ public final class ZipRunCmd
         // ------ Run as a background process and capture the pid.
         buf.append(" &");
         buf.append("pid=$!\n");
-        buf.append("echo $pid > ./").append(PID_FILE);
+        buf.append("echo $pid > ./").append(JOB_ZIP_PID_FILE);
         return buf.toString();
     }
     
@@ -149,14 +148,6 @@ public final class ZipRunCmd
 
     public void setEnv(List<Pair<String, String>> env) {
         this.env = env;
-    }
-
-    public String getAppExecutable() {
-        return appExecutable;
-    }
-
-    public void setAppExecutable(String appExecutable) {
-        this.appExecutable = appExecutable;
     }
 
     public String getAppArguments() {

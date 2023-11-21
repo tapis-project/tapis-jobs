@@ -41,22 +41,6 @@ public final class ZipNativeLauncher
     /*                           Protected Methods                            */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* TODO getLaunchCommand:                                                 */
-    /* ---------------------------------------------------------------------- */
-    // TODO/TBD: Any custom code for ZIP, or can this be the same as for code in Abstract method
-    protected String getLaunchCommand()
-            throws TapisException
-    {
-        // Create the command that changes the directory to the execution
-        // directory and runs the wrapper script.  The directory is expressed
-        // as an absolute path on the system.
-        String cmd = "cd " + Paths.get(_jobCtx.getExecutionSystem().getRootDir(),
-                _job.getExecSystemExecDir()).toString();
-        cmd += ";./" + JobExecutionUtils.JOB_WRAPPER_SCRIPT;
-        return cmd;
-    }
-
-    /* ---------------------------------------------------------------------- */
     /* launch:                                                                */
     /* ---------------------------------------------------------------------- */
     @Override

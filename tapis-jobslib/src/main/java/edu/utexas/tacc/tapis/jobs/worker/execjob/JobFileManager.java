@@ -435,8 +435,8 @@ public final class JobFileManager
         // Calculate the file path to where archive will be unpacked.
         String execDir = Paths.get(rootDir, _job.getExecSystemExecDir()).toString();
 
-        // Build the command to extract the archive, include any custom command arguments based on containerArgs
-        String cmd = getExtractCommand(execDir, archiveAbsolutePath);
+        // Build the command to extract the archive
+        String cmd = String.format("cd %s; tar -xf %s", execDir, archiveAbsolutePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), cmd));
@@ -454,6 +454,48 @@ public final class JobFileManager
         // If non-zero exit code consider it a failure. Throw non-recoverable exception.
         if (exitStatus != 0) {
             String msg = MsgUtils.getMsg("JOBS_ZIP_EXTRACT_ERROR", getClass().getSimpleName(),
+                    _job.getUuid(), cmd, exitStatus, result);
+            throw new TapisException(msg);
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* runSetAppExecutable:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** Run a script to determine the app executable for ZIP runtime applications.
+     *
+     * @param setAppExecScript name of script to run
+     * @throws TapisException on error
+     */
+    public void runSetAppExecutable(String setAppExecScript)
+            throws TapisException
+    {
+        // Make sure rootDir is not null. If null Paths.get() would throw null ptr exception.
+        String rootDir = _jobCtx.getExecutionSystem().getRootDir();
+        rootDir = rootDir == null ? "" : rootDir;
+
+        // Calculate the file path to where the script will be run.
+        String execDir = Paths.get(rootDir, _job.getExecSystemExecDir()).toString();
+
+        // Build the command to run the script.
+        String cmd = String.format("cd %s; ./%s", execDir, setAppExecScript);
+        // Log the command we are about to issue.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_CMD", _job.getUuid(), cmd));
+
+        // Run the command to extract the app archive
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
+        int exitStatus = runCmd.execute(cmd);
+        String result  = runCmd.getOutAsString();
+        if (StringUtils.isBlank(result)) result = "";
+
+        // Log exit code and result
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_EXIT", _job.getUuid(), exitStatus, result));
+
+        // If non-zero exit code consider it a failure. Throw non-recoverable exception.
+        if (exitStatus != 0) {
+            String msg = MsgUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", getClass().getSimpleName(),
                     _job.getUuid(), cmd, exitStatus, result);
             throw new TapisException(msg);
         }
@@ -606,31 +648,6 @@ public final class JobFileManager
         // a communication, api or transfer problem, an exception is thrown from here.
         var monitor = TransferMonitorFactory.getMonitor();
         monitor.monitorTransfer(_job, transferId, corrId);
-    }
-
-    /* ---------------------------------------------------------------------- */
-    /* getExtractCommand:                                                     */
-    /* ---------------------------------------------------------------------- */
-    /**
-     * Create the command that changes the directory to the execution directory and
-     * extracts the app archive using tar.
-     *
-     * @param execDir execSystemExecDir
-     * @param appArchivePath Absolute path to app archive file
-     * @return Command to extract the app archive using the tar command
-     */
-    private String getExtractCommand(String execDir, String appArchivePath)
-    {
-        // Extract container args
-        StringBuilder sb = new StringBuilder();
-        var containerArgList = _job.getParameterSetModel().getContainerArgs();
-        if (containerArgList != null)
-        {
-            for (JobArgSpec arg : containerArgList) {
-                if (!StringUtils.isBlank(arg.getArg())) sb.append(String.format(" %s", arg.getArg()));
-            }
-        }
-        return String.format("cd %s; tar%s -xf %s", execDir, sb, appArchivePath);
     }
 
     /* ---------------------------------------------------------------------- */

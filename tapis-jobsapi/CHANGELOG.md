@@ -18,6 +18,12 @@ https://tapis-project.github.io/live-docs
 1. Fix 
 
 -----------------------
+## 1.5.10 - 2023-11-20
+
+### Bug fixes:
+1. Rebuild with latest shared code to fix JWT validation issue.
+
+-----------------------
 ## 1.5.0 - 2023-10-06
 
 ### New features:

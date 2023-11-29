@@ -130,13 +130,13 @@ public class DockerNativeStager
         
         // ----------------- User and Tapis Definitions -----------------
         // Set all environment variables.
-        setEnvVariables(dockerRunCmd);
-        
+        dockerRunCmd.setEnv(getEnvVariables());
+
         // Set the docker options.
         setDockerOptions(dockerRunCmd);
         
         // Set the application arguments.
-        setAppArguments(dockerRunCmd);
+        dockerRunCmd.setAppArguments(concatAppArguments());
                 
         return dockerRunCmd;
     }
@@ -242,44 +242,6 @@ public class DockerNativeStager
             mount.setReadOnly(true);
             dockerRunCmd.getMount().add(mount.toString());
         }
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* setEnvVariables:                                                       */
-    /* ---------------------------------------------------------------------- */
-    /** Both the standard tapis and user-supplied environment variables are
-     * assigned here.  The user is prevented at job submission time from 
-     * setting any environment variable that starts with the reserved "_tapis" 
-     * prefix, so collisions are not possible. 
-     * 
-     * @param dockerRunCmd the run command to be updated
-     */
-    private void setEnvVariables(DockerRunCmd dockerRunCmd)
-    {
-        // Get the list of environment variables.
-        var parmSet = _job.getParameterSetModel();
-        var envList = parmSet.getEnvVariables();
-        if (envList == null || envList.isEmpty()) return;
-        
-        // Process each environment variable.
-        var dockerEnv = dockerRunCmd.getEnv();
-        for (var kv : envList) dockerEnv.add(Pair.of(kv.getKey(), kv.getValue()));
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* setAppArguments:                                                       */
-    /* ---------------------------------------------------------------------- */
-    /** Assemble the application arguments into a single string and then assign
-     * them to the dockerRunCmd.  If there are any arguments, the generated 
-     * string always begins with a space character.
-     * 
-     * @param dockerRunCmd the run command to be updated
-     */
-     private void setAppArguments(DockerRunCmd dockerRunCmd)
-    {
-         // Assemble the application's argument string.
-         String args = concatAppArguments();
-         if (args != null) dockerRunCmd.setAppArguments(args);
     }
     
     /* ---------------------------------------------------------------------- */

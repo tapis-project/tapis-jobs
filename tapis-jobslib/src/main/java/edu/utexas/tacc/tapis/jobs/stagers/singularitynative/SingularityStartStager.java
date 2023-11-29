@@ -103,13 +103,13 @@ public final class SingularityStartStager
 
         // ----------------- User and Tapis Definitions -----------------
         // Set all environment variables.
-        setEnvVariables(singularityCmd);
-        
+        singularityCmd.setEnv(getEnvVariables());
+
         // Set the singularity options.
         setSingularityOptions(singularityCmd);
         
         // Set the application arguments.
-        setAppArguments(singularityCmd);
+        singularityCmd.setAppArguments(concatAppArguments());
                 
         return singularityCmd;
     }
@@ -130,44 +130,6 @@ public final class SingularityStartStager
         var fm = _jobCtx.getJobFileManager();
         String path = fm.makeAbsExecSysExecPath(_job.getUuid() + PID_SUFFIX);
         singularityCmd.setPidFile(path);
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* setEnvVariables:                                                       */
-    /* ---------------------------------------------------------------------- */
-    /** Both the standard tapis and user-supplied environment variables are
-     * assigned here.  The user is prevented at job submission time from 
-     * setting any environment variable that starts with the reserved "_tapis" 
-     * prefix, so collisions are not possible. 
-     * 
-     * @param singularityCmd the run command to be updated
-     */
-    private void setEnvVariables(SingularityStartCmd singularityCmd)
-    {
-        // Get the list of environment variables.
-        var parmSet = _job.getParameterSetModel();
-        var envList = parmSet.getEnvVariables();
-        if (envList == null || envList.isEmpty()) return;
-        
-        // Process each environment variable.
-        var singularityEnv = singularityCmd.getEnv();
-        for (var kv : envList) singularityEnv.add(Pair.of(kv.getKey(), kv.getValue()));
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* setAppArguments:                                                       */
-    /* ---------------------------------------------------------------------- */
-    /** Assemble the application arguments into a single string and then assign
-     * them to the singularityCmd.  If there are any arguments, the generated 
-     * string always begins with a space character.
-     * 
-     * @param singularityCmd the command to be updated
-     */
-    private void setAppArguments(SingularityStartCmd singularityCmd)
-    {
-         // Assemble the application's argument string.
-         String args = concatAppArguments();
-         if (args != null) singularityCmd.setAppArguments(args);
     }
     
     /* ---------------------------------------------------------------------- */

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.stagers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -10,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
+import edu.utexas.tacc.tapis.jobs.stagers.zip.ZipRunCmd;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -197,7 +200,59 @@ public abstract class AbstractJobExecStager
         }
         return buf.toString();
     }
-     
+
+    /* ---------------------------------------------------------------------- */
+    /* resolveLogConfig:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Determine the stdout and stderr logging file(s).  Assign the fully qualified
+     * paths to the combined or separate log files.
+     *
+     * @return resolved LogConfig
+     * @throws TapisException on error
+     */
+    protected LogConfig resolveLogConfig() throws TapisException
+    {
+        // Get the user-supplied or defaulted log configuration and
+        // create the new log configuration for this command.
+        var origConfig     = _job.getParameterSetModel().getLogConfig();
+        var resolvedConfig = new LogConfig();
+
+        // We must always fully qualify at least one of the paths.
+        var fm = _jobCtx.getJobFileManager();
+
+        resolvedConfig.setStdoutFilename(fm.makeAbsExecSysOutputPath(origConfig.getStdoutFilename()));
+        // Avoid recalculating the fully qualified path when there's only one log file.
+        if (origConfig.canMerge())
+            resolvedConfig.setStderrFilename(resolvedConfig.getStdoutFilename());
+        else
+            resolvedConfig.setStderrFilename(fm.makeAbsExecSysOutputPath(origConfig.getStderrFilename()));
+
+        return resolvedConfig;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getEnvVariables:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Determine the list of environment variables for the job.
+     * Both the standard tapis and user-supplied environment variables are
+     * assigned here.  The user is prevented at job submission time from
+     * setting any environment variable that starts with the reserved "_tapis"
+     * prefix, so collisions are not possible.
+     *
+     * @return list of env variables
+     */
+    protected List<Pair<String, String>> getEnvVariables()
+    {
+        var envVariables = new ArrayList<Pair<String, String>>();
+        // Get the list of environment variables.
+        var parmSet = _job.getParameterSetModel();
+        var envList = parmSet.getEnvVariables();
+        if (envList == null || envList.isEmpty()) return envVariables;
+        // Process each environment variable.
+        for (var kv : envList) envVariables.add(Pair.of(kv.getKey(), kv.getValue()));
+        return envVariables;
+    }
+
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */

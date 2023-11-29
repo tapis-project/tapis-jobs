@@ -108,87 +108,19 @@ public class SingularityRunStager
         singularityCmd.setImage(_jobCtx.getApp().getContainerImage());
         
         // Set the stdout/stderr redirection file.
-        resolveLogConfig(singularityCmd);
+        singularityCmd.setLogConfig(resolveLogConfig());
 
         // ----------------- User and Tapis Definitions -----------------
         // Set all environment variables.
-        setEnvVariables(singularityCmd);
-        
+        singularityCmd.setEnv(getEnvVariables());
+
         // Set the singularity options.
         setSingularityOptions(singularityCmd);
         
         // Set the application arguments.
-        setAppArguments(singularityCmd);
+        singularityCmd.setAppArguments(concatAppArguments());
                 
         return singularityCmd;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* resolveLogConfig:                                                      */
-    /* ---------------------------------------------------------------------- */
-    /** Set the stdout and stderr logging file(s).  Assign the fully qualified
-     * paths to the combined or separate log files.  
-     * 
-     * @param singularityCmd the run command to be updated
-     * @throws TapisException 
-     */
-    private void resolveLogConfig(SingularityRunCmd singularityCmd) throws TapisException
-    {
-    	// Get the user-supplied or defaulted log configuration and
-    	// create the new log configuration for this command.
-        var origConfig     = _job.getParameterSetModel().getLogConfig();
-        var resolvedConfig = new LogConfig();
-        
-        // We must always fully qualify at least one of the paths.
-        var fm = _jobCtx.getJobFileManager();
-        
-        resolvedConfig.setStdoutFilename(fm.makeAbsExecSysOutputPath(origConfig.getStdoutFilename()));
-        // Avoid recalculating the fully qualified path when there's only one log file.
-        if (origConfig.canMerge()) 
-        	resolvedConfig.setStderrFilename(resolvedConfig.getStdoutFilename());
-         else
-            resolvedConfig.setStderrFilename(fm.makeAbsExecSysOutputPath(origConfig.getStderrFilename()));
-        
-        // Store the fully qualified configuration in the command.
-        singularityCmd.setLogConfig(resolvedConfig);
-    }
-
-    /* ---------------------------------------------------------------------- */
-    /* setEnvVariables:                                                       */
-    /* ---------------------------------------------------------------------- */
-    /** Both the standard tapis and user-supplied environment variables are
-     * assigned here.  The user is prevented at job submission time from 
-     * setting any environment variable that starts with the reserved "_tapis" 
-     * prefix, so collisions are not possible. 
-     * 
-     * @param singularityCmd the run command to be updated
-     */
-    private void setEnvVariables(SingularityRunCmd singularityCmd)
-    {
-        // Get the list of environment variables.
-        var parmSet = _job.getParameterSetModel();
-        var envList = parmSet.getEnvVariables();
-        if (envList == null || envList.isEmpty()) return;
-        
-        // Process each environment variable.
-        var singularityEnv = singularityCmd.getEnv();
-        for (var kv : envList) singularityEnv.add(Pair.of(kv.getKey(), kv.getValue()));
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* setAppArguments:                                                       */
-    /* ---------------------------------------------------------------------- */
-    /** Assemble the application arguments into a single string and then assign
-     * them to the singularityCmd.  If there are any arguments, the generated 
-     * string always begins with a space character.
-     * 
-     * @param singularityCmd the command to be updated
-     */
-    private void setAppArguments(SingularityRunCmd singularityCmd)
-    {
-         // Assemble the application's argument string.
-         String args = concatAppArguments();
-         if (args != null) singularityCmd.setAppArguments(args);
     }
     
     /* ---------------------------------------------------------------------- */

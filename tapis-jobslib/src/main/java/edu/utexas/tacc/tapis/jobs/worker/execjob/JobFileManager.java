@@ -51,7 +51,7 @@ public final class JobFileManager
     // Special transfer id value indicating no files to stage.
     private static final String NO_FILE_INPUTS = "no inputs";
     
-    // Filters are interpretted as globs unless they have this prefix.
+    // Filters are interpreted as globs unless they have this prefix.
     public static final String REGEX_FILTER_PREFIX = "REGEX:";
     
     // Various useful posix permission settings.
@@ -211,54 +211,12 @@ public final class JobFileManager
     /** Perform or restart the app assets staging process. Both recoverable
      * and non-recoverable exceptions can be thrown from here.
      * This may involve calling the Files service to start or resume a transfer.
-     * Return the path to the application archive file
      *
      * @throws TapisException on error
      */
-    public String stageAppAssets() throws TapisException
+    public void stageAppAssets(String containerImage, boolean containerImageIsUrl)
+            throws TapisException
     {
-        String appArchivePath, appArchiveFile, msg;
-        // For convenience and clarity set some variables.
-        String containerImage = _jobCtx.getApp().getContainerImage();
-        String jobUuid = _job.getUuid();
-        containerImage = containerImage == null ? "" : containerImage;
-        boolean containerImageIsUrl = false;
-        // Determine the location of the app archive using containerImage as either a path or url.
-        // If it starts with "/" then it should an absolute path, else it should be a URL
-        if (containerImage.startsWith("/")) {
-            // Process as an absolute path
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "PATH", containerImage);
-            _log.debug(msg);
-            appArchivePath = FilenameUtils.normalize(containerImage);
-            appArchiveFile = Path.of(appArchivePath).getFileName().toString();
-        }
-        else {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "URL", containerImage);
-            _log.debug(msg);
-            // Not a path, so should be a URL in a format supported by Files service. Validate it.
-            Matcher matcher = JobFileInput.URL_PATTERN.matcher(containerImage);
-            if (!matcher.find())
-            {
-                msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", jobUuid, containerImage);
-                throw new JobException(msg);
-            }
-            containerImageIsUrl = true;
-            // Extract and normalize the path in the URL. If no path set then use /
-            String urlPathStr = Optional.ofNullable(matcher.group(3)).orElse("/");
-            // Get file name from the path and set full path to app archive
-            Path urlPath = Path.of(FilenameUtils.normalize(urlPathStr));
-            String rootDir = Optional.ofNullable(_jobCtx.getExecutionSystem().getRootDir()).orElse("/");
-            appArchiveFile = urlPath.getFileName().toString();
-            appArchivePath = Paths.get(rootDir, _job.getExecSystemExecDir(), appArchiveFile).toString();
-        }
-
-        // Do simple validation of app archive file name.
-        if (StringUtils.isBlank(appArchiveFile) || "/".equals(appArchiveFile))
-        {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, containerImage, appArchiveFile);
-            throw new JobException(msg);
-        }
-
         // If a url, then start or restart a file transfer and wait for it to finish.
         if (containerImageIsUrl)
         {
@@ -281,8 +239,6 @@ public final class JobFileManager
             //   it until it completes.
             stageAppArchiveFile(reqTransfer);
         }
-
-        return appArchivePath;
     }
 
     /* ---------------------------------------------------------------------- */
@@ -428,6 +384,7 @@ public final class JobFileManager
     public void extractAppArchive(String archiveAbsolutePath)
             throws TapisException
     {
+        String host = _jobCtx.getExecutionSystem().getHost();
         // Make sure rootDir is not null. If null Paths.get() would throw null ptr exception.
         String rootDir = _jobCtx.getExecutionSystem().getRootDir();
         rootDir = rootDir == null ? "" : rootDir;
@@ -439,7 +396,7 @@ public final class JobFileManager
         String cmd = String.format("cd %s; tar -xf %s", execDir, archiveAbsolutePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), cmd));
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), host, cmd));
 
         // Run the command to extract the app archive
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
@@ -449,12 +406,48 @@ public final class JobFileManager
 
         // Log exit code and result
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_EXIT", _job.getUuid(), exitStatus, result));
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
 
         // If non-zero exit code consider it a failure. Throw non-recoverable exception.
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_EXTRACT_ERROR", getClass().getSimpleName(),
-                    _job.getUuid(), cmd, exitStatus, result);
+            String msg = MsgUtils.getMsg("JOBS_ZIP_EXTRACT_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
+            throw new TapisException(msg);
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* checkForCommand:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Check if the specified command is available on the execution host.
+     * Uses command -v.
+     * Throws exception if not available
+     *
+     * @param command Executable to check
+     * @throws TapisException on error
+     */
+    public void checkForCommand(String command)
+            throws TapisException
+    {
+        String host = _jobCtx.getExecutionSystem().getHost();
+        // Build the command to run the check
+        String cmd = String.format("command -V %s", command);
+        // Log the command we are about to issue.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_CHECK_CMD", _job.getUuid(), host, cmd));
+
+        // Run the command to check
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
+        int exitStatus = runCmd.execute(cmd);
+        String result  = runCmd.getOutAsString();
+        if (StringUtils.isBlank(result)) result = "";
+
+        // Log exit code and result
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_CHECK_CMD_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
+
+        // If non-zero exit code consider it a failure. Throw non-recoverable exception.
+        if (exitStatus != 0) {
+            String msg = MsgUtils.getMsg("JOBS_CHECK_CMD_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
     }
@@ -470,6 +463,7 @@ public final class JobFileManager
     public void runSetAppExecutable(String setAppExecScript)
             throws TapisException
     {
+        String host = _jobCtx.getExecutionSystem().getHost();
         // Make sure rootDir is not null. If null Paths.get() would throw null ptr exception.
         String rootDir = _jobCtx.getExecutionSystem().getRootDir();
         rootDir = rootDir == null ? "" : rootDir;
@@ -481,7 +475,7 @@ public final class JobFileManager
         String cmd = String.format("cd %s; ./%s", execDir, setAppExecScript);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_CMD", _job.getUuid(), cmd));
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_CMD", _job.getUuid(), host, cmd));
 
         // Run the command to extract the app archive
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
@@ -491,12 +485,11 @@ public final class JobFileManager
 
         // Log exit code and result
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_EXIT", _job.getUuid(), exitStatus, result));
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
 
         // If non-zero exit code consider it a failure. Throw non-recoverable exception.
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", getClass().getSimpleName(),
-                    _job.getUuid(), cmd, exitStatus, result);
+            String msg = MsgUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
     }

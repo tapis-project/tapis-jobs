@@ -763,6 +763,17 @@ public final class RecoveryManager
             _log.debug(msg);
         }
         
+        // Best effort event recording and notification.  Send error event before
+        // sending FAILED status event so that subscriptions are still in effect.
+        try {
+            JobEventManager.getInstance().recordErrorEvent(
+                                          jobUuid, tenantId, JobStatusType.FAILED, message);
+        } catch (Exception e) {
+            // Log error and move on.
+            String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
+            _log.error(msg, e);
+        }
+        
         // Fail each job.
         try {_jobsDao.failJob(name, jobUuid, tenantId, message);} 
             catch (Exception e) {
@@ -774,16 +785,6 @@ public final class RecoveryManager
                 // Skip notification attempt if we run into trouble here.
                 return;
             }
-        
-        // Best effort event recording and notification.
-        try {
-            JobEventManager.getInstance().recordErrorEvent(
-                                          jobUuid, tenantId, JobStatusType.FAILED, message);
-        } catch (Exception e) {
-            // Log error and move on.
-            String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
-            _log.error(msg, e);
-        }
     }
 
     /* ---------------------------------------------------------------------- */

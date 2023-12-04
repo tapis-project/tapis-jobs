@@ -527,6 +527,17 @@ public final class RecoveryReader
     /* ---------------------------------------------------------------------- */
     private void failJob(String jobUuid, String tenantId, String failMsg)
     {
+        // Best effort event recording and notification.  Send error event before
+        // sending FAILED status event so that subscriptions are still in effect. 
+        try {
+            JobEventManager.getInstance().recordErrorEvent(
+                                          jobUuid, tenantId, JobStatusType.FAILED, failMsg);
+        } catch (Exception e) {
+            // Log error and move on.
+            String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
+            _log.error(msg, e);
+        }
+        
         // Let's try to fail this job since we can't recover it.
         try {_jobsDao.failJob(_parms.name, jobUuid, tenantId, failMsg);}
             catch (Exception e) {
@@ -551,16 +562,6 @@ public final class RecoveryReader
                 // Don't bother with notification.
                 return;
             }
-
-        // Best effort event recording and notification.
-        try {
-            JobEventManager.getInstance().recordErrorEvent(
-                                          jobUuid, tenantId, JobStatusType.FAILED, failMsg);
-        } catch (Exception e) {
-            // Log error and move on.
-            String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
-            _log.error(msg, e);
-        }
     }
     
     /* ---------------------------------------------------------------------- */

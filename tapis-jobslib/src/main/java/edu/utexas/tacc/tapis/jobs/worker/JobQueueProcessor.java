@@ -952,6 +952,17 @@ final class JobQueueProcessor
       // Don't blow up.
       if (job == null) return;
       
+      // Best effort event recording and notification.  Send error event before
+      // sending FAILED status event so that subscriptions are still in effect.
+      try {
+          JobEventManager.getInstance().recordErrorEvent(
+                   job.getUuid(), job.getTenant(), JobStatusType.FAILED, failMsg);
+      } catch (Exception e) {
+          // Log error and move on.
+          String msg = MsgUtils.getMsg("TAPIS_RUNTIME_EXCEPTION", e.getMessage());
+          _log.error(msg, e);
+      }
+      
       // Fail the job.
       try {
           JobsDao dao = new JobsDao();
@@ -979,67 +990,6 @@ final class JobQueueProcessor
           }
       }
   }
-  
-//  /* ---------------------------------------------------------------------- */
-//  /* checkExecAndArchiveSystems:                                            */
-//  /* ---------------------------------------------------------------------- */
-//  /** Create the output directory on the archive system and check authentication
-//   * to the execution system.
-//   *  
-//   * @param jobCtx the current job context
-//   * @throws AloeException
-//   */
-//  private void checkExecAndArchiveSystems(JobExecutionContext jobCtx) 
-//    throws AloeException
-//  {
-//      // Get information from the context.
-//      Job job = jobCtx.getJob();
-//      ExecutionSystem execSystem = jobCtx.getExecutionSystem();
-//      
-//      // If archiving is set then an archive system is guaranteed to be 
-//      // non-null by the validateForExecution method.
-//      RemoteSystem outputSystem;
-//      try {
-//          // Explicit or implicit archiving.
-//          if (job.isArchive()) outputSystem = jobCtx.getArchiveSystem();
-//            else outputSystem = execSystem;
-//      } catch (Exception e) {
-//          String msg = MsgUtils.getMsg("JOBS_ARCHIVE_SYSTEM_ASSIGNMENT", job.getUuid(), 
-//                                       job.getTenantId(), e.getMessage());
-//          _log.error(msg, e);
-//          throw JobUtils.aloeify(e, msg);
-//      }
-//      
-//      // Create the archive path when explicitly archiving.
-//      try {jobCtx.getJobRemoteAccess().createArchivePath(outputSystem);}
-//          catch (Exception e) {
-//              String msg = MsgUtils.getMsg("JOBS_ARCHIVE_PATH_ERROR", job.getUuid(), 
-//                                           job.getArchivePath(), outputSystem, 
-//                                           e.getMessage());
-//              _log.error(msg, e);
-//              throw JobUtils.aloeify(e, msg);
-//          }
-//      
-//      // Before staging any input, let make sure the execution system is accessible.
-//      // If explicit archiving is on, then the execution system may not have been 
-//      // accessed during archive path creation, so we do it here.
-//      if (job.isArchive()) {
-//          RemoteDataClient client = null;
-//          try {client = jobCtx.getJobRemoteAccess().login(execSystem);}
-//              catch (Exception e) {
-//                  // This could be a recoverable exception so add job activity conditionally
-//                  RecoveryUtils.updateJobActivity(e, JobRecoveryDefinitions.BlockedJobActivity.CHECK_SYSTEMS.name());
-//                  String msg = MsgUtils.getMsg("REMOTE_LOGIN_ERROR", execSystem.getName(), 
-//                                               job.getOwner(), e.getMessage());
-//                  _log.error(msg, e);
-//                  throw JobUtils.aloeify(e, msg);
-//              }
-//              finally {
-//                  // Always disconnect.
-//                  if (client != null) try {client.disconnect();} catch (Exception e) {}
-//              }
-//      }
-//  }
   
   /* ---------------------------------------------------------------------- */
   /* sendUnknownJobEmail:                                                   */

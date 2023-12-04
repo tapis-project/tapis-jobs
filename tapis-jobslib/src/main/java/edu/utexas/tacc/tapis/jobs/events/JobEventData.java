@@ -2,8 +2,6 @@ package edu.utexas.tacc.tapis.jobs.events;
 
 import java.time.Instant;
 
-import com.google.gson.JsonObject;
-
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferStatusEnum;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager.SubscriptionActions;

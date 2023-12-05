@@ -63,6 +63,7 @@ public class JobLauncherFactory
             launcher = switch (runtime) {
                 case DOCKER      -> getBatchDockerLauncher(jobCtx, scheduler);
                 case SINGULARITY -> getBatchSingularityLauncher(jobCtx, scheduler);
+                case ZIP         -> getBatchZipLauncher(jobCtx, scheduler);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
                                                  scheduler + "(" + runtime +")", 
@@ -148,4 +149,35 @@ public class JobLauncherFactory
         
         return launcher;
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* getBatchDockerLauncher:                                                */
+    /* ---------------------------------------------------------------------- */
+    private static JobLauncher getBatchZipLauncher(JobExecutionContext jobCtx,
+                                                   SchedulerTypeEnum scheduler)
+            throws TapisException
+    {
+        // Get the scheduler's docker launcher.
+        JobLauncher launcher = switch (scheduler) {
+            case SLURM -> null;  // at least 1 case is required.
+
+            default -> {
+                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                        scheduler + "(ZIP)",
+                        "JobLauncherFactory");
+                throw new JobException(msg);
+            }
+        };
+
+        // Make sure we always return a non-null launcher.
+        if (launcher == null) {
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                    scheduler + "(ZIP)",
+                    "JobLauncherFactory");
+            throw new JobException(msg);
+        }
+
+        return launcher;
+    }
+
 }

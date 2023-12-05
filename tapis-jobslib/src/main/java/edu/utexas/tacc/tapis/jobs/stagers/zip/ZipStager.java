@@ -82,26 +82,24 @@ public class ZipStager
         jobFileManager.extractAppArchive(_appArchivePath);
 
         // Now that app archive is unpacked we can determine the app executable
-        // First generate the script that we will run to determine the executable.
+        // Generate and install the script that we will run to determine the executable: tapisjob_setexec.sh
         String setAppExecutableScript = generateSetAppExecutableScript();
-
-        // Install the script. Creates tapisjob_setexec.sh
-        jobFileManager.installExecFile(setAppExecutableScript, JobExecutionUtils.JOB_ZIP_SET_EXEC_FILE, JobFileManager.RWXRWX);
+        jobFileManager.installExecFile(setAppExecutableScript, JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT, JobFileManager.RWXRWX);
 
         // Run the script to determine the executable. Creates tapisjob.exec
-        jobFileManager.runSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_FILE);
+        jobFileManager.runSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT);
 
-        // Create the wrapper script.
+        // Create and install the wrapper script: tapisjob.sh
         String wrapperScript = generateWrapperScript();
-
-        // Install the wrapper script on the execution system. Creates tapisjob.sh
         jobFileManager.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
 
-        // Create the environment variable definition file.
+        // Create and install the environment variable definition file: tapisjob.env
         String envVarFile = generateEnvVarFile();
-
-        // Install the exported env variable file. Creates tapisjob.env
         jobFileManager.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
+
+        // Create and install the script used to monitor job status: tapisjob_status.sh
+        String jobStatusScript = generateJobStatusScript();
+        jobFileManager.installExecFile(jobStatusScript, JobExecutionUtils.JOB_MONITOR_STATUS_SCRIPT, JobFileManager.RWRW);
     }
 
     /* ********************************************************************** */
@@ -185,6 +183,26 @@ public class ZipStager
             echo "Found application executable = $APP_EXEC"
             echo "$APP_EXEC" > "./tapisjob.exec"
             """;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* generateJobStatusScript:                                               */
+    /* ---------------------------------------------------------------------- */
+    /** This method generates script to determine the status for a ZIP runtime job
+     *
+     * @return the script content
+     */
+    private String generateJobStatusScript()
+    {
+        // TODO
+        // Use a text block for simplicity and clarity.
+        return
+                """
+                #!/bin/sh
+                #
+                # Script to determine status and exit code for a Tapis ZIP runtime job.
+                #
+                """;
     }
 
     /* ---------------------------------------------------------------------- */

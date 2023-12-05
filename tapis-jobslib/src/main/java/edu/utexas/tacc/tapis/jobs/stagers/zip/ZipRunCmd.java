@@ -62,19 +62,25 @@ public final class ZipRunCmd
 
         // Run the executable using nohup
         buf.append("# Launch app executable and capture PID of background process.\n");
-        buf.append("nohup ./$(cat ./").append(JOB_ZIP_EXEC_FILE);
 
+        // Build the single line command that will run the executable
+        // START -----------------------------------------------------------------
+        buf.append("nohup ./$(cat ./").append(JOB_ZIP_EXEC_FILE);
         // ------ Append the application arguments.
         if (!StringUtils.isBlank(appArguments))
             buf.append(appArguments); // begins with space char
-
         // ------ Add stdout/stderr redirection.
         addOutputRedirection(buf);
-
         // ------ Run as a background process and capture the pid.
-        buf.append(" &");
+        buf.append(" &\n");
+        // END -------------------------------------------------------------------
+
+        // ------ Capture the pid
         buf.append("pid=$!\n");
-        buf.append("echo $pid > ./").append(JOB_ZIP_PID_FILE);
+        buf.append("echo $pid > ./").append(JOB_ZIP_PID_FILE).append('\n');
+        // Echo the pid to stdout so launcher can capture it
+        // This should be the only output
+        buf.append("echo $pid\n");
         return buf.toString();
     }
     

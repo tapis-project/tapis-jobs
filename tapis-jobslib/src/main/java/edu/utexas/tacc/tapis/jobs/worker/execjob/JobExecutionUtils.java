@@ -28,15 +28,16 @@ public final class JobExecutionUtils
     private static final Logger _log = LoggerFactory.getLogger(JobExecutionUtils.class);
     
     // Job wrapper script name.
-    public static final String JOB_WRAPPER_SCRIPT       = "tapisjob.sh";
-    public static final String JOB_ENV_FILE             = "tapisjob.env";
-    public static final String JOB_OUTPUT_REDIRECT_FILE = "tapisjob.out";
-    public static final String JOB_OUTPUT_EXITCODE_FILE = "tapisjob.exitcode";
-    public static final String JOB_ZIP_PID_FILE         = "tapisjob.pid";
-    public static final String JOB_ZIP_MANIFEST_FILE    = "tapisjob.manifest";
-    public static final String JOB_ZIP_EXEC_FILE        = "tapisjob.exec";
-    public static final String JOB_ZIP_SET_EXEC_FILE    = "tapisjob_setexec.sh";
-    public static final String JOB_ZIP_USER_APP_FILE    = "tapisjob_app.sh";
+    public static final String JOB_WRAPPER_SCRIPT        = "tapisjob.sh";
+    public static final String JOB_ENV_FILE              = "tapisjob.env";
+    public static final String JOB_OUTPUT_REDIRECT_FILE  = "tapisjob.out";
+    public static final String JOB_OUTPUT_EXITCODE_FILE  = "tapisjob.exitcode";
+    public static final String JOB_ZIP_PID_FILE          = "tapisjob.pid";
+    public static final String JOB_ZIP_MANIFEST_FILE     = "tapisjob.manifest";
+    public static final String JOB_ZIP_EXEC_FILE         = "tapisjob.exec";
+    public static final String JOB_ZIP_SET_EXEC_SCRIPT   = "tapisjob_setexec.sh";
+    public static final String JOB_MONITOR_STATUS_SCRIPT = "tapisjob_status.sh";
+    public static final String JOB_ZIP_USER_APP_FILE     = "tapisjob_app.sh";
 
     // ----------------------------- Docker Section -----------------------------
     // Docker command templates.
@@ -69,6 +70,16 @@ public final class JobExecutionUtils
     // Get select information about all processes running on the system.
     public static final String SINGULARITY_START_MONITOR = "ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd";
 
+    // ----------------------------- Zip Section -----------------------------
+    private static final String ZIP_STATUS = "./%s %s";
+    public static final String ZIP_STATUS_RUNNING = "RUNNING";
+    public static final String ZIP_STATUS_DONE = "DONE";
+    // Regex pattern to parse the expected output of the status command for a ZIP job.
+    // Output is expected to be in the format "DONE <exit_code>"
+    // NOTE that we do not assume the exit code is numeric. Let the parsing routine handle that for better error msg.
+    public static final Pattern ZIP_STATUS_RESULT_PATTERN = Pattern.compile("^DONE (.*)$");
+
+
     /* ********************************************************************** */
     /*                            Public Methods                              */
     /* ********************************************************************** */
@@ -89,7 +100,13 @@ public final class JobExecutionUtils
     /* ---------------------------------------------------------------------- */
     public static String getDockerRmCommand(String containerName)
     {return String.format(DOCKER_RM, containerName);}
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* getZipStatusCommand:                                                   */
+    /* ---------------------------------------------------------------------- */
+    public static String getZipStatusCommand(String processPid)
+    {return String.format(ZIP_STATUS, JOB_MONITOR_STATUS_SCRIPT, processPid);}
+
     /* ********************************************************************** */
     /*                            Package Methods                             */
     /* ********************************************************************** */

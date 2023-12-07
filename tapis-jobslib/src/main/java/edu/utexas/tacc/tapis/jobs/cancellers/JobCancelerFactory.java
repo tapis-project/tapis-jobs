@@ -37,6 +37,7 @@ public class JobCancelerFactory {
     	   canceler = switch (runtime) {
                 case DOCKER      -> new DockerNativeCanceler(jobCtx);
                 case SINGULARITY -> getSingularityOption(jobCtx, app);
+                case ZIP         -> new ZipNativeCanceler(jobCtx);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobCancelerFactory");

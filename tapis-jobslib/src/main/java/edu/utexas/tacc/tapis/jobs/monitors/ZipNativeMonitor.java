@@ -63,7 +63,7 @@ public class ZipNativeMonitor
     /* ---------------------------------------------------------------------- */
     /* queryRemoteJob:                                                        */
     /* ---------------------------------------------------------------------- */
-    /** Query the status of the job's container.
+    /** Query the status of the job's process.
      * Runs a shell script that outputs the status of the process.
      * Process ID to monitor must be passed in as the only argument
      * Script returns 0 if it can determine the status and 1 if there is an error

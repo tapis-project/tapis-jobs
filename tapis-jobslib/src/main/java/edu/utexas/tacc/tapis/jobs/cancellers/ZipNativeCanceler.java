@@ -6,12 +6,9 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO copied from DockerNativeCanceler. Update for ZIP
 public class ZipNativeCanceler extends AbstractJobCanceler{
 
 	/* ********************************************************************** */
@@ -42,35 +39,45 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
 	public void cancel() throws JobException, TapisException {
     	
     	var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
-    	// TODO: To cancel the job, remove the container from the execution system
-    	removeContainer(_jobCtx.getExecutionSystem(), runCmd);
+    	cancelZipJob(runCmd);
 	}
+
     /* ---------------------------------------------------------------------- */
-    /* removeContainer:                                                       */
+    /* cancelZipJob:                                                          */
     /* ---------------------------------------------------------------------- */
-    private void removeContainer(TapisSystem execSystem, TapisRunCommand runCmd)
+    private void cancelZipJob(TapisRunCommand runCmd)
     {
-        // Get the command text for this job's container.
-        String cmd = JobExecutionUtils.getDockerRmCommand(_job.getUuid());
-        
-        // Query the container.
+        // Info for log messages.
+        // Since these are only for logging, ignore any exceptions. We still want to cancel the job.
+        String host = null, execSysId = null;
+        try {
+            host = _jobCtx.getExecutionSystem().getHost();
+            execSysId = _jobCtx.getExecutionSystem().getId();
+        }
+        catch (Exception e) { /* Ignoring exceptions */}
+
+        // Get the command text to terminate the app process launched for a ZIP runtime.
+        String cmd = JobExecutionUtils.ZIP_RUN_KILL + _job.getRemoteJobId();
+
+        // Stop the app process
         String result = null;
         try {
-            int exitCode = runCmd.execute(cmd);
-            _log.debug("Canceller: removeContainer exitCode = " + exitCode);
-            if (exitCode != 0 && _log.isWarnEnabled()) 
-                _log.warn(MsgUtils.getMsg("TAPIS_SSH_CMD_ERROR", cmd, 
-                                          runCmd.getConnection().getHost(), 
-                                          runCmd.getConnection().getUsername(), 
-                                          exitCode));
+            int rc = runCmd.execute(cmd);
             result = runCmd.getOutAsString();
+            if (rc != 0) {
+                String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_ERROR1", _job.getUuid(), execSysId, host, result, cmd);
+                _log.error(msg);
+                return;
+            }
         }
         catch (Exception e) {
-            String cid = _job.getRemoteJobId();
-            if (!StringUtils.isBlank(cid) && cid.length() >= 12) cid = cid.substring(0, 12);
-            String msg = MsgUtils.getMsg("JOBS_DOCKER_RM_CONTAINER_ERROR", 
-                                         _job.getUuid(), execSystem.getId(), cid, result, cmd);
+            String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_ERROR2", _job.getUuid(), execSysId, host);
             _log.error(msg, e);
+            return;
         }
+
+        // Record the successful cancel of the process.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_KILLED",_job.getUuid()));
     }
 }

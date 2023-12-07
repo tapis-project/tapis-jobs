@@ -70,7 +70,7 @@ public final class ZipNativeLauncher
                                              _job.getUuid(), pid, exitStatus);
                 _log.debug(msg);
             }
-            // If PID is not a number then it is an error. A pid must be an integer.
+            // If PID is not a number then it is an error. A pid must be a positive integer.
             if (DIGITS_ONLY.matcher(pid).matches())
             {
                 String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(),
@@ -78,14 +78,14 @@ public final class ZipNativeLauncher
                 throw new TapisException(msg);
             }
         } else {
-            // Our one chance at launching the container failed with a non-communication
+            // Our one chance at launching the process failed with a non-communication
             // error, which we assume is unrecoverable, so we abort the job now.
             String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
                                          _job.getUuid(), cmd, result, exitStatus);
             throw new TapisException(msg);
         }
 
-        // Save the container id or the unknown id string.
+        // Save the process id or the unknown id string.
         _jobCtx.getJobsDao().setRemoteJobId(_job, pid);
     }
     

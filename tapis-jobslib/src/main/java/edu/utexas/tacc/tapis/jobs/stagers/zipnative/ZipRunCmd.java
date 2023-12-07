@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers.zip;
+package edu.utexas.tacc.tapis.jobs.stagers.zipnative;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;

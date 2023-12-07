@@ -87,7 +87,6 @@ public class JobMonitorFactory
             monitor = switch (runtime) {
                 case DOCKER      -> getBatchDockerMonitor(jobCtx, policy, scheduler);
                 case SINGULARITY -> getBatchSingularityMonitor(jobCtx, policy, scheduler);
-                case ZIP         -> getBatchZipMonitor(jobCtx, policy, scheduler);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobMonitorFactory");
@@ -140,28 +139,6 @@ public class JobMonitorFactory
             }
         };
         
-        return monitor;
-    }
-
-    /* ---------------------------------------------------------------------- */
-    /* getBatchDockerMonitor:                                                 */
-    /* ---------------------------------------------------------------------- */
-    private static JobMonitor getBatchZipMonitor(JobExecutionContext jobCtx,
-                                                 MonitorPolicy policy,
-                                                 SchedulerTypeEnum scheduler)
-            throws TapisException
-    {
-        // Get the scheduler's docker monitor.
-        JobMonitor monitor = switch (scheduler) {
-            case SLURM -> null; // not implemented
-
-            default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
-                        scheduler.name(), "JobMonitorFactory");
-                throw new JobException(msg);
-            }
-        };
-
         return monitor;
     }
 

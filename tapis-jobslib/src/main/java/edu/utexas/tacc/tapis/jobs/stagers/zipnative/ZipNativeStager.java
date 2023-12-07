@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers.zip;
+package edu.utexas.tacc.tapis.jobs.stagers.zipnative;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
@@ -20,14 +20,14 @@ import java.util.regex.Matcher;
 /** This class handles staging of application assets for applications
  * defined using runtime type of ZIP.
  */
-public class ZipStager
+public class ZipNativeStager
  extends AbstractJobExecStager
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(ZipStager.class);
+    private static final Logger _log = LoggerFactory.getLogger(ZipNativeStager.class);
 
     private static final String ZIP_FILE_EXTENSION = ".zip";
     private static final String UNZIP_COMMAND = "unzip";
@@ -50,7 +50,7 @@ public class ZipStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public ZipStager(JobExecutionContext jobCtx)
+    public ZipNativeStager(JobExecutionContext jobCtx)
      throws TapisException
     {
         // Create and populate the command.
@@ -79,7 +79,7 @@ public class ZipStager
         jobFileManager.stageAppAssets(_containerImage, _containerImageIsUrl);
 
         // Run a remote command to extract the application archive file into execSystemExecDir.
-        jobFileManager.extractAppArchive(_appArchivePath);
+        jobFileManager.extractAppArchive(_appArchivePath, _appArchiveIsZip);
 
         // Now that app archive is unpacked we can determine the app executable
         // Generate and install the script that we will run to determine the executable: tapisjob_setexec.sh
@@ -170,18 +170,18 @@ public class ZipStager
             fi
             
             # Check for errors. If all OK then ensure that file is executable.
-            if [ -z "$APP_EXEC" ]; then
+            if [ -z "${APP_EXEC}" ]; then
               echo "ERROR: Unable to determine application executable"
               echo "ERROR: Please provide tapisjob_app.sh or a manifest specifying tapisjob_executable."
               exit 1
-            elif [ ! -f "./$APP_EXEC" ]; then
+            elif [ ! -f "./${APP_EXEC}" ]; then
               echo "ERROR: Looking for application executable = $APP_EXEC but file does not exist"
               exit 2
             else
-              chmod +x "./$APP_EXEC"
+              chmod +x "./${APP_EXEC}"
             fi
-            echo "Found application executable = $APP_EXEC"
-            echo "$APP_EXEC" > "./tapisjob.exec"
+            echo "Found application executable = ${APP_EXEC}"
+            echo "${APP_EXEC}" > "./tapisjob.exec"
             """;
     }
 
@@ -194,15 +194,55 @@ public class ZipStager
      */
     private String generateJobStatusScript()
     {
-        // TODO
         // Use a text block for simplicity and clarity.
         return
-                """
-                #!/bin/sh
-                #
-                # Script to determine status and exit code for a Tapis ZIP runtime job.
-                #
-                """;
+            """
+            #!/bin/sh
+            #
+            # Script to determine status and exit code for a Tapis ZIP runtime job.
+            #
+            # Process ID to monitor must be passed in as the only argument
+            # Example: tapisjob_status.sh 1234
+            # This script returns 0 if it can determine the status and 1 if there is an error
+            # Status is echoed to stdout as either "RUNNING" or "DONE <exit_code>"
+            #
+            USAGE1="PID must be first and only argument."
+            USAGE2="Usage: tapisjob_status.sh <pid>"
+            
+            # File that might contain app exit code
+            APP_EXITCODE_FILE="tapisjob.exitcode"
+            # Regex for checking if input argument is an integer
+            RE_INT='^[0-9]+$'
+            
+            # Process ID to monitor must be passed in as the only argument
+            # Check number of arguments.
+            if [ $# -ne 1 ]; then
+              echo $USAGE1
+              echo $USAGE2
+              exit 1
+            fi
+            PID=$1
+            
+            # Check we have an integer
+            if ! [[ $PID =~ $RE_INT ]] ; then
+              echo $USAGE1
+              echo $USAGE2
+              exit 1
+            fi
+            
+            # Determine if application executable process is running
+            ps -p $PID >/dev/null
+            RET_CODE=$?
+            if [ $RET_CODE -eq 0 ]; then
+              echo "RUNNING"
+              exit 0
+            fi
+            
+            # Process has finished. Determine the exit code.
+            EXIT_CODE=$(if test ! -f ./${APP_EXITCODE_FILE}; then echo "0"; else head -n 1 ./${APP_EXITCODE_FILE}; fi)
+            echo "DONE $EXIT_CODE"
+            exit 0
+            """;
     }
 
     /* ---------------------------------------------------------------------- */

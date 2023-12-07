@@ -381,7 +381,7 @@ public final class JobFileManager
      * @param archiveAbsolutePath location of archive file
      * @throws TapisException on error
      */
-    public void extractAppArchive(String archiveAbsolutePath)
+    public void extractAppArchive(String archiveAbsolutePath, boolean archiveIsZip)
             throws TapisException
     {
         String host = _jobCtx.getExecutionSystem().getHost();
@@ -393,7 +393,9 @@ public final class JobFileManager
         String execDir = Paths.get(rootDir, _job.getExecSystemExecDir()).toString();
 
         // Build the command to extract the archive
-        String cmd = String.format("cd %s; tar -xf %s", execDir, archiveAbsolutePath);
+        String cmd;
+        if (archiveIsZip) cmd = String.format("cd %s; unzip %s", execDir, archiveAbsolutePath);
+        else cmd = String.format("cd %s; tar -xf %s", execDir, archiveAbsolutePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), host, cmd));

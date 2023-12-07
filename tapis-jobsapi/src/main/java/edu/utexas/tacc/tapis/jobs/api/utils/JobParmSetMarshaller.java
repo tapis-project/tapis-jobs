@@ -21,6 +21,7 @@ import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
+import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 
 public final class JobParmSetMarshaller 
 {
@@ -55,9 +56,11 @@ public final class JobParmSetMarshaller
      * @param schedulerOptions the request scheduler option AFTER merging with app
      *                         scheduler options.
      * @param batchSchedulerProfile the tapis-profile specified by the execution system
+     * @throws TapisImplException 
      */
     public void mergeTapisProfileFromSystem(List<JobArgSpec> schedulerOptions,
-                                            String batchSchedulerProfile)
+                                            String batchSchedulerProfile) 
+     throws TapisImplException
     {
         // Maybe there's nothing to merge.
         if (StringUtils.isBlank(batchSchedulerProfile)) return;
@@ -68,6 +71,15 @@ public final class JobParmSetMarshaller
         // we ignore the value defined in the system and immediately return.
         for (var opt : schedulerOptions) 
             if (opt.getArg().startsWith(key)) return;
+        
+        // Validate the exec system's profile before using it.
+        // Detect control characters.
+        try {PathSanitizer.detectControlChars(batchSchedulerProfile);}
+        catch (Exception e) {
+        	String msg = MsgUtils.getMsg("JOBS_INVALID_ARG_CHARACTER", "batchSchedulerProfile", 
+        			                     ArgTypeEnum.SCHEDULER_OPTIONS, e.getMessage());
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
         
         // If we get here then a tapis-profile option was not specified in
         // neither the app definition nor the job request, so the one in 
@@ -329,6 +341,23 @@ public final class JobParmSetMarshaller
     		// Convert notes objects into json strings and validate. Nulls are 
     		// converted to the empty json object string.
     		reqKv.setNotes(JobsApiUtils.convertInputObjectToString(reqKv.getNotes()));
+
+            // Detect control characters in the key.
+            try {PathSanitizer.detectControlChars(reqKv.getKey());}
+            catch (Exception e) {
+            	var sanitizedKey = PathSanitizer.replaceControlChars(reqKv.getKey(), '?');
+            	String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_CHARACTER", sanitizedKey, 
+            			                     e.getMessage());
+            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+            
+            // Detect control characters in the value.
+            try {PathSanitizer.detectControlChars(value);}
+            catch (Exception e) {
+            	String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_CHARACTER", reqKv.getKey(), 
+            			                     e.getMessage());
+            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
     	}
     }
     
@@ -1044,6 +1073,14 @@ public final class JobParmSetMarshaller
             if (elem._jobArg.getNotes() != null) {
                 var json = JobsApiUtils.convertInputObjectToString(elem._jobArg.getNotes());
                 elem._jobArg.setNotes(json);
+            }
+            
+            // Detect control characters.
+            try {PathSanitizer.detectControlChars(elem._jobArg.getArg());}
+            catch (Exception e) {
+            	String msg = MsgUtils.getMsg("JOBS_INVALID_ARG_CHARACTER", elem._jobArg.getName(), 
+            			                     argType, e.getMessage());
+            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         }
     }

@@ -174,6 +174,9 @@ public final class SubmitContext
         // Canonicalize paths.
         finalizePaths();
         
+        // Check string content.
+        validateInputStrings();
+        
         // Assign validated values to all job fields.
         populateJob();
         
@@ -476,6 +479,7 @@ public final class SubmitContext
         validateArchiveFilters(reqParmSet.getArchiveFilter().getIncludes(), "includes");
         validateArchiveFilters(reqParmSet.getArchiveFilter().getExcludes(), "excludes");
         validateSchedulerProfile(reqParmSet.getSchedulerOptions());
+        validateLogConfig(reqParmSet.getLogConfig());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -529,11 +533,19 @@ public final class SubmitContext
      *  
      * Request fields guaranteed to be assigned:
      *  - consolidatedConstraints
+     * @throws TapisImplException 
      */  
-    private void resolveConstraints()
+    private void resolveConstraints() throws TapisImplException
     {
         var appConstraintList = _app.getJobAttributes().getExecSystemConstraints();
         _submitReq.consolidateConstraints(appConstraintList);
+        
+        // Detect control characters.
+        try {PathSanitizer.detectControlChars(_submitReq.getConsolidatedConstraints());}
+        catch (Exception e) {
+        	var msg = "Invalid ExecSystemConstraints: " + e.getMessage(); 
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -582,7 +594,7 @@ public final class SubmitContext
         // Make sure the execution system allows command prefixes if a command prefix is present on
         // the job or application
         if (_execSystem.getEnableCmdPrefix() == null || !_execSystem.getEnableCmdPrefix()) {
-            if(!StringUtils.isBlank(_submitReq.getCmdPrefix()) ||
+            if (!StringUtils.isBlank(_submitReq.getCmdPrefix()) ||
                     !StringUtils.isBlank(_app.getJobAttributes().getCmdPrefix()) ) {
                 String msg = MsgUtils.getMsg("JOBS_CMD_PREFIX_NOT_ENABLED_FOR_SYSTEM", _execSystem.getId());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
@@ -595,6 +607,7 @@ public final class SubmitContext
         }
         // Make sure the working directory is clean.
         sanitizePath(_execSystem.getJobWorkingDir(), "jobWorkingDir");
+        
         // Make sure at least one job runtime is defined.
         if (_execSystem.getJobRuntimes() == null || _execSystem.getJobRuntimes().isEmpty()) {
             String msg = MsgUtils.getMsg("JOBS_EXEC_SYSTEM_NO_RUNTIME", _execSystem.getId());
@@ -624,6 +637,22 @@ public final class SubmitContext
                String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
                                             _dtnSystem.getId(), "dtnMountSourcePath");
                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+           }
+           
+           // Detect control characters.
+           try {PathSanitizer.detectControlChars(_execSystem.getDtnMountPoint());}
+           catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+                                         _dtnSystem.getId(), "dtnMountPoint");
+            msg += " (" + e.getMessage() + ")";
+           	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+           }
+           try {PathSanitizer.detectControlChars(_execSystem.getDtnMountSourcePath());}
+           catch (Exception e) {
+            String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+                                         _dtnSystem.getId(), "dtnMountSourcePath");
+            msg += " (" + e.getMessage() + ")";
+           	throw new TapisImplException(e.getMessage(), Status.BAD_REQUEST.getStatusCode());
            }
         }
         
@@ -862,7 +891,7 @@ public final class SubmitContext
         // Assign the sharing attributes for all four directories.
         calculateDirectorySharing(useDTN);
         
-        // Detect ".." segments in path early. 
+        // Detect ".." segments and control characters in path early. 
         sanitizeDirectoryPathnames();
     }
     
@@ -950,6 +979,19 @@ public final class SubmitContext
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         }
+        
+        // We allow great latitude with the cmdPrefix, but we lockdown the mpiCmd in two
+        // ways: we disallow control characters and we detect dangerous characters.
+        try {PathSanitizer.detectControlChars(_submitReq.getMpiCmd());}
+        catch (Exception e) {
+        	var msg = "Invalid mpiCmd: " + e.getMessage();
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        if (PathSanitizer.hasDangerousChars(_submitReq.getMpiCmd())) {
+        	var sanitized = PathSanitizer.replaceControlChars(_submitReq.getMpiCmd(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "mpiCmd", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -963,7 +1005,7 @@ public final class SubmitContext
      */
     private void finalizePaths() throws TapisImplException
     {
-        // Detect ".." segments in macro-expanded paths.
+        // Detect ".." segments and control characters in macro-expanded paths.
         sanitizeDirectoryPathnames();
         
         // Canonicalize path.
@@ -1002,9 +1044,17 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private void sanitizePath(String path, String displayName) throws TapisImplException
     {
+    	// Prohibit ../ in paths.
         if (PathSanitizer.hasParentTraversal(path)) {
             String msg = MsgUtils.getMsg("TAPIS_PROHIBITED_DIR_PATTERN", displayName, path);
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Detect control characters.
+        try {PathSanitizer.detectControlChars(path);}
+        catch (Exception e) {
+        	var msg = "Invalid " + displayName + ": " + e.getMessage();
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
     }
     
@@ -2097,6 +2147,14 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* validateInputStrings:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    private void validateInputStrings() throws TapisImplException
+    {
+    	
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* resolveParameterSetMacros:                                                   */
     /* ---------------------------------------------------------------------------- */
     /** Resolve macros in certain distinguished fields if those fields are assigned
@@ -2516,6 +2574,24 @@ public final class SubmitContext
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
             _log.info(MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_FOUND", profileName, _submitReq.getTenant()));
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateLogConfig:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    private void validateLogConfig(LogConfig logConfig) throws TapisImplException
+    {
+    	// Make sure no dangerous characters appear in log file names.
+        if (PathSanitizer.hasDangerousChars(logConfig.getStdoutFilename())) {
+        	var sanitized = PathSanitizer.replaceControlChars(logConfig.getStdoutFilename(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "stdoutFilename", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        if (PathSanitizer.hasDangerousChars(logConfig.getStderrFilename())) {
+        	var sanitized = PathSanitizer.replaceControlChars(logConfig.getStderrFilename(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "stderrFilename", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
     }
     

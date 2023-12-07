@@ -174,9 +174,9 @@ public final class SubmitContext
         // Canonicalize paths.
         finalizePaths();
         
-        // Check string content.
-        validateInputStrings();
-        
+    	// Detect invalid characters in simple string parameters.
+    	finalSanitization();
+    	
         // Assign validated values to all job fields.
         populateJob();
         
@@ -417,9 +417,11 @@ public final class SubmitContext
         
         // Merge and validate input files. Array inputs should be processed 
         // after the single inputs.  Array inputs get expanded into single 
-        // input objects and added to the inputs list.
+        // input objects and added to the inputs list.  Once merged into a
+        // single list, we check for invalid characters.
         resolveFileInputs();
         resolveFileInputArrays();
+        validateFileInputs();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -591,6 +593,7 @@ public final class SubmitContext
             String msg = MsgUtils.getMsg("JOBS_INVALID_EXEC_SYSTEM", _execSystem.getId());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
+        
         // Make sure the execution system allows command prefixes if a command prefix is present on
         // the job or application
         if (_execSystem.getEnableCmdPrefix() == null || !_execSystem.getEnableCmdPrefix()) {
@@ -618,6 +621,15 @@ public final class SubmitContext
         // Load the dtn system if one is specified.  Note that the DTN is defined in the
         // execution system definition so it inherits the sharing attribute of that system.
         if (!StringUtils.isBlank(_execSystem.getDtnSystemId())) {
+        	
+        	// Detect illegal characters in dtnSystemId.
+        	if (PathSanitizer.hasDangerousChars(_execSystem.getDtnSystemId())) {
+            	var sanitized = PathSanitizer.replaceControlChars(_execSystem.getDtnSystemId(), '?');
+            	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "dtnSystemId", sanitized);
+            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+
+        	// Load the DTN system definition.
             boolean requireExecPerm = false;
            _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
                                              requireExecPerm, LoadSystemTypes.dtn, 
@@ -639,7 +651,7 @@ public final class SubmitContext
                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
            }
            
-           // Detect control characters.
+           // Detect control characters in paths.
            try {PathSanitizer.detectControlChars(_execSystem.getDtnMountPoint());}
            catch (Exception e) {
             String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
@@ -664,7 +676,13 @@ public final class SubmitContext
         // Assign the default archive system if it's still blank.
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId())) 
             _submitReq.setArchiveSystemId(_submitReq.getExecSystemId());
-        
+        else // Detect illegal characters in archiveSystemId.
+        	if (PathSanitizer.hasDangerousChars(_submitReq.getArchiveSystemId())) {
+        		var sanitized = PathSanitizer.replaceControlChars(_submitReq.getArchiveSystemId(), '?');
+        		var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "archiveSystemId", sanitized);
+        		throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        	}
+    	
         // Determine the shared application context attribute.  By this time
         // the request archive system has been assigned, though that system
         // may not be loaded yet.
@@ -714,6 +732,13 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
+    	// Detect illegal characters in execSystemId.
+    	if (PathSanitizer.hasDangerousChars(_submitReq.getExecSystemId())) {
+        	var sanitized = PathSanitizer.replaceControlChars(_submitReq.getExecSystemId(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "execSystemId", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    	
         // Determine the shared application context attribute.
         _sharedAppCtx.calcExecSystemId(execSystemId, _app.getJobAttributes().getExecSystemId());
                 
@@ -728,6 +753,24 @@ public final class SubmitContext
                                          _submitReq.getOwner(), _submitReq.getTenant(), "execution");
             throw new TapisImplException(msg, Status.NOT_FOUND.getStatusCode());
         }
+
+    	// Check values used later on in macros for illegal characters.
+    	if (PathSanitizer.hasDangerousChars(_execSystem.getEffectiveUserId())) {
+        	var sanitized = PathSanitizer.replaceControlChars(_execSystem.getEffectiveUserId(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "effectiveUserId", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    	if (PathSanitizer.hasDangerousChars(_execSystem.getRootDir())) {
+        	var sanitized = PathSanitizer.replaceControlChars(_execSystem.getRootDir(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "rootDir", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        if (!StringUtils.isBlank(_execSystem.getBucketName()))
+        	if (PathSanitizer.hasDangerousChars(_execSystem.getBucketName())) {
+        		var sanitized = PathSanitizer.replaceControlChars(_execSystem.getBucketName(), '?');
+        		var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "bucketName", sanitized);
+        		throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        	}
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1946,6 +1989,38 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* validateFileInputs:                                                          */
+    /* ---------------------------------------------------------------------------- */
+    /** Detect control characters in sourceUrl and targetPath.
+     * 
+     * @throws TapisImplException when a control character is detected
+     */
+    private void validateFileInputs() throws TapisImplException
+    {
+    	// Detect control characters in each input.
+    	var fileInputs = _submitReq.getFileInputs();
+    	for (var fileInput : fileInputs) {
+    		// -- sourceUrl
+    		try {PathSanitizer.detectControlChars(fileInput.getSourceUrl());}
+            catch (Exception e) {
+            	var sanitized = PathSanitizer.replaceControlChars(fileInput.getSourceUrl(), '?');
+            	var name = "Input file: " + fileInput.getName() + ":sourceUrl";
+            	String msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", name, sanitized);
+            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+    		
+    		// -- targetPath
+    		try {PathSanitizer.detectControlChars(fileInput.getTargetPath());}
+            catch (Exception e) {
+            	var sanitized = PathSanitizer.replaceControlChars(fileInput.getTargetPath(), '?');
+            	var name = "Input file: " + fileInput.getName() + ":targetPath";
+            	String msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", name, sanitized);
+            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+            }
+    	}
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* calculateSrcSharedCtx:                                                       */
     /* ---------------------------------------------------------------------------- */
     /** Set the source file input shared flag only if we are in a shared app context
@@ -2124,7 +2199,8 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private String resolveMacros(String text) throws TapisException
     {
-        // Return the text with all the macros replaced by their resolved values.
+        // Return the text with all the macros replaced by their resolved values,
+    	// which includes HOST_EVAL() processing.
         return getMacroResolver().resolve(text);
     }
     
@@ -2133,7 +2209,8 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private String replaceMacros(String text)
     {
-        // Return the text with all the macros replaced by their existing values.
+        // Return the text with all the macros replaced by their existing values,
+    	// which DOES NOT include HOST_EVAL() processing.
         return getMacroResolver().replaceMacros(text);
     }
     
@@ -2144,14 +2221,6 @@ public final class SubmitContext
     {
         if (_macroResolver == null) _macroResolver = new MacroResolver(_execSystem, _macros);
         return _macroResolver;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* validateInputStrings:                                                        */
-    /* ---------------------------------------------------------------------------- */
-    private void validateInputStrings() throws TapisImplException
-    {
-    	
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2339,11 +2408,27 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
-        // Validation will check that the named logical queue has been defined.
+        // Check for illegal characters.
+    	if (PathSanitizer.hasDangerousChars(logicalQueueName)) {
+        	var sanitized = PathSanitizer.replaceControlChars(logicalQueueName, '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "logicalQueueName", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        
+        // Check that the named logical queue has been defined.
         for (var q : _execSystem.getBatchLogicalQueues()) 
-            if (logicalQueueName.equals(q.getName())) return q.getHpcQueueName();
+            if (logicalQueueName.equals(q.getName())) {
+            	// Check the characters in the hpc queue name.
+            	if (PathSanitizer.hasDangerousChars(q.getHpcQueueName())) {
+                	var sanitized = PathSanitizer.replaceControlChars(q.getHpcQueueName(), '?');
+                	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "hpcQueueName", sanitized);
+                	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+                }
+            	// We're good!
+            	return q.getHpcQueueName();
+            }
 
-        // Queue not defined on exec system.
+        // Error: Queue not defined on exec system.
         String queues = null;
         for (var q : _execSystem.getBatchLogicalQueues()) {
             if (queues == null) queues = q.getName();
@@ -2475,6 +2560,20 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     private void validateApp(TapisApp app) throws TapisImplException
     {
+    	// ----- appId
+    	if (PathSanitizer.hasDangerousChars(_submitReq.getAppId())) {
+        	var sanitized = PathSanitizer.replaceControlChars(_submitReq.getAppId(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "appId", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    	
+    	// ----- appVersion
+    	if (PathSanitizer.hasDangerousChars(_submitReq.getAppVersion())) {
+        	var sanitized = PathSanitizer.replaceControlChars(_submitReq.getAppVersion(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "appVersion", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    	
         // This should be checked in apps, but we double check here.
         if (app.getRuntime() == RuntimeEnum.SINGULARITY) {
             
@@ -2606,6 +2705,72 @@ public final class SubmitContext
         
         // This utility method can throw exceptions with correctly assigned response codes.
         _submitReq.setNotesAsString(JobsApiUtils.convertInputObjectToString(notes));
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* finalSanitization:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    private void finalSanitization() throws TapisImplException
+    {
+//        _macros.put(JobTemplateVariables.Tenant.name(),     _submitReq.getTenant());
+//        _macros.put(JobTemplateVariables.JobOwner.name(),   _submitReq.getOwner());
+//        _macros.put(JobTemplateVariables.EffectiveUserId.name(), _execSystem.getEffectiveUserId());
+//        
+//        _macros.put(JobTemplateVariables.AppId.name(),      _submitReq.getAppId());
+//        _macros.put(JobTemplateVariables.AppVersion.name(), _submitReq.getAppVersion());
+//        
+//        _macros.put(JobTemplateVariables.ExecSystemId.name(),      _submitReq.getExecSystemId());
+//        _macros.put(JobTemplateVariables.ArchiveSystemId.name(),   _submitReq.getArchiveSystemId());
+//        _macros.put(JobTemplateVariables.DynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
+//        _macros.put(JobTemplateVariables.ArchiveOnAppError.name(), _submitReq.getArchiveOnAppError().toString());
+//        
+//        _macros.put(JobTemplateVariables.SysRootDir.name(), _execSystem.getRootDir());
+//        _macros.put(JobTemplateVariables.SysHost.name(), _execSystem.getHost());
+
+//        if (_dtnSystem != null) {
+//            _macros.put(JobTemplateVariables.DtnSystemId.name(),        _execSystem.getDtnSystemId());
+//            _macros.put(JobTemplateVariables.DtnMountPoint.name(),      _execSystem.getDtnMountPoint());
+//            _macros.put(JobTemplateVariables.DtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
+//        }
+//        
+//        if (!StringUtils.isBlank(_execSystem.getBucketName()))
+//            _macros.put(JobTemplateVariables.SysBucketName.name(), _execSystem.getBucketName());
+//        if (_execSystem.getBatchScheduler() != null)
+//            _macros.put(JobTemplateVariables.SysBatchScheduler.name(), _execSystem.getBatchScheduler().name());
+//        
+//        if (!StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue())) {
+//            String logicalQueueName = _submitReq.getExecSystemLogicalQueue();
+//            _macros.put(JobTemplateVariables.ExecSystemLogicalQueue.name(), logicalQueueName);
+//            
+//            // Validation will check that the named logical queue has been defined.
+//            for (var q :_execSystem.getBatchLogicalQueues()) {
+//                if (logicalQueueName.equals(q.getName())) {
+//                    _macros.put(JobTemplateVariables.ExecSystemHPCQueue.name(), q.getHpcQueueName());
+//                    break;
+//                }
+//            }
+//        }
+    	
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateOwnerAndTenant:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    private void validateOwnerAndTenant() throws TapisImplException
+    {
+    	// ----- tenant
+    	if (PathSanitizer.hasDangerousChars(_submitReq.getTenant())) {
+        	var sanitized = PathSanitizer.replaceControlChars(_submitReq.getTenant(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "tenant", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    	
+    	// ----- owner
+    	if (PathSanitizer.hasDangerousChars(_submitReq.getOwner())) {
+        	var sanitized = PathSanitizer.replaceControlChars(_submitReq.getOwner(), '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "owner", sanitized);
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }    	
     }
     
     /* ---------------------------------------------------------------------------- */

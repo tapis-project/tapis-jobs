@@ -65,7 +65,7 @@ public final class ZipRunCmd
 
         // Build the single line command that will run the executable
         // START -----------------------------------------------------------------
-        buf.append("nohup ./$(cat ./").append(JOB_ZIP_EXEC_FILE);
+        buf.append("nohup ./$(cat ./").append(JOB_ZIP_EXEC_FILE).append(")");
         // ------ Append the application arguments.
         if (!StringUtils.isBlank(appArguments))
             buf.append(appArguments); // begins with space char

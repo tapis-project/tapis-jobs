@@ -99,7 +99,7 @@ public class ZipNativeStager
 
         // Create and install the script used to monitor job status: tapisjob_status.sh
         String jobStatusScript = generateJobStatusScript();
-        jobFileManager.installExecFile(jobStatusScript, JobExecutionUtils.JOB_MONITOR_STATUS_SCRIPT, JobFileManager.RWRW);
+        jobFileManager.installExecFile(jobStatusScript, JobExecutionUtils.JOB_MONITOR_STATUS_SCRIPT, JobFileManager.RWXRWX);
     }
 
     /* ********************************************************************** */

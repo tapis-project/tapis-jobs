@@ -63,15 +63,16 @@ public final class ZipNativeLauncher
         // Get the process id
         String pid;
         if (exitStatus == 0) {
-            pid = result.trim();
+            // Remove whitespace and line separator characters
+            pid = result.trim().replaceAll("\\n", "");
             if (StringUtils.isBlank(pid)) pid = UNKNOWN_PROCESS_ID;
             if (_log.isDebugEnabled()) {
                 String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
-                                             _job.getUuid(), pid, exitStatus);
+                                             _job.getUuid(), result, exitStatus);
                 _log.debug(msg);
             }
             // If PID is not a number then it is an error. A pid must be a positive integer.
-            if (DIGITS_ONLY.matcher(pid).matches())
+            if (!DIGITS_ONLY.matcher(pid).matches())
             {
                 String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(),
                         _job.getUuid(), cmd, result, exitStatus);

@@ -64,6 +64,9 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
         try {
             int rc = runCmd.execute(cmd);
             result = runCmd.getOutAsString();
+            // TODO If process has finished this will return an error, but that is OK. Need to log msg
+            //      message is: "bash: line 0: kill: (2264066) - No such process"
+            //      Check to see what other runtime types do for this. monitor one more time?
             if (rc != 0) {
                 String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_ERROR1", _job.getUuid(), execSysId, host, result, cmd);
                 _log.error(msg);

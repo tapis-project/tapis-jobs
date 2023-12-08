@@ -73,13 +73,7 @@ public final class JobParmSetMarshaller
             if (opt.getArg().startsWith(key)) return;
         
         // Validate the exec system's profile before using it.
-        // Detect control characters.
-        try {PathSanitizer.detectControlChars(batchSchedulerProfile);}
-        catch (Exception e) {
-        	String msg = MsgUtils.getMsg("JOBS_INVALID_ARG_CHARACTER", "batchSchedulerProfile", 
-        			                     ArgTypeEnum.SCHEDULER_OPTIONS, e.getMessage());
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
+        JobsApiUtils.detectControlCharacters("schedulerOptions", "batchSchedulerProfile", batchSchedulerProfile);
         
         // If we get here then a tapis-profile option was not specified in
         // neither the app definition nor the job request, so the one in 
@@ -343,21 +337,10 @@ public final class JobParmSetMarshaller
     		reqKv.setNotes(JobsApiUtils.convertInputObjectToString(reqKv.getNotes()));
 
             // Detect control characters in the key.
-            try {PathSanitizer.detectControlChars(reqKv.getKey());}
-            catch (Exception e) {
-            	var sanitizedKey = PathSanitizer.replaceControlChars(reqKv.getKey(), '?');
-            	String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_CHARACTER", sanitizedKey, 
-            			                     e.getMessage());
-            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
+    		JobsApiUtils.detectControlCharacters("envVariables", reqKv.getKey(), reqKv.getKey());
             
             // Detect control characters in the value.
-            try {PathSanitizer.detectControlChars(value);}
-            catch (Exception e) {
-            	String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_CHARACTER", reqKv.getKey(), 
-            			                     e.getMessage());
-            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
+    		JobsApiUtils.detectControlCharacters("envVariables", reqKv.getKey(), value);
     	}
     }
     
@@ -1046,6 +1029,13 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* validateScratchList:                                                         */
     /* ---------------------------------------------------------------------------- */
+    /** We do basic validation on each of the 3 list types, but we let SubmitContext
+     * perform control character detection after all macro substitution has occurred.
+     * 
+     * @param scratchList a list of arg specs
+     * @param argType one of the 3 list types processed by this method
+     * @throws TapisImplException on validation error
+     */
     private void validateScratchList(List<ScratchArgSpec> scratchList, ArgTypeEnum argType)
      throws TapisImplException
     {
@@ -1073,14 +1063,6 @@ public final class JobParmSetMarshaller
             if (elem._jobArg.getNotes() != null) {
                 var json = JobsApiUtils.convertInputObjectToString(elem._jobArg.getNotes());
                 elem._jobArg.setNotes(json);
-            }
-            
-            // Detect control characters.
-            try {PathSanitizer.detectControlChars(elem._jobArg.getArg());}
-            catch (Exception e) {
-            	String msg = MsgUtils.getMsg("JOBS_INVALID_ARG_CHARACTER", elem._jobArg.getName(), 
-            			                     argType, e.getMessage());
-            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         }
     }

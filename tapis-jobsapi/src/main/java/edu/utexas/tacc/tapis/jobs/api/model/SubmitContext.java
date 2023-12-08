@@ -174,9 +174,6 @@ public final class SubmitContext
         // Canonicalize paths.
         finalizePaths();
         
-    	// Detect invalid characters in simple string parameters.
-    	finalSanitization();
-    	
         // Assign validated values to all job fields.
         populateJob();
         
@@ -213,11 +210,15 @@ public final class SubmitContext
         // The usual case where the requestor is the job owner. 
         if (StringUtils.isBlank(_submitReq.getOwner())) {
             _submitReq.setOwner(oboUser);
+            validateOwnerAndTenant();
             return;
         }
         
         // No authorization needed when the oboUser is also the specified job owner.
-        if (oboUser.equals(_submitReq.getOwner())) return;
+        if (oboUser.equals(_submitReq.getOwner())) {
+        	validateOwnerAndTenant();
+        	return;
+        }
         
         // Verify that the oboUser can run a job as the designated owner.
         boolean isAdmin;
@@ -474,14 +475,13 @@ public final class SubmitContext
         // Merge the archive filters.
         marshaller.mergeArchiveFilters(reqParmSet.getArchiveFilter(), appParmSet.getArchiveFilter());
         
-        // Assign the log configuration.
+        // Assign the log configuration. Validation occurs after macro substitution.
         assignLogConfig(reqParmSet.getLogConfig(), appParmSet.getLogConfig());
         
         // Validate parameter set components.
         validateArchiveFilters(reqParmSet.getArchiveFilter().getIncludes(), "includes");
         validateArchiveFilters(reqParmSet.getArchiveFilter().getExcludes(), "excludes");
         validateSchedulerProfile(reqParmSet.getSchedulerOptions());
-        validateLogConfig(reqParmSet.getLogConfig());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -543,11 +543,8 @@ public final class SubmitContext
         _submitReq.consolidateConstraints(appConstraintList);
         
         // Detect control characters.
-        try {PathSanitizer.detectControlChars(_submitReq.getConsolidatedConstraints());}
-        catch (Exception e) {
-        	var msg = "Invalid ExecSystemConstraints: " + e.getMessage(); 
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
+        JobsApiUtils.detectControlCharacters("ExecSystemConstraints", "consolidatedConstraints", 
+        		                _submitReq.getConsolidatedConstraints());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1025,11 +1022,7 @@ public final class SubmitContext
         
         // We allow great latitude with the cmdPrefix, but we lockdown the mpiCmd in two
         // ways: we disallow control characters and we detect dangerous characters.
-        try {PathSanitizer.detectControlChars(_submitReq.getMpiCmd());}
-        catch (Exception e) {
-        	var msg = "Invalid mpiCmd: " + e.getMessage();
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
+        JobsApiUtils.detectControlCharacters("", "mpiCmd", _submitReq.getMpiCmd());
         if (PathSanitizer.hasDangerousChars(_submitReq.getMpiCmd())) {
         	var sanitized = PathSanitizer.replaceControlChars(_submitReq.getMpiCmd(), '?');
         	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "mpiCmd", sanitized);
@@ -1094,11 +1087,7 @@ public final class SubmitContext
         }
         
         // Detect control characters.
-        try {PathSanitizer.detectControlChars(path);}
-        catch (Exception e) {
-        	var msg = "Invalid " + displayName + ": " + e.getMessage();
-        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        }
+        JobsApiUtils.detectControlCharacters("", displayName, path);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2000,23 +1989,14 @@ public final class SubmitContext
     	// Detect control characters in each input.
     	var fileInputs = _submitReq.getFileInputs();
     	for (var fileInput : fileInputs) {
+    		// Get the inputFile assigned name if it exists.
+    		var fn = fileInput.getName() == null ? "unnamed" : fileInput.getName();
+    		
     		// -- sourceUrl
-    		try {PathSanitizer.detectControlChars(fileInput.getSourceUrl());}
-            catch (Exception e) {
-            	var sanitized = PathSanitizer.replaceControlChars(fileInput.getSourceUrl(), '?');
-            	var name = "Input file: " + fileInput.getName() + ":sourceUrl";
-            	String msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", name, sanitized);
-            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
+    		JobsApiUtils.detectControlCharacters("fileInputs", fn, fileInput.getSourceUrl());
     		
     		// -- targetPath
-    		try {PathSanitizer.detectControlChars(fileInput.getTargetPath());}
-            catch (Exception e) {
-            	var sanitized = PathSanitizer.replaceControlChars(fileInput.getTargetPath(), '?');
-            	var name = "Input file: " + fileInput.getName() + ":targetPath";
-            	String msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", name, sanitized);
-            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
+    		JobsApiUtils.detectControlCharacters("fileInputs", fn, fileInput.getTargetPath());
     	}
     }
     
@@ -2139,6 +2119,7 @@ public final class SubmitContext
         // Special case where the job name may reference one or more ground macros.  Any of the previously
         // assigned macros can be referenced, subsequent macro assignments are not available.
         _submitReq.setName(replaceMacros(_submitReq.getName()));
+        JobsApiUtils.detectControlCharacters("", "jobName", _submitReq.getName());;
         _macros.put(JobTemplateVariables.JobName.name(), _submitReq.getName());
         
         // ---------- Derived, required
@@ -2233,8 +2214,9 @@ public final class SubmitContext
      * execution.  
      * 
      * Note: _submitReq is directly updated.
+     * @throws TapisImplException 
      */
-    private void resolveParameterSetMacros()
+    private void resolveParameterSetMacros() throws TapisImplException
     {
         // Get the parameter set.
         var parmset = _submitReq.getParameterSet();
@@ -2248,12 +2230,12 @@ public final class SubmitContext
         	for (var argSpec : schedOptions) {
         		var arg = argSpec.getArg();
         		if (arg == null) continue; // shouldn't happen
-            
-        		// We only perform macro substitution on specific arguments.
-        		// The substitution is simple and non-recursive because the 
-        		// replacement value does not itself contain macros.
-        		if (arg.startsWith("--job-name ") || arg.startsWith("-J "))
-        			argSpec.setArg(replaceMacros(arg));
+        		// Replace any macros.
+        		argSpec.setArg(replaceMacros(arg));
+        		
+        		// Detect control characters after all substitution.
+    			var argName = argSpec.getName() == null ? "unnamed" : argSpec.getName();
+    			JobsApiUtils.detectControlCharacters("schedulerOptions", argName, argSpec.getArg());
         	}
         
         // ---- appArgs
@@ -2263,7 +2245,13 @@ public final class SubmitContext
         if (appArgs != null)
         	for (var argSpec : appArgs) {
         		var arg = argSpec.getArg();
-        		if (arg != null) argSpec.setArg(replaceMacros(arg));
+        		if (arg == null) continue;
+        		// Replace any macros.
+        		argSpec.setArg(replaceMacros(arg));
+        		
+        		// Detect control characters after all substitution.
+    			var argName = argSpec.getName() == null ? "unnamed" : argSpec.getName();
+    			JobsApiUtils.detectControlCharacters("appArgs", argName, argSpec.getArg());
         	}
         
         // ---- containerArgs
@@ -2273,7 +2261,13 @@ public final class SubmitContext
         if (containerArgs != null)
         	for (var argSpec : containerArgs) {
         		var arg = argSpec.getArg();
-        		if (arg != null) argSpec.setArg(replaceMacros(arg));
+        		if (arg == null) continue;
+        		// Replace any macros.
+        		argSpec.setArg(replaceMacros(arg));
+        		
+        		// Detect control characters after all substitution.
+    			var argName = argSpec.getName() == null ? "unnamed" : argSpec.getName();
+    			JobsApiUtils.detectControlCharacters("containerArgs", argName, argSpec.getArg());
         	}
         
         // ---- logConfig
@@ -2283,6 +2277,7 @@ public final class SubmitContext
         var logConfig = parmset.getLogConfig();
         logConfig.setStdoutFilename(replaceMacros(logConfig.getStdoutFilename()));
         logConfig.setStderrFilename(replaceMacros(logConfig.getStderrFilename()));
+        validateLogConfig(logConfig);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2679,6 +2674,11 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* validateLogConfig:                                                           */
     /* ---------------------------------------------------------------------------- */
+    /** We don't allow command line dangerous characters in log file names.
+     * 
+     * @param logConfig the completed logfile object
+     * @throws TapisImplException when control or dangerous characters are detected
+     */
     private void validateLogConfig(LogConfig logConfig) throws TapisImplException
     {
     	// Make sure no dangerous characters appear in log file names.
@@ -2705,52 +2705,6 @@ public final class SubmitContext
         
         // This utility method can throw exceptions with correctly assigned response codes.
         _submitReq.setNotesAsString(JobsApiUtils.convertInputObjectToString(notes));
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* finalSanitization:                                                           */
-    /* ---------------------------------------------------------------------------- */
-    private void finalSanitization() throws TapisImplException
-    {
-//        _macros.put(JobTemplateVariables.Tenant.name(),     _submitReq.getTenant());
-//        _macros.put(JobTemplateVariables.JobOwner.name(),   _submitReq.getOwner());
-//        _macros.put(JobTemplateVariables.EffectiveUserId.name(), _execSystem.getEffectiveUserId());
-//        
-//        _macros.put(JobTemplateVariables.AppId.name(),      _submitReq.getAppId());
-//        _macros.put(JobTemplateVariables.AppVersion.name(), _submitReq.getAppVersion());
-//        
-//        _macros.put(JobTemplateVariables.ExecSystemId.name(),      _submitReq.getExecSystemId());
-//        _macros.put(JobTemplateVariables.ArchiveSystemId.name(),   _submitReq.getArchiveSystemId());
-//        _macros.put(JobTemplateVariables.DynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
-//        _macros.put(JobTemplateVariables.ArchiveOnAppError.name(), _submitReq.getArchiveOnAppError().toString());
-//        
-//        _macros.put(JobTemplateVariables.SysRootDir.name(), _execSystem.getRootDir());
-//        _macros.put(JobTemplateVariables.SysHost.name(), _execSystem.getHost());
-
-//        if (_dtnSystem != null) {
-//            _macros.put(JobTemplateVariables.DtnSystemId.name(),        _execSystem.getDtnSystemId());
-//            _macros.put(JobTemplateVariables.DtnMountPoint.name(),      _execSystem.getDtnMountPoint());
-//            _macros.put(JobTemplateVariables.DtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
-//        }
-//        
-//        if (!StringUtils.isBlank(_execSystem.getBucketName()))
-//            _macros.put(JobTemplateVariables.SysBucketName.name(), _execSystem.getBucketName());
-//        if (_execSystem.getBatchScheduler() != null)
-//            _macros.put(JobTemplateVariables.SysBatchScheduler.name(), _execSystem.getBatchScheduler().name());
-//        
-//        if (!StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue())) {
-//            String logicalQueueName = _submitReq.getExecSystemLogicalQueue();
-//            _macros.put(JobTemplateVariables.ExecSystemLogicalQueue.name(), logicalQueueName);
-//            
-//            // Validation will check that the named logical queue has been defined.
-//            for (var q :_execSystem.getBatchLogicalQueues()) {
-//                if (logicalQueueName.equals(q.getName())) {
-//                    _macros.put(JobTemplateVariables.ExecSystemHPCQueue.name(), q.getHpcQueueName());
-//                    break;
-//                }
-//            }
-//        }
-    	
     }
     
     /* ---------------------------------------------------------------------------- */

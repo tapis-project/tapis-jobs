@@ -27,6 +27,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
+import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
@@ -249,4 +250,32 @@ public class JobsApiUtils
             throw new TapisImplException(msg, Status.INTERNAL_SERVER_ERROR.getStatusCode());
         }
     }
+
+    /* ---------------------------------------------------------------------------- */
+    /* detectControlCharacters:                                                     */
+    /* ---------------------------------------------------------------------------- */
+    /** This method calls the sanitizer's control character detector and throw an
+     * exception if one is detected.  This method does not check for characters that
+     * need to be double quoted if they appear on the command line.
+     * 
+     * @param objectName the input containing object
+     * @param fieldName the input field whose value is being inspected
+     * @param value the value being inspected
+     * @throws TapisImplException if a control character is found
+     */
+    public static void detectControlCharacters(String objectName, String fieldName, String value) 
+     throws TapisImplException
+    {
+    	// We only check for control characters which are never appropriate and allow 
+    	// the command line dangerous characters because they will be double quoted if
+    	// they actually appear on the command line.
+    	try {PathSanitizer.detectControlChars(value);}
+        catch (Exception e) {
+        	var sanitized = PathSanitizer.replaceControlChars(value, '?');
+        	var msg = MsgUtils.getMsg("JOBS_INVALID_CHAR_DETECTED", objectName, fieldName, 
+        			                  sanitized, e.getMessage());
+        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+    }
+    
 }

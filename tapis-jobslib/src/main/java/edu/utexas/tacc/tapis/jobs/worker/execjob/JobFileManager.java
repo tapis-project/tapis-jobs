@@ -1,15 +1,12 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
 import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +23,6 @@ import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
-import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
@@ -39,6 +35,8 @@ import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.*;
 
 public final class JobFileManager 
 {
@@ -351,9 +349,7 @@ public final class JobFileManager
       throws TapisException
     {
         // Calculate the destination file path.
-        String destPath = makePath(_jobCtx.getExecutionSystem().getRootDir(), 
-                                   _job.getExecSystemExecDir(),
-                                   fileName);
+        String destPath = makePath(JobExecutionUtils.getExecDir(_jobCtx, _job), fileName);
         
         // Transfer the wrapper script.
         try {
@@ -385,17 +381,13 @@ public final class JobFileManager
             throws TapisException
     {
         String host = _jobCtx.getExecutionSystem().getHost();
-        // Make sure rootDir is not null. If null Paths.get() would throw null ptr exception.
-        String rootDir = _jobCtx.getExecutionSystem().getRootDir();
-        rootDir = rootDir == null ? "" : rootDir;
-
         // Calculate the file path to where archive will be unpacked.
-        String execDir = Paths.get(rootDir, _job.getExecSystemExecDir()).toString();
+        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
 
         // Build the command to extract the archive
         String cmd;
-        if (archiveIsZip) cmd = String.format("cd %s; unzip %s", execDir, archiveAbsolutePath);
-        else cmd = String.format("cd %s; tar -xf %s", execDir, archiveAbsolutePath);
+        if (archiveIsZip) cmd = String.format(ZIP_UNZIP_CMD_FMT, execDir, archiveAbsolutePath);
+        else cmd = String.format(ZIP_UNTAR_CMD_FMT, execDir, archiveAbsolutePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), host, cmd));
@@ -466,15 +458,11 @@ public final class JobFileManager
             throws TapisException
     {
         String host = _jobCtx.getExecutionSystem().getHost();
-        // Make sure rootDir is not null. If null Paths.get() would throw null ptr exception.
-        String rootDir = _jobCtx.getExecutionSystem().getRootDir();
-        rootDir = rootDir == null ? "" : rootDir;
 
         // Calculate the file path to where the script will be run.
-        String execDir = Paths.get(rootDir, _job.getExecSystemExecDir()).toString();
-
+        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
         // Build the command to run the script.
-        String cmd = String.format("cd %s; ./%s", execDir, setAppExecScript);
+        String cmd = String.format(ZIP_SETEXEC_CMD_FMT, execDir, setAppExecScript);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_CMD", _job.getUuid(), host, cmd));

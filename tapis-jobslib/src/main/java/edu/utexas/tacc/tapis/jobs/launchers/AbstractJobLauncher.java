@@ -72,10 +72,8 @@ abstract class AbstractJobLauncher
         // Create the command that changes the directory to the execution 
         // directory and runs the wrapper script.  The directory is expressed
         // as an absolute path on the system.
-        String cmd = "cd " + Paths.get(_jobCtx.getExecutionSystem().getRootDir(), 
-                                       _job.getExecSystemExecDir()).toString();
-        cmd += ";./" + JobExecutionUtils.JOB_WRAPPER_SCRIPT;
-        return cmd;
+        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        return String.format("cd %s;./%s", execDir, JobExecutionUtils.JOB_WRAPPER_SCRIPT);
     }
     
     /* ---------------------------------------------------------------------- */

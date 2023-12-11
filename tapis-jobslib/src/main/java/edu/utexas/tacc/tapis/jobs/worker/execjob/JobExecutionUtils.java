@@ -1,7 +1,10 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,15 +74,17 @@ public final class JobExecutionUtils
     public static final String SINGULARITY_START_MONITOR = "ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd";
 
     // ----------------------------- Zip Section -----------------------------
-    private static final String ZIP_STATUS = "./%s %s";
+    public static final String ZIP_UNZIP_CMD_FMT = "cd %s; unzip %s";
+    public static final String ZIP_UNTAR_CMD_FMT = "cd %s; tar -xf %s";
+    public static final String ZIP_STATUS_CMD_FMT = "cd %s;./%s %s";
+    public static final String ZIP_KILL_CMD_FMT = "kill -n 9 %s";
+    public static final String ZIP_SETEXEC_CMD_FMT = "cd %s; ./%s";
     public static final String ZIP_STATUS_RUNNING = "RUNNING";
     public static final String ZIP_STATUS_DONE = "DONE";
     // Regex pattern to parse the expected output of the status command for a ZIP job.
     // Output is expected to be in the format "DONE <exit_code>"
     // NOTE that we do not assume the exit code is numeric. Let the parsing routine handle that for better error msg.
     public static final Pattern ZIP_STATUS_RESULT_PATTERN = Pattern.compile("^DONE (.*)$");
-    // Kill the process started for a ZIP job
-    public static final String ZIP_RUN_KILL = "kill -n 9 ";
 
 
     /* ********************************************************************** */
@@ -106,8 +111,25 @@ public final class JobExecutionUtils
     /* ---------------------------------------------------------------------- */
     /* getZipStatusCommand:                                                   */
     /* ---------------------------------------------------------------------- */
-    public static String getZipStatusCommand(String processPid)
-    {return String.format(ZIP_STATUS, JOB_MONITOR_STATUS_SCRIPT, processPid);}
+    public static String getZipStatusCommand(String execDir, String processPid)
+    {return String.format(ZIP_STATUS_CMD_FMT, execDir, JOB_MONITOR_STATUS_SCRIPT, processPid);}
+
+    /* ---------------------------------------------------------------------- */
+    /* getExecDir:                                                            */
+    /* ---------------------------------------------------------------------- */
+    /** Get absolute path to execSystemExecDir
+     * If rootDir is null use "/" as rootDir
+     *
+     * @param jobCtx the non-null job context
+     * @param job the non-null executing job
+     * @throws TapisException on error
+     */
+    public static String getExecDir(JobExecutionContext jobCtx, Job job) throws TapisException
+    {
+        // Make sure rootDir is not null. If null Paths.get() would throw null ptr exception.
+        String rootDir = Optional.ofNullable(jobCtx.getExecutionSystem().getRootDir()).orElse("/");
+        return Paths.get(rootDir, job.getExecSystemExecDir()).toString();
+    }
 
     /* ********************************************************************** */
     /*                            Package Methods                             */

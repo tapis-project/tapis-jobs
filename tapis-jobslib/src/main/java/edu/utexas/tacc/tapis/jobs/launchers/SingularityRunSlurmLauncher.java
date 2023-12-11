@@ -109,10 +109,8 @@ public final class SingularityRunSlurmLauncher
         // Create the command that changes the directory to the execution 
         // directory and submits the job script.  The directory is expressed
         // as an absolute path on the system.
-        String cmd = "cd " + Paths.get(_jobCtx.getExecutionSystem().getRootDir(), 
-                                       _job.getExecSystemExecDir()).toString();
-        cmd += ";sbatch " + JobExecutionUtils.JOB_WRAPPER_SCRIPT;
-        return cmd;
+        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        return String.format("cd %s;sbatch %s", execDir, JobExecutionUtils.JOB_WRAPPER_SCRIPT);
     }
 
     /* ********************************************************************** */

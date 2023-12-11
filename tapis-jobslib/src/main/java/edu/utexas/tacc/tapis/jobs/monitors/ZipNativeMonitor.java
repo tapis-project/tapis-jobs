@@ -10,6 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Paths;
+
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_STATUS_DONE;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_STATUS_RUNNING;
 
@@ -82,10 +84,13 @@ public class ZipNativeMonitor
 
         // Get the command object.
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
-        
+
+        // Get absolute path to execSystemExecDir. Command will be run from here.
+        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+
         // Get the command to query for status.
-        String cmd = JobExecutionUtils.getZipStatusCommand(_job.getRemoteJobId());
-        
+        String cmd = JobExecutionUtils.getZipStatusCommand(execDir, _job.getRemoteJobId());
+
         // Execute the query with retry capability.
         String result = null;
         int rc;
@@ -102,8 +107,7 @@ public class ZipNativeMonitor
 
         // If monitor script failed then log error message and return NULL status so retry will happen as per policy.
         if (rc != 0) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_STATUS_EXIT_ERROR",
-                                         _job.getUuid(), host, cmd, rc, result);
+            String msg = MsgUtils.getMsg("JOBS_ZIP_STATUS_EXIT_ERROR", _job.getUuid(), host, cmd, rc, result);
             _log.error(msg);
             return JobRemoteStatus.NULL;
         }
@@ -159,4 +163,8 @@ public class ZipNativeMonitor
         }
         return jobRemoteStatus;
     }
+
+    /* ********************************************************************** */
+    /*                             Private Methods                            */
+    /* ********************************************************************** */
 }

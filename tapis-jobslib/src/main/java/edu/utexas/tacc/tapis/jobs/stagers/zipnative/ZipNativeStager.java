@@ -307,9 +307,9 @@ public class ZipNativeStager
             String urlPathStr = Optional.ofNullable(matcher.group(3)).orElse("/");
             // Get file name from the path and set full path to app archive
             Path urlPath = Path.of(FilenameUtils.normalize(urlPathStr));
-            String rootDir = Optional.ofNullable(_jobCtx.getExecutionSystem().getRootDir()).orElse("/");
+            String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
             _appArchiveFile = urlPath.getFileName().toString();
-            _appArchivePath = Paths.get(rootDir, _job.getExecSystemExecDir(), _appArchiveFile).toString();
+            _appArchivePath = Paths.get(execDir, _appArchiveFile).toString();
         }
 
         // Do simple validation of app archive file name.

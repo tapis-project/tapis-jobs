@@ -36,7 +36,7 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
     /* cancel:                                                                */
     /* ---------------------------------------------------------------------- */
     @Override
-	public void cancel() throws JobException, TapisException {
+	public void cancel() throws TapisException {
     	
     	var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
     	cancelZipJob(runCmd);
@@ -45,6 +45,14 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
     /* ---------------------------------------------------------------------- */
     /* cancelZipJob:                                                          */
     /* ---------------------------------------------------------------------- */
+    /*
+     * Future enhancements to consider
+     *   1. First check to see if job has completed. If completed set status to FINISHED or ERROR state.
+     *   2. Execute gentle kill, kill -15 (15 = SIGTERM, the default if no signal given)
+     *         - give process some time to shut down
+     *         - check status, if still running, then use kill -9
+     *         - either way, set status to CANCELLED
+     */
     private void cancelZipJob(TapisRunCommand runCmd)
     {
         // Info for log messages.
@@ -57,16 +65,17 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
         catch (Exception e) { /* Ignoring exceptions */}
 
         // Get the command text to terminate the app process launched for a ZIP runtime.
-        String cmd = JobExecutionUtils.ZIP_RUN_KILL + _job.getRemoteJobId();
+        String cmd = String.format(JobExecutionUtils.ZIP_KILL_CMD_FMT, _job.getRemoteJobId());
 
         // Stop the app process
-        String result = null;
+        String result;
         try {
             int rc = runCmd.execute(cmd);
             result = runCmd.getOutAsString();
-            // TODO If process has finished this will return an error, but that is OK. Need to log msg
-            //      message is: "bash: line 0: kill: (2264066) - No such process"
-            //      Check to see what other runtime types do for this. monitor one more time?
+            // If process has finished this will return an error, but that is OK.
+            // Message returned by kill command might look something like this:
+            //  "bash: line 0: kill: (2264066) - No such process"
+            // Simply log a message. This is what other runtime types do.
             if (rc != 0) {
                 String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_ERROR1", _job.getUuid(), execSysId, host, result, cmd);
                 _log.error(msg);

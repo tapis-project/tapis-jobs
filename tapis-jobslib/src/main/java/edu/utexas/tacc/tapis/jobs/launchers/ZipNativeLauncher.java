@@ -59,6 +59,7 @@ public final class ZipNativeLauncher
         runCmd.logNonZeroExitCode();
         String result  = runCmd.getOutAsString();
         if (StringUtils.isBlank(result)) result = "";
+        result = result.trim();
 
         // Get the process id
         String pid;

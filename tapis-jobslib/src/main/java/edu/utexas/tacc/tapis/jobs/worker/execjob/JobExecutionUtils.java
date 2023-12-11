@@ -84,7 +84,7 @@ public final class JobExecutionUtils
     // Regex pattern to parse the expected output of the status command for a ZIP job.
     // Output is expected to be in the format "DONE <exit_code>"
     // NOTE that we do not assume the exit code is numeric. Let the parsing routine handle that for better error msg.
-    public static final Pattern ZIP_STATUS_RESULT_PATTERN = Pattern.compile("^DONE (.*)$");
+    public static final Pattern ZIP_STATUS_RESULT_PATTERN = Pattern.compile("^DONE (.*)[\\n]*$");
 
 
     /* ********************************************************************** */

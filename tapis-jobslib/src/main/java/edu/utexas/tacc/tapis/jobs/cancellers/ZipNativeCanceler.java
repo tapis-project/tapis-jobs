@@ -1,11 +1,11 @@
 package edu.utexas.tacc.tapis.jobs.cancellers;
 
-import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +72,8 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
         try {
             int rc = runCmd.execute(cmd);
             result = runCmd.getOutAsString();
+            if (StringUtils.isBlank(result)) result = "";
+            result = result.trim();
             // If process has finished this will return an error, but that is OK.
             // Message returned by kill command might look something like this:
             //  "bash: line 0: kill: (2264066) - No such process"

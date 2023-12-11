@@ -397,6 +397,7 @@ public final class JobFileManager
         int exitStatus = runCmd.execute(cmd);
         String result  = runCmd.getOutAsString();
         if (StringUtils.isBlank(result)) result = "";
+        result = result.trim();
 
         // Log exit code and result
         if (_log.isDebugEnabled())
@@ -434,6 +435,7 @@ public final class JobFileManager
         int exitStatus = runCmd.execute(cmd);
         String result  = runCmd.getOutAsString();
         if (StringUtils.isBlank(result)) result = "";
+        result = result.trim();
 
         // Log exit code and result
         if (_log.isDebugEnabled())
@@ -472,6 +474,7 @@ public final class JobFileManager
         int exitStatus = runCmd.execute(cmd);
         String result  = runCmd.getOutAsString();
         if (StringUtils.isBlank(result)) result = "";
+        result = result.trim();
 
         // Log exit code and result
         if (_log.isDebugEnabled())

@@ -98,7 +98,9 @@ public class ZipNativeMonitor
         	// Run the command and unpack results.
         	var resp = runJobMonitorCmd(runCmd, cmd);
         	rc = resp.rc;
-        	result = resp.result;
+                result = resp.result;
+                if (StringUtils.isBlank(result)) result = "";
+                result = result.trim();
         }
         catch (Exception e) {
             // Exception already logged.
@@ -122,7 +124,7 @@ public class ZipNativeMonitor
         // The status that will be returned.
         JobRemoteStatus jobRemoteStatus;
         // If running then return status of ACTIVE
-        if (ZIP_STATUS_RUNNING.equals(result)) {
+        if (result.startsWith(ZIP_STATUS_RUNNING)) {
             jobRemoteStatus = JobRemoteStatus.ACTIVE;
         } else if (!result.startsWith(ZIP_STATUS_DONE)) {
             // We did not recognize the output. This should not happen, so log an error and retry

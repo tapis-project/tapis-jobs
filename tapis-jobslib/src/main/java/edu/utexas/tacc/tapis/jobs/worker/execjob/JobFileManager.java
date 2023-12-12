@@ -395,9 +395,7 @@ public final class JobFileManager
         // Run the command to extract the app archive
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         int exitStatus = runCmd.execute(cmd);
-        String result  = runCmd.getOutAsString();
-        if (StringUtils.isBlank(result)) result = "";
-        result = result.trim();
+        String result  = runCmd.getOutAsTrimmedString();
 
         // Log exit code and result
         if (_log.isDebugEnabled())
@@ -433,9 +431,7 @@ public final class JobFileManager
         // Run the command to check
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         int exitStatus = runCmd.execute(cmd);
-        String result  = runCmd.getOutAsString();
-        if (StringUtils.isBlank(result)) result = "";
-        result = result.trim();
+        String result  = runCmd.getOutAsTrimmedString();
 
         // Log exit code and result
         if (_log.isDebugEnabled())
@@ -472,9 +468,7 @@ public final class JobFileManager
         // Run the command to extract the app archive
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         int exitStatus = runCmd.execute(cmd);
-        String result  = runCmd.getOutAsString();
-        if (StringUtils.isBlank(result)) result = "";
-        result = result.trim();
+        String result  = runCmd.getOutAsTrimmedString();
 
         // Log exit code and result
         if (_log.isDebugEnabled())

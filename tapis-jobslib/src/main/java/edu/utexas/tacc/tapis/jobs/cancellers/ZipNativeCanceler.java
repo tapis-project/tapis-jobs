@@ -71,9 +71,7 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
         String result;
         try {
             int rc = runCmd.execute(cmd);
-            result = runCmd.getOutAsString();
-            if (StringUtils.isBlank(result)) result = "";
-            result = result.trim();
+            result = runCmd.getOutAsTrimmedString();
             // If process has finished this will return an error, but that is OK.
             // Message returned by kill command might look something like this:
             //  "bash: line 0: kill: (2264066) - No such process"

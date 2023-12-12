@@ -36,11 +36,9 @@ public final class JobExecutionUtils
     public static final String JOB_OUTPUT_REDIRECT_FILE  = "tapisjob.out";
     public static final String JOB_OUTPUT_EXITCODE_FILE  = "tapisjob.exitcode";
     public static final String JOB_ZIP_PID_FILE          = "tapisjob.pid";
-    public static final String JOB_ZIP_MANIFEST_FILE     = "tapisjob.manifest";
     public static final String JOB_ZIP_EXEC_FILE         = "tapisjob.exec";
     public static final String JOB_ZIP_SET_EXEC_SCRIPT   = "tapisjob_setexec.sh";
     public static final String JOB_MONITOR_STATUS_SCRIPT = "tapisjob_status.sh";
-    public static final String JOB_ZIP_USER_APP_FILE     = "tapisjob_app.sh";
 
     // ----------------------------- Docker Section -----------------------------
     // Docker command templates.

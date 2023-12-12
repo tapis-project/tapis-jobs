@@ -57,9 +57,7 @@ public final class ZipNativeLauncher
         var runCmd     = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         int exitStatus = runCmd.execute(cmd);
         runCmd.logNonZeroExitCode();
-        String result  = runCmd.getOutAsString();
-        if (StringUtils.isBlank(result)) result = "";
-        result = result.trim();
+        String result  = runCmd.getOutAsTrimmedString();
 
         // Get the process id
         String pid;

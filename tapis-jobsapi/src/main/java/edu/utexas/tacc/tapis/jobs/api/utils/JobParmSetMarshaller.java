@@ -332,15 +332,15 @@ public final class JobParmSetMarshaller
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
 
-    		// Convert notes objects into json strings and validate. Nulls are 
-    		// converted to the empty json object string.
-    		reqKv.setNotes(JobsApiUtils.convertInputObjectToString(reqKv.getNotes()));
-
             // Detect control characters in the key.
     		JobsApiUtils.detectControlCharacters("envVariables", reqKv.getKey(), reqKv.getKey());
             
             // Detect control characters in the value.
     		JobsApiUtils.detectControlCharacters("envVariables", reqKv.getKey(), value);
+    		
+    		// Convert notes objects into json strings and validate. Nulls are 
+    		// converted to the empty json object string.
+    		reqKv.setNotes(JobsApiUtils.convertInputObjectToString(reqKv.getNotes()));
     	}
     }
     

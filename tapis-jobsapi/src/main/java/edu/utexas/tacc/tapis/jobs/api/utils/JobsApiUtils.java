@@ -278,4 +278,26 @@ public class JobsApiUtils
         }
     }
     
+    /* ---------------------------------------------------------------------------- */
+    /* hasDangerousCharacters:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** This method detects control characters like \t, \n, \x0B, \f, \r and also checks 
+     * for unsafe command line parameters like &, >, <, |, ;, `.
+     * 
+     * @param objectName the input containing object
+     * @param fieldName the input field whose value is being inspected
+     * @param value the value being inspected
+     * @throws TapisImplException if a control or unsafe character is found
+     */
+    public static void hasDangerousCharacters(String objectName, String fieldName, String value)
+     throws TapisImplException
+    {
+    	// Detect control characters and command line dangerous characters.
+        if (!PathSanitizer.hasDangerousChars(value)) return; // no problems found
+       
+        // Invalid character found.
+        var sanitized = PathSanitizer.replaceControlChars(value, '?');
+        var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", objectName, fieldName, sanitized);
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
 }

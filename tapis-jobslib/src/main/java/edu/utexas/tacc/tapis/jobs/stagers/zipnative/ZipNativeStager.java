@@ -2,12 +2,14 @@ package edu.utexas.tacc.tapis.jobs.stagers.zipnative;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
+import edu.utexas.tacc.tapis.jobs.schedulers.SlurmScheduler;
 import edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -17,8 +19,10 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.regex.Matcher;
 
-/** This class handles staging of application assets for applications
- * defined using runtime type of ZIP.
+/**
+ *  This class handles staging of application assets for applications defined using runtime type of ZIP.
+ *  Used for both FORK and BATCH type jobs.
+ *  For BATCH jobs schedulerType must be set.
  */
 public class ZipNativeStager
  extends AbstractJobExecStager
@@ -43,6 +47,8 @@ public class ZipNativeStager
     private boolean _appArchiveIsZip;
     private String _containerImage;
     private boolean _containerImageIsUrl;
+    private SlurmScheduler scheduler = null;// TODO make this abstract/interface for supporting future scheduler types.
+    private final boolean isBatch;
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -50,14 +56,20 @@ public class ZipNativeStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public ZipNativeStager(JobExecutionContext jobCtx)
-     throws TapisException
+    public ZipNativeStager(JobExecutionContext jobCtx, SchedulerTypeEnum schedulerType)
+            throws TapisException
     {
-        // Create and populate the command.
+        // Set _jobCtx, _job
         super(jobCtx);
-        _zipRunCmd = configureRunCmd();
+        // Set containerImage
         _containerImage = _jobCtx.getApp().getContainerImage();
+        // Configure the appArchive properties
         configureAppArchiveInfo();
+        // Set the scheduler properties as needed.
+        if (schedulerType != null) scheduler = new SlurmScheduler(jobCtx); // TODO abstract
+        isBatch = (schedulerType != null);
+        // Create and configure the zip run command
+        _zipRunCmd = configureRunCmd();
     }
 
     /* ********************************************************************** */
@@ -113,16 +125,19 @@ public class ZipNativeStager
      * @return the wrapper script content
      */
     @Override
-    protected String generateWrapperScript()
-     throws TapisException
+    protected String generateWrapperScript() throws JobException
     {
-        // Construct the command.
+        // Run as bash script
+        if (isBatch) initBashBatchScript(); else initBashScript();
+
+        // If a BATCH job add the directives and any module load commands.
+        if (isBatch) {
+            _cmd.append(scheduler.getBatchDirectives());
+            _cmd.append(scheduler.getModuleLoadCalls());
+        }
+
+        // Construct the command and append it to get the full command script
         String zipCmd = _zipRunCmd.generateExecCmd(_job);
-
-        // Build the command file content.
-        initBashScript();
-
-        // Add the command to the command file.
         _cmd.append(zipCmd);
 
         return _cmd.toString();
@@ -248,11 +263,14 @@ public class ZipNativeStager
     /* ---------------------------------------------------------------------- */
     /* configureRunCmd:                                                       */
     /* ---------------------------------------------------------------------- */
+    /*
+     * Create and configure the run command.
+     */
     private ZipRunCmd configureRunCmd()
      throws TapisException
     {
         // Create and populate the command.
-        var zipRunCmd = new ZipRunCmd();
+        var zipRunCmd = new ZipRunCmd(_jobCtx);
         
         // ----------------- Tapis Standard Definitions -----------------
         // Set the stdout/stderr redirection file.
@@ -264,7 +282,7 @@ public class ZipNativeStager
 
         // Set the application arguments.
         zipRunCmd.setAppArguments(concatAppArguments());
-                
+
         return zipRunCmd;
     }
 

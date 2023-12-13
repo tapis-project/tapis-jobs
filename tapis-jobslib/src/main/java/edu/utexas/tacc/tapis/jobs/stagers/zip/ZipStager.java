@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers.zipnative;
+package edu.utexas.tacc.tapis.jobs.stagers.zip;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
@@ -24,14 +24,14 @@ import java.util.regex.Matcher;
  *  Used for both FORK and BATCH type jobs.
  *  For BATCH jobs schedulerType must be set.
  */
-public class ZipNativeStager
+public class ZipStager
  extends AbstractJobExecStager
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(ZipNativeStager.class);
+    private static final Logger _log = LoggerFactory.getLogger(ZipStager.class);
 
     private static final String ZIP_FILE_EXTENSION = ".zip";
     private static final String UNZIP_COMMAND = "unzip";
@@ -56,17 +56,17 @@ public class ZipNativeStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public ZipNativeStager(JobExecutionContext jobCtx, SchedulerTypeEnum schedulerType)
+    public ZipStager(JobExecutionContext jobCtx, SchedulerTypeEnum schedulerType)
             throws TapisException
     {
-        // Set _jobCtx, _job
+        // Set _jobCtx, _job, _cmd
         super(jobCtx);
         // Set containerImage
         _containerImage = _jobCtx.getApp().getContainerImage();
         // Configure the appArchive properties
         configureAppArchiveInfo();
         // Set the scheduler properties as needed.
-        if (schedulerType != null) scheduler = new SlurmScheduler(jobCtx); // TODO abstract
+        if (schedulerType != null) scheduler = new SlurmScheduler(jobCtx, _appArchiveFile); // TODO abstract
         isBatch = (schedulerType != null);
         // Create and configure the zip run command
         _zipRunCmd = configureRunCmd();

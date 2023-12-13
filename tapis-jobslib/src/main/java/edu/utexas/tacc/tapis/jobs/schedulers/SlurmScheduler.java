@@ -19,8 +19,9 @@ import java.util.TreeMap;
 import static edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager._optionPattern;
 
 /*
- *TODO Class to support scheduling a BATCH type job via slurm.
- * Used for Singularity and Zip jobs.
+ * Class to support scheduling a BATCH type job via slurm.
+ * Used for Zip jobs.
+ * TODO Refactor so it is also used for Singularity jobs.
  */
 public final class SlurmScheduler
 {
@@ -160,12 +161,13 @@ public final class SlurmScheduler
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public SlurmScheduler(JobExecutionContext jobCtx) throws TapisException
+    public SlurmScheduler(JobExecutionContext jobCtx, String defaultJobName)
+            throws TapisException
     {
         _jobCtx = jobCtx;
         _job = _jobCtx.getJob();
          setUserSlurmOptions();
-         setTapisOptionsForSlurm();
+         setTapisOptionsForSlurm(defaultJobName);
     }
 
     /* ********************************************************************** */
@@ -305,11 +307,10 @@ private void setUserSlurmOptions()
 
 /** Set the standard Tapis settings for Slurm.
  *
- * TODO: At this time we always omit setting the --mem option as required by TACC systems.
- *
+ * @param defaultJobName - name for job if job request did not provide one.
  * @throws TapisException on error
  */
-private void  setTapisOptionsForSlurm()
+private void  setTapisOptionsForSlurm(String defaultJobName)
         throws TapisException
 {
     // --------------------- Tapis Mandatory ---------------------
@@ -331,19 +332,12 @@ private void  setTapisOptionsForSlurm()
     setPartition(logicalQueue.getHpcQueueName());
 
     // --------------------- Tapis Optional ----------------------
-    // Always assign a job name if user has not specified one.
-    // TODO: Use container image as basis for name? for zip this can now be an abolute path or a url,
-    //       how does that change things here?
+    // Always assign a job name
+    // If user has not specified one then use defaultJobName provided
     if (StringUtils.isBlank(getJobName())) {
-//        var singularityRunCmd = _wrappedStager.getSingularityRunCmd();
-//        String image = singularityRunCmd.getImage();
-//        var parts = image.split("/");
-//
-//        // The last part element should be present and never empty.
-//        if (parts == null || parts.length == 0)
-//            setJobName(JobExecutionUtils.JOB_WRAPPER_SCRIPT);
-//        else setJobName(parts[parts.length-1]);
-          setJobName(JobExecutionUtils.JOB_WRAPPER_SCRIPT);
+        // Use either defaultJobName provided or "tapisjob.sh" as final default fallback.
+        String name = (StringUtils.isBlank(defaultJobName)) ? JobExecutionUtils.JOB_WRAPPER_SCRIPT : defaultJobName;
+        setJobName(name);
     }
 
     // Assign the standard tapis output file name if one is not
@@ -358,7 +352,7 @@ private void  setTapisOptionsForSlurm()
     }
 }
 
-/* ---------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------- */
     /* skipSlurmOption:                                                       */
     /* ---------------------------------------------------------------------- */
     /** Skip options that are not allowed by the target system.

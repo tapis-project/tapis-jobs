@@ -9,8 +9,7 @@ import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerSlurmStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityRunStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityStartStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularityslurm.SingularityRunSlurmStager;
-import edu.utexas.tacc.tapis.jobs.stagers.zipnative.ZipNativeStager;
-import edu.utexas.tacc.tapis.jobs.stagers.zipslurm.ZipSlurmStager;
+import edu.utexas.tacc.tapis.jobs.stagers.zip.ZipStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -44,7 +43,7 @@ public final class JobExecStageFactory
             stager = switch (runtime) {
                 case DOCKER      -> new DockerNativeStager(jobCtx);
                 case SINGULARITY -> getSingularityOption(jobCtx, app);
-                case ZIP         -> new ZipNativeStager(jobCtx, null /*schedulerType*/);
+                case ZIP         -> new ZipStager(jobCtx, null /*schedulerType*/);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobExecStageFactory");
@@ -171,7 +170,7 @@ public final class JobExecStageFactory
     {
         // Get the scheduler's docker stager.
         JobExecStager stager = switch (scheduler) {
-            case SLURM -> new ZipNativeStager(jobCtx, scheduler);
+            case SLURM -> new ZipStager(jobCtx, scheduler);
 
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",

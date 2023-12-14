@@ -38,7 +38,7 @@ public class JobLauncherFactory
             launcher = switch (runtime) {
                 case DOCKER      -> new DockerNativeLauncher(jobCtx);
                 case SINGULARITY -> getSingularityOption(jobCtx, app);
-                case ZIP         -> new ZipNativeLauncher(jobCtx);
+                case ZIP         -> new ZipLauncher(jobCtx, null);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobLauncherFactory");
@@ -63,6 +63,7 @@ public class JobLauncherFactory
             launcher = switch (runtime) {
                 case DOCKER      -> getBatchDockerLauncher(jobCtx, scheduler);
                 case SINGULARITY -> getBatchSingularityLauncher(jobCtx, scheduler);
+                case ZIP         -> getBatchZipLauncher(jobCtx, scheduler);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
                                                  scheduler + "(" + runtime +")", 
@@ -146,6 +147,28 @@ public class JobLauncherFactory
             }
         };
         
+        return launcher;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getBatchZipLauncher:                                                   */
+    /* ---------------------------------------------------------------------- */
+    private static JobLauncher getBatchZipLauncher(JobExecutionContext jobCtx,
+                                                   SchedulerTypeEnum scheduler)
+            throws TapisException
+    {
+        // Get a launcher based on the type of scheduler.
+        JobLauncher launcher = switch (scheduler) {
+            case SLURM -> new ZipLauncher(jobCtx, scheduler);
+
+            default -> {
+                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                                             scheduler + "(ZIP)",
+                                              "JobLauncherFactory");
+                throw new JobException(msg);
+            }
+        };
+
         return launcher;
     }
 }

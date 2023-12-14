@@ -66,7 +66,10 @@ public class ZipStager
         // Configure the appArchive properties
         configureAppArchiveInfo();
         // Set the scheduler properties as needed.
-        if (schedulerType != null) scheduler = new SlurmScheduler(jobCtx, _appArchiveFile); // TODO abstract
+        if (schedulerType != null) {
+            scheduler = new SlurmScheduler(jobCtx); // TODO abstract
+            scheduler.setJobName(_appArchiveFile);
+        }
         isBatch = (schedulerType != null);
         // Create and configure the zip run command
         _zipRunCmd = configureRunCmd();

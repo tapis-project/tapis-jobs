@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.schedulers;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -15,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager._optionPattern;
 
@@ -32,6 +35,9 @@ public final class SlurmScheduler
     private static final Logger _log = LoggerFactory.getLogger(SlurmScheduler.class);
     // Slurm directive.
     private static final String DIRECTIVE_PREFIX = "#SBATCH ";
+    // Initialize the regex pattern that extracts the ID slurm assigned to the job.
+    // The regex ignores leading and trailing whitespace and groups the numeric ID.
+    private static final Pattern RESULT_PATTERN = Pattern.compile("\\s*Submitted batch job (\\d+)\\s*");
 
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -161,13 +167,13 @@ public final class SlurmScheduler
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public SlurmScheduler(JobExecutionContext jobCtx, String defaultJobName)
+    public SlurmScheduler(JobExecutionContext jobCtx)
             throws TapisException
     {
         _jobCtx = jobCtx;
         _job = _jobCtx.getJob();
          setUserSlurmOptions();
-         setTapisOptionsForSlurm(defaultJobName);
+         setTapisOptionsForSlurm();
     }
 
     /* ********************************************************************** */
@@ -235,7 +241,7 @@ public final class SlurmScheduler
             // We allow commands that don't require module parameters.
             var modules = spec.getModulesToLoad();
             if (modules == null || modules.isEmpty()) {
-                buf.append(loadCmd + "\n");
+                buf.append(loadCmd).append("\n");
                 continue;
             }
 
@@ -245,12 +251,47 @@ public final class SlurmScheduler
             // Create a module load command for each specified module.
             for (var module : modules)
                 if (StringUtils.isNotBlank(module))
-                    buf.append(loadCmd + module + "\n");
+                    buf.append(loadCmd).append(module).append("\n");
         }
 
         // End with a blank line.
         buf.append("\n");
         return buf.toString();
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getBatchIdFromOutput:                                                  */
+    /* ---------------------------------------------------------------------- */
+    public String getBatchJobIdFromOutput(String output, String cmd) throws JobException
+    {
+        // We have a problem if the result has no content.
+        if (StringUtils.isBlank(output)) {
+            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_NO_RESULT",
+                    _job.getUuid(), cmd);
+            throw new JobException(msg);
+        }
+
+        // Strip any banner information from the remote result.
+        output = JobUtils.getLastLine(output.strip());
+
+        // Look for the success message
+        Matcher m = RESULT_PATTERN.matcher(output);
+        var found = m.matches();
+        if (!found) {
+            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",
+                    _job.getUuid(), output);
+            throw new JobException(msg);
+        }
+
+        int groupCount = m.groupCount();
+        if (groupCount < 1) {
+            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",
+                    _job.getUuid(), output);
+            throw new JobException(msg);
+        }
+
+        // Group 1 contains the slurm ID.
+        return m.group(1);
     }
 
     /* ********************************************************************** */
@@ -260,97 +301,94 @@ public final class SlurmScheduler
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
-/* ---------------------------------------------------------------------- */
-/* setUserSlurmOptions:                                                   */
-/* ---------------------------------------------------------------------- */
-/** Set the slurm options that we allow the user to modify.
- *
- */
-private void setUserSlurmOptions()
-        throws JobException
-{
-    // Get the list of user-specified container arguments.
-    var parmSet = _job.getParameterSetModel();
-    var opts    = parmSet.getSchedulerOptions();
-    if (opts == null || opts.isEmpty()) return;
+    /* ---------------------------------------------------------------------- */
+    /* setUserSlurmOptions:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** Set the slurm options that we allow the user to modify.
+     *
+     */
+    private void setUserSlurmOptions()
+            throws JobException
+    {
+        // Get the list of user-specified container arguments.
+        var parmSet = _job.getParameterSetModel();
+        var opts    = parmSet.getSchedulerOptions();
+        if (opts == null || opts.isEmpty()) return;
 
-    // Iterate through the list of options.
-    for (var opt : opts) {
-        var m = _optionPattern.matcher(opt.getArg());
-        boolean matches = m.matches();
-        if (!matches) {
-            String msg = MsgUtils.getMsg("JOBS_SCHEDULER_ARG_PARSE_ERROR", "slurm", opt.getArg());
-            throw new JobException(msg);
+        // Iterate through the list of options.
+        for (var opt : opts) {
+            var m = _optionPattern.matcher(opt.getArg());
+            boolean matches = m.matches();
+            if (!matches) {
+                String msg = MsgUtils.getMsg("JOBS_SCHEDULER_ARG_PARSE_ERROR", "slurm", opt.getArg());
+                throw new JobException(msg);
+            }
+
+            // Get the option and its value if one is provided.
+            String option = null;
+            String value  = ""; // default value when none provided
+            int groupCount = m.groupCount();
+            if (groupCount > 0) option = m.group(1);
+            if (groupCount > 1) value  = m.group(2);
+
+            // The option should always exist.
+            if (StringUtils.isBlank(option)) {
+                String msg = MsgUtils.getMsg("JOBS_SCHEDULER_ARG_PARSE_ERROR", "slurm", opt.getArg());
+                throw new JobException(msg);
+            }
+
+            // Save the parsed value.
+            assignCmd(option, value);
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* setTapisOptionsForSlurm:                                               */
+    /* ---------------------------------------------------------------------- */
+
+    /** Set the standard Tapis settings for Slurm.
+     *
+     * @throws TapisException on error
+     */
+    private void  setTapisOptionsForSlurm()
+            throws TapisException
+    {
+        // --------------------- Tapis Mandatory ---------------------
+        // Request the total number of nodes from slurm.
+        setNodes(Integer.toString(_job.getNodeCount()));
+
+        // Tell slurm the total number of tasks to run.
+        setNtasks(Integer.toString(_job.getTotalTasks()));
+
+        // Tell slurm the total runtime of the application in minutes.
+        setTime(Integer.toString(_job.getMaxMinutes()));
+
+        // Tell slurm the memory per node requirement in megabytes.
+        setMem(Integer.toString(_job.getMemoryMB()));
+
+        // We've already checked in JobQueueProcessor before processing any
+        // state changes that the logical and hpc queues have been assigned.
+        var logicalQueue = _jobCtx.getLogicalQueue();
+        setPartition(logicalQueue.getHpcQueueName());
+
+        // --------------------- Tapis Optional ----------------------
+        // Always assign a job name
+        // If user has not specified one then use a default, "tapisjob.sh"
+        if (StringUtils.isBlank(getJobName())) {
+            setJobName(JobExecutionUtils.JOB_WRAPPER_SCRIPT);
         }
 
-        // Get the option and its value if one is provided.
-        String option = null;
-        String value  = ""; // default value when none provided
-        int groupCount = m.groupCount();
-        if (groupCount > 0) option = m.group(1);
-        if (groupCount > 1) value  = m.group(2);
-
-        // The option should always exist.
-        if (StringUtils.isBlank(option)) {
-            String msg = MsgUtils.getMsg("JOBS_SCHEDULER_ARG_PARSE_ERROR", "slurm", opt.getArg());
-            throw new JobException(msg);
+        // Assign the standard tapis output file name if one is not
+        // assigned and we are not running an array job.  We let slurm
+        // use its default naming scheme for array job output files.
+        // Unless the user explicitly specifies an error file, both
+        // stdout and stderr will go the designated output file.
+        if (StringUtils.isBlank(getOutput()) &&
+                StringUtils.isBlank(getArray())) {
+            var fm = _jobCtx.getJobFileManager();
+            setOutput(fm.makeAbsExecSysOutputPath(JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE));
         }
-
-        // Save the parsed value.
-        assignCmd(option, value);
     }
-}
-
-/* ---------------------------------------------------------------------- */
-/* setTapisOptionsForSlurm:                                               */
-/* ---------------------------------------------------------------------- */
-
-/** Set the standard Tapis settings for Slurm.
- *
- * @param defaultJobName - name for job if job request did not provide one.
- * @throws TapisException on error
- */
-private void  setTapisOptionsForSlurm(String defaultJobName)
-        throws TapisException
-{
-    // --------------------- Tapis Mandatory ---------------------
-    // Request the total number of nodes from slurm.
-    setNodes(Integer.toString(_job.getNodeCount()));
-
-    // Tell slurm the total number of tasks to run.
-    setNtasks(Integer.toString(_job.getTotalTasks()));
-
-    // Tell slurm the total runtime of the application in minutes.
-    setTime(Integer.toString(_job.getMaxMinutes()));
-
-    // Tell slurm the memory per node requirement in megabytes.
-    setMem(Integer.toString(_job.getMemoryMB()));
-
-    // We've already checked in JobQueueProcessor before processing any
-    // state changes that the logical and hpc queues have been assigned.
-    var logicalQueue = _jobCtx.getLogicalQueue();
-    setPartition(logicalQueue.getHpcQueueName());
-
-    // --------------------- Tapis Optional ----------------------
-    // Always assign a job name
-    // If user has not specified one then use defaultJobName provided
-    if (StringUtils.isBlank(getJobName())) {
-        // Use either defaultJobName provided or "tapisjob.sh" as final default fallback.
-        String name = (StringUtils.isBlank(defaultJobName)) ? JobExecutionUtils.JOB_WRAPPER_SCRIPT : defaultJobName;
-        setJobName(name);
-    }
-
-    // Assign the standard tapis output file name if one is not
-    // assigned and we are not running an array job.  We let slurm
-    // use its default naming scheme for array job output files.
-    // Unless the user explicitly specifies an error file, both
-    // stdout and stderr will go the designated output file.
-    if (StringUtils.isBlank(getOutput()) &&
-        StringUtils.isBlank(getArray())) {
-        var fm = _jobCtx.getJobFileManager();
-        setOutput(fm.makeAbsExecSysOutputPath(JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE));
-    }
-}
 
     /* ---------------------------------------------------------------------- */
     /* skipSlurmOption:                                                       */
@@ -1212,7 +1250,8 @@ private void  setTapisOptionsForSlurm(String defaultJobName)
     }
 
     public void setJobName(String jobName) {
-        this.jobName = jobName;
+        // Use either name provided or "tapisjob.sh" as default fallback.
+        this.jobName = (StringUtils.isBlank(jobName)) ? JobExecutionUtils.JOB_WRAPPER_SCRIPT : jobName;
         // Local (i.e., TACC) policies may not allow colons in name.
         _directives.put("--job-name", jobName.replace(':', '-'));
     }

@@ -206,7 +206,14 @@ abstract class AbstractSingularityExecCmd
     /* ---------------------------------------------------------------------- */
     /* getEnvArg:                                                             */
     /* ---------------------------------------------------------------------- */
-    /** Create the string of key=value pairs separated by new line characters.
+    /** Create the string of key=value pairs separated by commas.  It's assumed
+     * that the values are NOT already double quoted.
+     * 
+     * NOTE: We always double quote the value whether or not it contains
+     *       dangerous characters, which is different that most other cases
+     *       of environment variable construction.  Most of the time we use
+     *       TapisUtils.conditionalQuote(), which will only double quote when
+     *       dangerous or space characters are present. 
      * 
      * @param values NON-EMPTY list of pair values, one per occurrence
      * @return the string that contains all assignments

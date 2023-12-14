@@ -162,7 +162,7 @@ public class DockerNativeStager
     /* ---------------------------------------------------------------------- */
     /* setEnvFile:                                                            */
     /* ---------------------------------------------------------------------- */
-    /** Write the environment variables to a fhost file.
+    /** Write the environment variables to a host file.
      * 
      * @param dockerRunCmd the run command to be updated
      * @throws TapisImplException 
@@ -250,7 +250,12 @@ public class DockerNativeStager
     /** Both the standard tapis and user-supplied environment variables are
      * assigned here.  The user is prevented at job submission time from 
      * setting any environment variable that starts with the reserved "_tapis" 
-     * prefix, so collisions are not possible. 
+     * prefix, so collisions are not possible.
+     * 
+     * NOTE: Values are not double quoted here because environment variables are
+     *       currently always passed using an environment file.  If this changes
+     *       --as it might if slurm support is enhanced to work on HPC machines--
+     *       then this choice may need to be revisited.
      * 
      * @param dockerRunCmd the run command to be updated
      */

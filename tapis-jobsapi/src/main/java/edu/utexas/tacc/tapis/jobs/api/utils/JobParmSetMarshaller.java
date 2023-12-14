@@ -17,11 +17,11 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
-import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 
 public final class JobParmSetMarshaller 
 {
@@ -332,8 +332,8 @@ public final class JobParmSetMarshaller
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
 
-            // Detect control characters in the key.
-    		JobsApiUtils.detectControlCharacters("envVariables", reqKv.getKey(), reqKv.getKey());
+            // Detect control characters and other unwanted characters in the key.
+    		JobsApiUtils.hasDangerousCharacters("envVariables", reqKv.getKey(), reqKv.getKey());
             
             // Detect control characters in the value.
     		JobsApiUtils.detectControlCharacters("envVariables", reqKv.getKey(), value);
@@ -1057,6 +1057,11 @@ public final class JobParmSetMarshaller
                     String msg = MsgUtils.getMsg("JOBS_MISSING_ARG", elem._jobArg.getName(), argType);
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
+            
+            // Check that the key doesn't contain prohibited characters.
+            var parts = JobUtils.splitIntoKeyValue(elem._jobArg.getArg());
+            if (parts.length > 0)
+            	JobsApiUtils.hasDangerousCharacters(argType.name(), parts[0], parts[0]); 
             
             // Make sure notes field is a well-formed json object and convert it to string.
             // We skip elements without notes.

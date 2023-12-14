@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -91,41 +93,41 @@ public final class DockerRunCmd
         // ------ Fill in the options that the user may have set.
         if (addHost != null) {
             buf.append(" --addhost ");
-            buf.append(addHost);
+            buf.append(conditionalQuote(addHost));
         }
         if (cpus != null) {
             buf.append(" --cpus ");
-            buf.append(cpus);
+            buf.append(conditionalQuote(cpus));
         }
         if (cpusetCPUs != null) {
             buf.append(" --cpuset-cpus ");
-            buf.append(cpusetCPUs);
+            buf.append(conditionalQuote(cpusetCPUs));
         }
         if (cpusetMEMs != null) {
             buf.append(" --cpuset-mems ");
-            buf.append(cpusetMEMs);
+            buf.append(conditionalQuote(cpusetMEMs));
         }
         if (gpus != null) {
             buf.append(" --gpus ");
-            buf.append(gpus);
+            buf.append(conditionalQuote(gpus));
         }
         if (groups != null) {
             for (var s : groups) {
                 buf.append(" --group-add ");
-                buf.append(s);
+                buf.append(conditionalQuote(s));
             }
         }
         if (hostName != null) {
             buf.append(" --hostname ");
-            buf.append(hostName);
+            buf.append(conditionalQuote(hostName));
         }
         if (ip != null) {
             buf.append(" --ip ");
-            buf.append(ip);
+            buf.append(conditionalQuote(ip));
         }
         if (ip6 != null) {
             buf.append(" --ip6 ");
-            buf.append(ip6);
+            buf.append(conditionalQuote(ip6));
         }
         if (labels != null) {
             for (var s : labels) {
@@ -135,15 +137,15 @@ public final class DockerRunCmd
         }
         if (logDriver != null) {
             buf.append(" --log-driver ");
-            buf.append(logDriver);
+            buf.append(conditionalQuote(logDriver));
         }
         if (logOpts != null) {
             buf.append(" --log-opt ");
-            buf.append(logOpts);
+            buf.append(conditionalQuote(logOpts));
         }
         if (memory != null) {
             buf.append(" --memory ");
-            buf.append(memory);
+            buf.append(conditionalQuote(memory));
         }
         if (network != null) {
             buf.append(" --network ");
@@ -151,40 +153,40 @@ public final class DockerRunCmd
         }
         if (networkAlias != null) {
             buf.append(" --network-alias ");
-            buf.append(networkAlias);
+            buf.append(conditionalQuote(networkAlias));
         }
         if (portMappings != null) {
             for (var s : portMappings) {
                 buf.append(" -p ");
-                buf.append(s);
+                buf.append(conditionalQuote(s));
             }
         }
         if (workdir != null) {
             buf.append(" --workdir ");
-            buf.append(workdir);
+            buf.append(conditionalQuote(workdir));
         }
         
         // ------ Assign the volume mounts.
         for (var s : mount) {
             buf.append(" --mount ");
-            buf.append(s);
+            buf.append(conditionalQuote(s));
         }
         if (tmpfs != null) {
             for (var s : tmpfs) {
                 buf.append(" --tmpfs ");
-                buf.append(s);
+                buf.append(conditionalQuote(s));
             }
         }
         if (volumeMount != null) {
             for (var s : volumeMount) {
                 buf.append(" --volume ");
-                buf.append(s);
+                buf.append(conditionalQuote(s));
             }
         }
         
         // ------ Append the image.
         buf.append(" ");
-        buf.append(image);
+        buf.append(conditionalQuote(image));
         
         // ------ Append the application arguments.
         if (!StringUtils.isBlank(appArguments))

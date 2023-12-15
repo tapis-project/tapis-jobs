@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 import java.nio.file.Paths;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -72,8 +74,9 @@ abstract class AbstractJobLauncher
         // Create the command that changes the directory to the execution 
         // directory and runs the wrapper script.  The directory is expressed
         // as an absolute path on the system.
-        String cmd = "cd " + Paths.get(_jobCtx.getExecutionSystem().getRootDir(), 
-                                       _job.getExecSystemExecDir()).toString();
+    	var path = Paths.get(_jobCtx.getExecutionSystem().getRootDir(), 
+                             _job.getExecSystemExecDir()).toString();
+        String cmd = "cd " + conditionalQuote(path);
         cmd += ";./" + JobExecutionUtils.JOB_WRAPPER_SCRIPT;
         return cmd;
     }

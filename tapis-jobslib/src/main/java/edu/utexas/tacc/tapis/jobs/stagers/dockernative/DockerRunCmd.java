@@ -23,6 +23,14 @@ public final class DockerRunCmd
  implements JobExecCmd
 {
     /* ********************************************************************** */
+    /*                               Constants                                */
+    /* ********************************************************************** */
+	// Placeholder for the --volume command in string representations of 
+	// VolumeMount instances.  This placeholder allows the docker --read-only 
+	// flag to precede the --volume command during command generation.
+	private static final String VOLUME_CMD = "{VOLUME_CMD}";
+	
+    /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
     // List fields that we always populate are initialized on construction,
@@ -130,9 +138,13 @@ public final class DockerRunCmd
             buf.append(conditionalQuote(ip6));
         }
         if (labels != null) {
-            for (var s : labels) {
+            for (var pair : labels) {
                 buf.append(" --label ");
-                buf.append(s);
+                buf.append(conditionalQuote(pair.getKey()));
+                if (!StringUtils.isBlank(pair.getValue())) {
+                	buf.append("=");
+                	buf.append(conditionalQuote(pair.getValue()));
+                }
             }
         }
         if (logDriver != null) {
@@ -215,7 +227,7 @@ public final class DockerRunCmd
             // that docker will import into the container ONLY IF it exists
             // in the environment from which docker is called.  The long 
             // form is key=value.  Note that we don't escape characters in 
-            // the value.
+            // the value because we write to a file not the command line.
             var value = pair.getValue();
             if (value != null && !value.isEmpty()) {
                 // The long form forces an explicit assignment.
@@ -251,9 +263,9 @@ public final class DockerRunCmd
             buf.append("type=");
             buf.append(type.name());
             buf.append(",source=");
-            buf.append(source);
+            buf.append(conditionalQuote(source));
             buf.append(",target=");
-            buf.append(target);
+            buf.append(conditionalQuote(target));
             if (readOnly) buf.append(",readonly");
             
             return buf.toString();
@@ -283,16 +295,29 @@ public final class DockerRunCmd
     public static final class VolumeMount
      extends AbstractDockerMount
     {
-        private boolean                   readonly;
-        private List<Pair<String,String>> keyValueList = new ArrayList<Pair<String,String>>();
+        private boolean readOnly;
         
         public VolumeMount() {super(MountType.volume);}
         
-        public boolean isReadonly() {return readonly;}
-        public void setReadonly(boolean readonly) {this.readonly = readonly;}
-        public List<Pair<String,String>> getKeyValueList() {return keyValueList;}
-        public void setKeyValueList(List<Pair<String,String>> keyValueList) {
-            this.keyValueList = keyValueList;
+        public boolean isReadOnly() {return readOnly;}
+        public void setReadOnly(boolean readonly) {this.readOnly = readonly;}
+        
+        @Override
+        public String toString()
+        {
+            // Construct the value of a volume mount (i.e. everything
+            // other than the --volume flag).
+            final int capacity = 256;
+            StringBuilder buf = new StringBuilder(capacity);
+            if (readOnly) buf.append(" --read-only");
+            buf.append(" ");
+            buf.append(VOLUME_CMD); // Placeholder replaced during command generation
+            buf.append(" ");
+            buf.append(conditionalQuote(source));
+            buf.append(":");
+            buf.append(conditionalQuote(target));
+            
+            return buf.toString();
         }
     }
 

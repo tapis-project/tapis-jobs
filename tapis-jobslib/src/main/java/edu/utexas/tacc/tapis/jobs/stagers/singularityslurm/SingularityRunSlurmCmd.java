@@ -204,6 +204,9 @@ public final class SingularityRunSlurmCmd
      * system can have its own policy that filters out certain slurm options.
      * This method performs that filtering.
      * 
+     * NOTE: SBATCH directive values are not quoted since the shell script
+     * 		 does not treat them as executable lines of code.
+     * 
      * @return the list of #SBATCH directives
      */
     private String getSBatchDirectives()
@@ -242,7 +245,7 @@ public final class SingularityRunSlurmCmd
      */
     private boolean skipSlurmOption(String option)
     {
-        // No special filtering unless using tacc profile.
+        // No special filtering unless using a profile.
         if (StringUtils.isBlank(getTapisProfile())) return false;
         
         // Initialize the skip list.

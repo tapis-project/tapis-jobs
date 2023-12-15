@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -129,7 +131,7 @@ public final class SingularityRunCmd
         
         // ------ Assign image.
         buf.append(" ");
-        buf.append(getImage());
+        buf.append(conditionalQuote(getImage()));
 
         // ------ Assign application arguments.
         if (!StringUtils.isBlank(getAppArguments()))
@@ -161,22 +163,22 @@ public final class SingularityRunCmd
 
         if (StringUtils.isNotBlank(getPwd())) {
             buf.append(" --pwd ");
-            buf.append(getPwd());
+            buf.append(conditionalQuote(getPwd()));
         }
  
         if (isVm()) buf.append(" --vm");
         if (StringUtils.isNotBlank(getVmCPU())) {
             buf.append(" --vm-cpu ");
-            buf.append(getVmCPU());
+            buf.append(conditionalQuote(getVmCPU()));
         }
         if (isVmErr()) buf.append(" --vm-err");
         if (StringUtils.isNotBlank(getVmIP())) {
             buf.append(" --vm-ip ");
-            buf.append(getVmIP());
+            buf.append(conditionalQuote(getVmIP()));
         }
         if (StringUtils.isNotBlank(getVmRAM())) {
             buf.append(" --vm-ram ");
-            buf.append(getVmRAM());
+            buf.append(conditionalQuote(getVmRAM()));
         }
     }
     
@@ -193,13 +195,13 @@ public final class SingularityRunCmd
     {
     	if (getLogConfig().canMerge()) {
     		buf.append(" > ");
-    		buf.append(getLogConfig().getStdoutFilename());
+    		buf.append(conditionalQuote(getLogConfig().getStdoutFilename()));
     		buf.append(" 2>&1 &\n\n");
     	} else {
     		buf.append(" 2> ");
-    		buf.append(getLogConfig().getStderrFilename());
+    		buf.append(conditionalQuote(getLogConfig().getStderrFilename()));
     		buf.append(" 1> ");
-    		buf.append(getLogConfig().getStdoutFilename());
+    		buf.append(conditionalQuote(getLogConfig().getStdoutFilename()));
     		buf.append(" &\n\n");
     	}
     }

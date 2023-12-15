@@ -141,6 +141,11 @@ public abstract class AbstractJobExecStager
      * them to the caller.  If there are any arguments, the generated 
      * string always begins with a space character.
      * 
+     * NOTE: The method depends on JobParmSetMarshaller.validateScratchList()
+     *       to weed out any application parameter names that contain dangerous
+     *       command line characters. This means that conditional quoting 
+     *       need only be applied to values.
+     * 
      * @return the app argument string or null if there aren't any.
      */
     protected String concatAppArguments()
@@ -157,11 +162,11 @@ public abstract class AbstractJobExecStager
         	 var arg = opt.getArg();
         	 var parts = JobUtils.splitIntoKeyValue(arg);
         	 
-        	 // Check if the value needs to be quoted 
-        	 // and rebuild the arg string if so.
+        	 // Check if the value needs to be quoted and 
+        	 // rebuild the arg string if it's been modified.
         	 if (parts.length == 2) {
-        		 var quoted = TapisUtils.conditionalQuote(parts[1]);
-        		 if (!quoted.equals(parts[1])) arg = parts[0] + " " + quoted;
+        		 var value = TapisUtils.conditionalQuote(parts[1]);
+        		 if (!value.equals(parts[1])) arg = parts[0] + " " + value;
         	 }
         	 
         	 // Add to the argument string.

@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.schedulers.JobScheduler;
 import edu.utexas.tacc.tapis.jobs.schedulers.SlurmScheduler;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
@@ -27,7 +28,7 @@ public final class ZipLauncher
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
-    private SlurmScheduler scheduler = null;// TODO make this abstract/interface for supporting future scheduler types.
+    private final JobScheduler scheduler;
     private final boolean isBatch;
 
     /* ********************************************************************** */
@@ -42,7 +43,8 @@ public final class ZipLauncher
         // Set _job and _jobCtx
         super(jobCtx);
         // Set the scheduler properties as needed.
-        if (schedulerType != null) scheduler = new SlurmScheduler(jobCtx); // TODO abstract
+        // Currently only slurm supported. In future may move this to a method and use switch
+        scheduler = (schedulerType != null) ? new SlurmScheduler(jobCtx) : null;
         isBatch = (schedulerType != null);
     }
 
@@ -105,7 +107,7 @@ public final class ZipLauncher
             }
         }
 
-            // Save the process id or the unknown id string.
+        // Save the process id or the unknown id string.
         _jobCtx.getJobsDao().setRemoteJobId(_job, pid);
     }
 

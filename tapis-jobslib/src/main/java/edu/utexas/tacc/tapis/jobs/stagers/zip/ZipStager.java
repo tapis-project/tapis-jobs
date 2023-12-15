@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.stagers.zip;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
+import edu.utexas.tacc.tapis.jobs.schedulers.JobScheduler;
 import edu.utexas.tacc.tapis.jobs.schedulers.SlurmScheduler;
 import edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
@@ -47,7 +48,7 @@ public class ZipStager
     private boolean _appArchiveIsZip;
     private String _containerImage;
     private boolean _containerImageIsUrl;
-    private SlurmScheduler scheduler = null;// TODO make this abstract/interface for supporting future scheduler types.
+    private final JobScheduler scheduler;
     private final boolean isBatch;
 
     /* ********************************************************************** */
@@ -66,9 +67,10 @@ public class ZipStager
         // Configure the appArchive properties
         configureAppArchiveInfo();
         // Set the scheduler properties as needed.
-        if (schedulerType != null) {
-            scheduler = new SlurmScheduler(jobCtx); // TODO abstract
-            scheduler.setJobName(_appArchiveFile);
+        if (schedulerType == null) {
+            scheduler = null;
+        } else {
+            scheduler = new SlurmScheduler(jobCtx, _appArchiveFile); // TODO abstract
         }
         isBatch = (schedulerType != null);
         // Create and configure the zip run command

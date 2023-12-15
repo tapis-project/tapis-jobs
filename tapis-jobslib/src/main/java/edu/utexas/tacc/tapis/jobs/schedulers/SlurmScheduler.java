@@ -26,7 +26,7 @@ import static edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager._optionPa
  * Used for Zip jobs.
  * TODO Refactor so it is also used for Singularity jobs.
  */
-public final class SlurmScheduler
+public final class SlurmScheduler implements JobScheduler
 {
     /* ********************************************************************** */
     /*                               Constants                                */
@@ -176,6 +176,15 @@ public final class SlurmScheduler
          setTapisOptionsForSlurm();
     }
 
+    public SlurmScheduler(JobExecutionContext jobCtx, String defaultJobName)
+            throws TapisException
+    {
+        _jobCtx = jobCtx;
+        _job = _jobCtx.getJob();
+        setUserSlurmOptions();
+        setTapisOptionsForSlurm();
+        setJobName(defaultJobName);
+    }
     /* ********************************************************************** */
     /*                             Public Methods                             */
     /* ********************************************************************** */
@@ -188,6 +197,7 @@ public final class SlurmScheduler
      *
      * @return the list of #SBATCH directives
      */
+    @Override
     public String getBatchDirectives()
     {
         // Create a buffer to hold the sbatch directives
@@ -217,6 +227,7 @@ public final class SlurmScheduler
     /* ---------------------------------------------------------------------- */
     /* getModuleLoadCalls:                                                    */
     /* ---------------------------------------------------------------------- */
+    @Override
     public String getModuleLoadCalls() throws JobException
     {
         // There's nothing to do unless a Tapis profile was specified.
@@ -262,6 +273,7 @@ public final class SlurmScheduler
     /* ---------------------------------------------------------------------- */
     /* getBatchIdFromOutput:                                                  */
     /* ---------------------------------------------------------------------- */
+    @Override
     public String getBatchJobIdFromOutput(String output, String cmd) throws JobException
     {
         // We have a problem if the result has no content.

@@ -86,7 +86,8 @@ public class JobMonitorFactory
             // Get the monitor for each supported runtime/scheduler combination.
             monitor = switch (runtime) {
                 case DOCKER      -> getBatchDockerMonitor(jobCtx, policy, scheduler);
-                case SINGULARITY -> getBatchSingularityMonitor(jobCtx, policy, scheduler);
+                case SINGULARITY -> getBatchMonitor(jobCtx, policy, scheduler);
+                case ZIP         -> getBatchMonitor(jobCtx, policy, scheduler);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
                                                  "JobMonitorFactory");
@@ -145,9 +146,9 @@ public class JobMonitorFactory
     /* ---------------------------------------------------------------------- */
     /* getBatchSingularityMonitor:                                            */
     /* ---------------------------------------------------------------------- */
-    private static JobMonitor getBatchSingularityMonitor(JobExecutionContext jobCtx,
-                                                         MonitorPolicy policy,
-                                                         SchedulerTypeEnum scheduler) 
+    private static JobMonitor getBatchMonitor(JobExecutionContext jobCtx,
+                                              MonitorPolicy policy,
+                                              SchedulerTypeEnum scheduler)
      throws TapisException
     {
         // Get the scheduler's docker monitor. 

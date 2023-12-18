@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.stagers.zip;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
@@ -71,27 +72,34 @@ public final class ZipRunCmd
         buf.append("# Export Tapis and user defined environment variables.\n");
         buf.append("export $(cat ./").append(JOB_ENV_FILE).append(" | xargs)\n\n");
 
-        // Run the executable using nohup
-        buf.append("# Launch app executable and capture PID of background process.\n");
+        // Run the executable
+        buf.append("# Launch app executable.\n");
 
         // Build the single line command that will run the executable
         // START -----------------------------------------------------------------
-        buf.append("nohup ./$(cat ./").append(JOB_ZIP_EXEC_FILE).append(")");
+        // If FORK run in background
+        if (JobType.FORK.equals(job.getJobType())) buf.append("nohup ");
+        // The actual app executable from the tapisjob.exec file.
+        buf.append("./$(cat ./").append(JOB_ZIP_EXEC_FILE).append(")");
         // ------ Append the application arguments.
         if (!StringUtils.isBlank(appArguments))
             buf.append(appArguments); // begins with space char
         // ------ Add stdout/stderr redirection.
         addOutputRedirection(buf);
-        // ------ Run as a background process and capture the pid.
-        buf.append(" &\n");
+        // If FORK run in background and capture pid, else run in foreground.
+        if (JobType.FORK.equals(job.getJobType())) {
+            buf.append(" &\n");
+            // ------ Capture the pid
+            buf.append("pid=$!\n");
+            buf.append("echo $pid > ./").append(JOB_ZIP_PID_FILE).append('\n');
+            // Echo the pid to stdout so launcher can capture it
+            // This should be the only output
+            buf.append("echo $pid\n");
+        } else {
+            buf.append("\n");
+        }
         // END -------------------------------------------------------------------
 
-        // ------ Capture the pid
-        buf.append("pid=$!\n");
-        buf.append("echo $pid > ./").append(JOB_ZIP_PID_FILE).append('\n');
-        // Echo the pid to stdout so launcher can capture it
-        // This should be the only output
-        buf.append("echo $pid\n");
         return buf.toString();
     }
     

@@ -192,7 +192,8 @@ abstract class AbstractSingularityExecCmd
     /* getStringListArgs:                                                     */
     /* ---------------------------------------------------------------------- */
     /** Create the string of multiple occurrence arguments from a non-empty
-     * list. 
+     * list. The result is a string that concatenates " --arg value" for each
+     * value in the list.
      * 
      * @param arg the multiple occurrence argument padded with spaces on both sides 
      * @param values NON-EMPTY list of values, one per occurrence

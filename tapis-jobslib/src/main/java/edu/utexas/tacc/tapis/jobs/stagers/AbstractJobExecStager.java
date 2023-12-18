@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -160,7 +159,7 @@ public abstract class AbstractJobExecStager
          for (var opt : opts) {
         	 // Split the argument into key/value components
         	 var arg = opt.getArg();
-        	 var parts = JobUtils.splitIntoKeyValue(arg);
+        	 var parts = TapisUtils.splitIntoKeyValue(arg);
         	 
         	 // Check if the value needs to be quoted and 
         	 // rebuild the arg string if it's been modified.

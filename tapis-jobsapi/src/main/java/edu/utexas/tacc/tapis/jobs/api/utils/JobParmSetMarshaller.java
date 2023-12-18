@@ -17,11 +17,11 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobParmSetMarshaller 
 {
@@ -1059,7 +1059,9 @@ public final class JobParmSetMarshaller
                 }
             
             // Check that the key doesn't contain prohibited characters.
-            var parts = JobUtils.splitIntoKeyValue(elem._jobArg.getArg());
+            // This check means we don't have to check the argument key
+            // after this for app, container or scheduler arguments. 
+            var parts = TapisUtils.splitIntoKeyValue(elem._jobArg.getArg());
             if (parts.length > 0)
             	JobsApiUtils.hasDangerousCharacters(argType.name(), parts[0], parts[0]); 
             

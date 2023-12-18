@@ -3,7 +3,6 @@ package edu.utexas.tacc.tapis.jobs.utils;
 import java.lang.reflect.Constructor;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,16 +31,6 @@ public final class JobUtils
     // Job subscription category wildcard character.
     public static final String EVENT_CATEGORY_WILDCARD = "*";
 
-    // Split on unicode whitespace.
-    //
-    // From Stackoverflow:  The (?U) inline embedded flag option is the equivalent 
-    // of using Pattern.UNICODE_CHARACTER_CLASS that enables \s shorthand 
-    // character class to match any characters from the whitespace Unicode category.
-    private static final Pattern _spaceSplitter = Pattern.compile("(?U)\\s+");
-    
-    // Reusable empty array.
-    private static final String[] EMPTY_STRING_ARRAY = new String[0];
-    
     /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */
@@ -240,26 +229,6 @@ public final class JobUtils
     public static String makeNotifTypeToken(JobEventType jobEventType, String detail)
     {
         return TapisConstants.SERVICE_NAME_JOBS + "." + jobEventType.name() + "." + detail;
-    }
-    
-    /* ---------------------------------------------------------------------------- */
-    /* splitIntoKeyValue:                                                           */
-    /* ---------------------------------------------------------------------------- */
-    /** Split a string into a key (the first word) and value (the remainder). It's
-     * assumed all control characters have been removed from the string.  Leading and
-     * trailing whitespace is stripped off before splitting.
-     * 
-     * @param s the string to be split
-     * @return a string array of length 0, 1 or 2
-     */
-    public static String[] splitIntoKeyValue(String s)
-    {
-    	// Don't blow up.
-    	if (StringUtils.isBlank(s)) return EMPTY_STRING_ARRAY;
-    	
-    	// The array returned will have 1 element if it contains no embedded whitespace
-    	// or 2 elements if there is at least one whitespace character within it.
-    	return _spaceSplitter.split(s.strip(), 2);
     }
     
 }

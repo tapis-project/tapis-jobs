@@ -79,6 +79,9 @@ public final class ZipRunCmd
         // START -----------------------------------------------------------------
         // If FORK run in background
         if (JobType.FORK.equals(job.getJobType())) buf.append("nohup ");
+        // ------ Start the command text.
+        var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
+        buf.append(p);
         // The actual app executable from the tapisjob.exec file.
         buf.append("./$(cat ./").append(JOB_ZIP_EXEC_FILE).append(")");
         // ------ Append the application arguments.

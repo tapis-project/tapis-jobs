@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
+import edu.utexas.tacc.tapis.systems.client.gen.model.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +33,11 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisSSH;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
-import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
-import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
-import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
+
+import java.util.ArrayList;
 
 public final class JobExecutionContext
 {
@@ -304,6 +305,14 @@ public final class JobExecutionContext
         // to avoid double faults in FileManager.
         initSystems();
         getJobFileManager().archiveOutputs();
+        // If it is a ZIP job and ZIP_SAVE is not included in the runtime options then
+        //   remove the application archive if it was transferred onto the exec system by Tapis.
+        var runtimeType = getApp().getRuntime();
+        var runtimeOpts = getApp().getRuntimeOptions();
+        runtimeOpts = runtimeOpts != null ? runtimeOpts : new ArrayList<>();
+        if (RuntimeEnum.ZIP.equals(runtimeType) && !runtimeOpts.contains(RuntimeOptionEnum.ZIP_SAVE)) {
+            getJobFileManager().removeZipAppArchive();
+        }
     }
     
     /* ---------------------------------------------------------------------------- */

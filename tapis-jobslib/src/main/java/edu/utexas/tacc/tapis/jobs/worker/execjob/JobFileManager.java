@@ -1,12 +1,15 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -370,14 +373,14 @@ public final class JobFileManager
     }
 
     /* ---------------------------------------------------------------------- */
-    /* extractAppArchive:                                                     */
+    /* extractZipAppArchive:                                                  */
     /* ---------------------------------------------------------------------- */
     /** Extract the application archive file into the exec system directory.
      *
      * @param archiveAbsolutePath location of archive file
      * @throws TapisException on error
      */
-    public void extractAppArchive(String archiveAbsolutePath, boolean archiveIsZip)
+    public void extractZipAppArchive(String archiveAbsolutePath, boolean archiveIsZip)
             throws TapisException
     {
         String host = _jobCtx.getExecutionSystem().getHost();
@@ -404,6 +407,71 @@ public final class JobFileManager
         // If non-zero exit code consider it a failure. Throw non-recoverable exception.
         if (exitStatus != 0) {
             String msg = MsgUtils.getMsg("JOBS_ZIP_EXTRACT_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
+            throw new TapisException(msg);
+        }
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* removeZipAppArchive:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** If containerImage was a URL then the ZIP app archive file was transferred onto the exec host
+     *  using a URL and we should remove it once job is done.
+     *
+     * @throws TapisException on error
+     */
+    public void removeZipAppArchive() throws TapisException
+    {
+        // For convenience and clarity set some variables.
+        String jobUuid = _job.getUuid();
+        String containerImage =  _jobCtx.getApp().getContainerImage();
+        String host = _jobCtx.getExecutionSystem().getHost();
+        containerImage = containerImage == null ? "" : containerImage;
+
+        // If an absolute path nothing to do
+        if (containerImage.startsWith("/")) return;
+
+        String msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_RM", jobUuid, containerImage);
+        _log.debug(msg);
+        // Not a path, so should be a URL in a format supported by Files service. Validate it.
+        Matcher matcher = JobFileInput.URL_PATTERN.matcher(containerImage);
+        if (!matcher.find())
+        {
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", jobUuid, containerImage);
+            throw new JobException(msg);
+        }
+        // Extract and normalize the path in the URL. If no path set then use /
+        String urlPathStr = Optional.ofNullable(matcher.group(3)).orElse("/");
+        // Get file name from the path and set full path to app archive
+        Path urlPath = Path.of(FilenameUtils.normalize(urlPathStr));
+        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        String appArchiveFile = urlPath.getFileName().toString();
+        String appArchivePath = Paths.get(execDir, appArchiveFile).toString();
+        // Do simple validation of app archive file name.
+        if (StringUtils.isBlank(appArchiveFile) || "/".equals(appArchiveFile))
+        {
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, containerImage, appArchiveFile);
+            throw new JobException(msg);
+        }
+
+        // Remove the file
+        // Build the command to delete the archive file
+        String cmd = String.format(ZIP_ARCHIVE_RM_CMD_FMT, execDir, appArchiveFile);
+        // Log the command we are about to issue.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_ARCHIVE_RM_CMD", _job.getUuid(), host, cmd));
+
+        // Run the command to extract the app archive
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
+        int exitStatus = runCmd.execute(cmd);
+        String result  = runCmd.getOutAsTrimmedString();
+
+        // Log exit code and result
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_ARCHIVE_RM_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
+
+        // If non-zero exit code consider it a failure. Throw non-recoverable exception.
+        if (exitStatus != 0) {
+            msg = MsgUtils.getMsg("JOBS_ZIP_ARCHIVE_RM_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
     }
@@ -445,14 +513,14 @@ public final class JobFileManager
     }
 
     /* ---------------------------------------------------------------------- */
-    /* runSetAppExecutable:                                                   */
+    /* runZipSetAppExecutable:                                                */
     /* ---------------------------------------------------------------------- */
     /** Run a script to determine the app executable for ZIP runtime applications.
      *
      * @param setAppExecScript name of script to run
      * @throws TapisException on error
      */
-    public void runSetAppExecutable(String setAppExecScript)
+    public void runZipSetAppExecutable(String setAppExecScript)
             throws TapisException
     {
         String host = _jobCtx.getExecutionSystem().getHost();

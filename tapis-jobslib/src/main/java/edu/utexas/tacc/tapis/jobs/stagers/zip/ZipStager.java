@@ -70,7 +70,8 @@ public class ZipStager
         if (schedulerType == null) {
             scheduler = null;
         } else {
-            scheduler = new SlurmScheduler(jobCtx, _appArchiveFile); // TODO abstract
+            // NOTE: Once other schedulers are supported create the appropriate scheduler
+            scheduler = new SlurmScheduler(jobCtx, _appArchiveFile);
         }
         isBatch = (schedulerType != null);
         // Create and configure the zip run command
@@ -96,7 +97,7 @@ public class ZipStager
         jobFileManager.stageAppAssets(_containerImage, _containerImageIsUrl);
 
         // Run a remote command to extract the application archive file into execSystemExecDir.
-        jobFileManager.extractAppArchive(_appArchivePath, _appArchiveIsZip);
+        jobFileManager.extractZipAppArchive(_appArchivePath, _appArchiveIsZip);
 
         // Now that app archive is unpacked we can determine the app executable
         // Generate and install the script that we will run to determine the executable: tapisjob_setexec.sh
@@ -104,7 +105,7 @@ public class ZipStager
         jobFileManager.installExecFile(setAppExecutableScript, JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT, JobFileManager.RWXRWX);
 
         // Run the script to determine the executable. Creates tapisjob.exec
-        jobFileManager.runSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT);
+        jobFileManager.runZipSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT);
 
         // Create and install the wrapper script: tapisjob.sh
         String wrapperScript = generateWrapperScript();

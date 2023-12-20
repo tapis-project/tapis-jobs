@@ -77,6 +77,7 @@ public final class JobExecutionUtils
     public static final String ZIP_STATUS_CMD_FMT = "cd %s;./%s %s";
     public static final String ZIP_KILL_CMD_FMT = "kill -n 9 %s";
     public static final String ZIP_SETEXEC_CMD_FMT = "cd %s; ./%s";
+    public static final String ZIP_ARCHIVE_RM_CMD_FMT = "cd %s; /bin/rm %s";
     public static final String ZIP_STATUS_RUNNING = "RUNNING";
     public static final String ZIP_STATUS_DONE = "DONE";
     // Regex pattern to parse the expected output of the status command for a ZIP job.

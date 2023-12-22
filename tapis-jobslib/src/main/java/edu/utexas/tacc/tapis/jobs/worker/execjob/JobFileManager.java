@@ -215,7 +215,7 @@ public final class JobFileManager
      *
      * @throws TapisException on error
      */
-    public void stageAppAssets(String containerImage, boolean containerImageIsUrl)
+    public void stageAppAssets(String containerImage, boolean containerImageIsUrl, String appArchiveFile)
             throws TapisException
     {
         // If a url, then start or restart a file transfer and wait for it to finish.
@@ -224,7 +224,7 @@ public final class JobFileManager
             // Create the transfer request. sourceUrl is the containerImage
             String sourceUrl = containerImage;
             // Build destUrl from exec system and path = execSystemExecDir
-            String destUrl = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemExecDir(), "");
+            String destUrl = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemExecDir(), appArchiveFile);
 
             // Determine sharing info for sourceUrl and destinationUrl
             String sharingOwnerSourceUrl = _jobCtx.getJobSharedAppCtx().getSharingContainerImageUrlAppOwner();;

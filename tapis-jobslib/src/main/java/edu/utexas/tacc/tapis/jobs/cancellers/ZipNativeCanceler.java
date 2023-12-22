@@ -64,6 +64,13 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
         }
         catch (Exception e) { /* Ignoring exceptions */}
 
+        // If job not yet launched then no pid so nothing to do. Log message.
+        if (StringUtils.isBlank(_job.getRemoteJobId())) {
+            String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_NO_PID", _job.getUuid(), execSysId, host);
+            _log.debug(msg);
+            return;
+        }
+
         // Get the command text to terminate the app process launched for a ZIP runtime.
         String cmd = String.format(JobExecutionUtils.ZIP_KILL_CMD_FMT, _job.getRemoteJobId());
 
@@ -77,7 +84,7 @@ public class ZipNativeCanceler extends AbstractJobCanceler{
             //  "bash: line 0: kill: (2264066) - No such process"
             // Simply log a message. This is what other runtime types do.
             if (rc != 0) {
-                String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_ERROR1", _job.getUuid(), execSysId, host, result, cmd);
+                String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_ERROR1", _job.getUuid(), execSysId, host, cmd, rc, result);
                 _log.error(msg);
                 return;
             }

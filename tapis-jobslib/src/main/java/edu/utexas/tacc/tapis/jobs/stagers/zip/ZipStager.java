@@ -94,7 +94,7 @@ public class ZipStager
         if (_appArchiveIsZip) jobFileManager.checkForCommand(UNZIP_COMMAND);
 
         // Stage the app archive. This may involve a transfer
-        jobFileManager.stageAppAssets(_containerImage, _containerImageIsUrl);
+        jobFileManager.stageAppAssets(_containerImage, _containerImageIsUrl, _appArchiveFile);
 
         // Run a remote command to extract the application archive file into execSystemExecDir.
         jobFileManager.extractZipAppArchive(_appArchivePath, _appArchiveIsZip);

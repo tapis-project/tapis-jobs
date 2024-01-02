@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,11 +85,11 @@ abstract class AbstractSingularityExecCmd
         // ------ Fill in user-supplied options common to start and run.
         if (StringUtils.isNotBlank(getCapabilities())) {
             buf.append(" --add-caps ");
-            buf.append(getCapabilities());
+            buf.append(conditionalQuote(getCapabilities()));
         }
         if (StringUtils.isNotBlank(getBind())) {
             buf.append(" --bind ");
-            buf.append(getBind());
+            buf.append(conditionalQuote(getBind()));
         }
         if (isCleanEnv()) buf.append(" --cleanenv");
         if (isCompat()) buf.append(" --compat");
@@ -97,11 +99,11 @@ abstract class AbstractSingularityExecCmd
         
         if (StringUtils.isNotBlank(getDns())) {
             buf.append(" --dns ");
-            buf.append(getDns());
+            buf.append(conditionalQuote(getDns()));
         }
         if (StringUtils.isNotBlank(getDropCapabilities())) {
             buf.append(" --drop-caps ");
-            buf.append(getDropCapabilities());
+            buf.append(conditionalQuote(getDropCapabilities()));
         }
         
         if (!fusemountIsNull() && !getFusemount().isEmpty()) 
@@ -109,11 +111,11 @@ abstract class AbstractSingularityExecCmd
         
         if (StringUtils.isNotBlank(getHome())) {
             buf.append(" --home ");
-            buf.append(getHome());
+            buf.append(conditionalQuote(getHome()));
         }
         if (StringUtils.isNotBlank(getHostname())) {
             buf.append(" --hostname ");
-            buf.append(getHostname());
+            buf.append(conditionalQuote(getHostname()));
         }
         
         if (!mountIsNull() && !getMount().isEmpty()) 
@@ -122,7 +124,7 @@ abstract class AbstractSingularityExecCmd
         if (isNet()) buf.append(" --net");
         if (StringUtils.isNotBlank(getNetwork())) {
             buf.append(" --network ");
-            buf.append(getNetwork());
+            buf.append(conditionalQuote(getNetwork()));
         }
         if (!networkArgsIsNull() && !getNetworkArgs().isEmpty()) 
             buf.append(getStringListArgs(" --network-args ", getNetworkArgs()));
@@ -141,7 +143,7 @@ abstract class AbstractSingularityExecCmd
             buf.append(getStringListArgs(" --overlay ", getOverlay()));
         if (StringUtils.isNotBlank(getPemPath())) {
             buf.append(" --pem-path ");
-            buf.append(getPemPath());
+            buf.append(conditionalQuote(getPemPath()));
         }
         if (isRocm()) buf.append(" --rocm");
         
@@ -154,7 +156,7 @@ abstract class AbstractSingularityExecCmd
         if (isUts()) buf.append(" --uts");
         if (StringUtils.isNotBlank(getWorkdir())) {
             buf.append(" --workdir ");
-            buf.append(getWorkdir());
+            buf.append(conditionalQuote(getWorkdir()));
         }
         if (isWritable()) buf.append(" --writable");
         if (isWritableTmpfs()) buf.append(" --writable-tmpfs");
@@ -190,7 +192,8 @@ abstract class AbstractSingularityExecCmd
     /* getStringListArgs:                                                     */
     /* ---------------------------------------------------------------------- */
     /** Create the string of multiple occurrence arguments from a non-empty
-     * list. 
+     * list. The result is a string that concatenates " --arg value" for each
+     * value in the list.
      * 
      * @param arg the multiple occurrence argument padded with spaces on both sides 
      * @param values NON-EMPTY list of values, one per occurrence
@@ -199,14 +202,21 @@ abstract class AbstractSingularityExecCmd
     protected String getStringListArgs(String arg, List<String> values)
     {
         String s = "";
-        for (var v : values) s += arg + v;
+        for (var v : values) s += arg + conditionalQuote(v);
         return s;
     }
     
     /* ---------------------------------------------------------------------- */
     /* getEnvArg:                                                             */
     /* ---------------------------------------------------------------------- */
-    /** Create the string of key=value pairs separated by new line characters.
+    /** Create the string of key=value pairs separated by commas.  It's assumed
+     * that the values are NOT already double quoted.
+     * 
+     * NOTE: We always double quote the value whether or not it contains
+     *       dangerous characters, which is different that most other cases
+     *       of environment variable construction.  Most of the time we use
+     *       TapisUtils.conditionalQuote(), which will only double quote when
+     *       dangerous or space characters are present. 
      * 
      * @param values NON-EMPTY list of pair values, one per occurrence
      * @return the string that contains all assignments

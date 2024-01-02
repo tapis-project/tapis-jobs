@@ -21,6 +21,7 @@ import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobParmSetMarshaller 
 {
@@ -55,9 +56,11 @@ public final class JobParmSetMarshaller
      * @param schedulerOptions the request scheduler option AFTER merging with app
      *                         scheduler options.
      * @param batchSchedulerProfile the tapis-profile specified by the execution system
+     * @throws TapisImplException 
      */
     public void mergeTapisProfileFromSystem(List<JobArgSpec> schedulerOptions,
-                                            String batchSchedulerProfile)
+                                            String batchSchedulerProfile) 
+     throws TapisImplException
     {
         // Maybe there's nothing to merge.
         if (StringUtils.isBlank(batchSchedulerProfile)) return;
@@ -68,6 +71,9 @@ public final class JobParmSetMarshaller
         // we ignore the value defined in the system and immediately return.
         for (var opt : schedulerOptions) 
             if (opt.getArg().startsWith(key)) return;
+        
+        // Validate the exec system's profile before using it.
+        JobsApiUtils.detectControlCharacters("schedulerOptions", "batchSchedulerProfile", batchSchedulerProfile);
         
         // If we get here then a tapis-profile option was not specified in
         // neither the app definition nor the job request, so the one in 
@@ -326,6 +332,12 @@ public final class JobParmSetMarshaller
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
 
+            // Detect control characters and other unwanted characters in the key.
+    		JobsApiUtils.hasDangerousCharacters("envVariables", reqKv.getKey(), reqKv.getKey());
+            
+            // Detect control characters in the value.
+    		JobsApiUtils.detectControlCharacters("envVariables", reqKv.getKey(), value);
+    		
     		// Convert notes objects into json strings and validate. Nulls are 
     		// converted to the empty json object string.
     		reqKv.setNotes(JobsApiUtils.convertInputObjectToString(reqKv.getNotes()));
@@ -1017,6 +1029,13 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* validateScratchList:                                                         */
     /* ---------------------------------------------------------------------------- */
+    /** We do basic validation on each of the 3 list types, but we let SubmitContext
+     * perform control character detection after all macro substitution has occurred.
+     * 
+     * @param scratchList a list of arg specs
+     * @param argType one of the 3 list types processed by this method
+     * @throws TapisImplException on validation error
+     */
     private void validateScratchList(List<ScratchArgSpec> scratchList, ArgTypeEnum argType)
      throws TapisImplException
     {
@@ -1038,6 +1057,13 @@ public final class JobParmSetMarshaller
                     String msg = MsgUtils.getMsg("JOBS_MISSING_ARG", elem._jobArg.getName(), argType);
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
+            
+            // Check that the key doesn't contain prohibited characters.
+            // This check means we don't have to check the argument key
+            // after this for app, container or scheduler arguments. 
+            var parts = TapisUtils.splitIntoKeyValue(elem._jobArg.getArg());
+            if (parts.length > 0)
+            	JobsApiUtils.hasDangerousCharacters(argType.name(), parts[0], parts[0]); 
             
             // Make sure notes field is a well-formed json object and convert it to string.
             // We skip elements without notes.

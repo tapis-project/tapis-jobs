@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -47,11 +49,11 @@ public final class SingularityStartCmd
         
         // ------ Assign image.
         buf.append(" ");
-        buf.append(getImage());
+        buf.append(conditionalQuote(getImage()));
         
         // ------ Assign instance name.
         buf.append(" ");
-        buf.append(getName());
+        buf.append(getName()); // Name is safe since we set it
 
         // ------ Assign application arguments.
         if (!StringUtils.isBlank(getAppArguments()))

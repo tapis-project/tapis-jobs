@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 import java.nio.file.Paths;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -73,7 +75,7 @@ abstract class AbstractJobLauncher
         // directory and runs the wrapper script.  The directory is expressed
         // as an absolute path on the system.
         String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
-        return String.format("cd %s;./%s", execDir, JobExecutionUtils.JOB_WRAPPER_SCRIPT);
+        return String.format("cd %s;./%s", conditionalQuote(execDir), JobExecutionUtils.JOB_WRAPPER_SCRIPT);
     }
 
     /* ---------------------------------------------------------------------- */

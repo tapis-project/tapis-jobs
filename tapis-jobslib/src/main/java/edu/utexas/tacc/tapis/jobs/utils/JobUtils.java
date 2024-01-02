@@ -1,8 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.lang.reflect.Constructor;
+import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +30,7 @@ public final class JobUtils
     
     // Job subscription category wildcard character.
     public static final String EVENT_CATEGORY_WILDCARD = "*";
-    
+
     /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */

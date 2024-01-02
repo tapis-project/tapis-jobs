@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -110,7 +112,7 @@ public final class SingularityRunSlurmLauncher
         // directory and submits the job script.  The directory is expressed
         // as an absolute path on the system.
         String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
-        return String.format("cd %s;sbatch %s", execDir, JobExecutionUtils.JOB_WRAPPER_SCRIPT);
+        return String.format("cd %s;sbatch %s", conditionalQuote(execDir), JobExecutionUtils.JOB_WRAPPER_SCRIPT);
     }
 
     /* ********************************************************************** */

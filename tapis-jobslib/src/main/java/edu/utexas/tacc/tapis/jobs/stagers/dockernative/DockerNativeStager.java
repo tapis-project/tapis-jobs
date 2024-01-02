@@ -162,7 +162,7 @@ public class DockerNativeStager
     /* ---------------------------------------------------------------------- */
     /* setEnvFile:                                                            */
     /* ---------------------------------------------------------------------- */
-    /** Write the environment variables to a fhost file.
+    /** Write the environment variables to a host file.
      * 
      * @param dockerRunCmd the run command to be updated
      * @throws TapisImplException 

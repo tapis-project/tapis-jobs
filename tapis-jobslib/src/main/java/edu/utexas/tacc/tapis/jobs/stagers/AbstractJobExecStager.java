@@ -19,6 +19,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 public abstract class AbstractJobExecStager 
  implements JobExecStager
 {
@@ -140,9 +142,14 @@ public abstract class AbstractJobExecStager
      * them to the caller.  If there are any arguments, the generated 
      * string always begins with a space character.
      * 
+     * NOTE: The method depends on JobParmSetMarshaller.validateScratchList()
+     *       to weed out any application parameter names that contain dangerous
+     *       command line characters. This means that conditional quoting 
+     *       need only be applied to values.
+     * 
      * @return the app argument string or null if there aren't any.
      */
-     protected String concatAppArguments()
+    protected String concatAppArguments()
     {
          // Get the list of user-specified container arguments.
          var parmSet = _job.getParameterSetModel();
@@ -151,7 +158,21 @@ public abstract class AbstractJobExecStager
          
          // Assemble the application's argument string.
          String args = "";
-         for (var opt : opts) args += " " + opt.getArg();
+         for (var opt : opts) {
+        	 // Split the argument into key/value components
+        	 var arg = opt.getArg();
+        	 var parts = TapisUtils.splitIntoKeyValue(arg);
+        	 
+        	 // Check if the value needs to be quoted and 
+        	 // rebuild the arg string if it's been modified.
+        	 if (parts.length == 2) {
+        		 var value = TapisUtils.conditionalQuote(parts[1]);
+        		 if (!value.equals(parts[1])) arg = parts[0] + " " + value;
+        	 }
+        	 
+        	 // Add to the argument string.
+        	 args += " " + arg;
+         }
          return args;
     }
     
@@ -194,7 +215,7 @@ public abstract class AbstractJobExecStager
         	buf.append("export ");
             buf.append(v.getLeft());
             buf.append("=");
-            buf.append(TapisUtils.conditionalQuote(v.getRight()));
+            buf.append(conditionalQuote(v.getRight()));
             buf.append("\n");
         }
         return buf.toString();

@@ -43,6 +43,7 @@ import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils;
@@ -3139,17 +3140,20 @@ public final class JobsDao
 	        obj.setMpiCmd(rs.getString(58));
 	        obj.setCmdPrefix(rs.getString(59));
 	        
-	        // Shared application context.
+	        // Shared application context.  The context is never null.
 	        obj.setSharedAppCtx(rs.getString(60));
 	        Array attribArray = rs.getArray(61);
 	        if (attribArray != null) {
 	            var stringArray = (String[])attribArray.getArray();
                 if (stringArray != null && stringArray.length > 0) { 
-                    var attribsList = new ArrayList<JobSharedAppCtxEnum>(6); // max number of elements
+                    var attribsList = new ArrayList<JobSharedAppCtxEnum>(JobSharedAppCtx.MAX_SHARED_APP_CTX_ATTRIBS);
                     for (String s1 : stringArray) attribsList.add(JobSharedAppCtxEnum.valueOf(s1));
                     obj.setSharedAppCtxAttribs(attribsList);
                 }
 	        }
+	        // Make sure the shared attributes are also never null.
+	        if (obj.getSharedAppCtxAttribs() == null) 
+	        	obj.setSharedAppCtxAttribs(JobSharedAppCtx.EMPTY_APP_CTX_ATTRIBS); // immutable list
 	        
 	        // Notes non-null json value.
 	        obj.setNotes(rs.getString(62));

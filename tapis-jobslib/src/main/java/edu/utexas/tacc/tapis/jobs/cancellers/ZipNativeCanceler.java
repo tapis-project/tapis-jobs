@@ -9,7 +9,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZipNativeCanceler extends AbstractJobCanceler{
+/*
+ * Provide support for cancelling a ZIP job of type FORK.
+ */
+public class ZipNativeCanceler
+ extends AbstractJobCanceler
+{
 
 	/* ********************************************************************** */
     /*                               Constants                                */

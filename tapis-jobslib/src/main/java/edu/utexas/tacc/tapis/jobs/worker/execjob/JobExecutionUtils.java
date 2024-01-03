@@ -4,7 +4,6 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +18,7 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisAppAvailableException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisSystemAvailableException;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 

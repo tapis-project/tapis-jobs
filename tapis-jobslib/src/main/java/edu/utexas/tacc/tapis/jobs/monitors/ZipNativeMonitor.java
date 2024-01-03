@@ -15,6 +15,9 @@ import java.nio.file.Paths;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_STATUS_DONE;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_STATUS_RUNNING;
 
+/*
+ * Provide support for monitoring a ZIP job of type FORK.
+ */
 public class ZipNativeMonitor
  extends AbstractJobMonitor
 {

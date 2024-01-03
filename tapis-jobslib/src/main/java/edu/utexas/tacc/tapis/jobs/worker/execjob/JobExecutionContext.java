@@ -1,12 +1,12 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
-import edu.utexas.tacc.tapis.systems.client.gen.model.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
@@ -33,9 +33,9 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisSSH;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
+import edu.utexas.tacc.tapis.systems.client.gen.model.*;
 
 import java.util.ArrayList;
 

@@ -1744,11 +1744,11 @@ public final class JobsDao
           // Insert into the jobs table first.
           // Create the command using table definition field order.
           String sql = switch (type) {
-              case InputTransferId      -> SqlStatements.UPDATE_INPUT_TRANSFER_ID;
-              case InputCorrelationId   -> SqlStatements.UPDATE_INPUT_CORR_ID;
-              case ArchiveTransferId    -> SqlStatements.UPDATE_ARCHIVE_TRANSFER_ID;
-              case ArchiveCorrelationId -> SqlStatements.UPDATE_ARCHIVE_CORR_ID;
-              case StageAppTransferId -> SqlStatements.UPDATE_STAGEAPP_TRANSFER_ID;
+              case InputTransferId       -> SqlStatements.UPDATE_INPUT_TRANSFER_ID;
+              case InputCorrelationId    -> SqlStatements.UPDATE_INPUT_CORR_ID;
+              case ArchiveTransferId     -> SqlStatements.UPDATE_ARCHIVE_TRANSFER_ID;
+              case ArchiveCorrelationId  -> SqlStatements.UPDATE_ARCHIVE_CORR_ID;
+              case StageAppTransferId    -> SqlStatements.UPDATE_STAGEAPP_TRANSFER_ID;
               case StageAppCorrelationId -> SqlStatements.UPDATE_STAGEAPP_CORR_ID;
           };
           
@@ -1776,10 +1776,10 @@ public final class JobsDao
           // Update the in-memory job with the latest information.
           job.setLastUpdated(now);
           switch (type) {
-              case InputTransferId:      job.setInputTransactionId(value); break;
-              case InputCorrelationId:   job.setInputCorrelationId(value); break;
-              case ArchiveTransferId:    job.setArchiveTransactionId(value); break;
-              case ArchiveCorrelationId: job.setArchiveCorrelationId(value); break;
+              case InputTransferId:       job.setInputTransactionId(value); break;
+              case InputCorrelationId:    job.setInputCorrelationId(value); break;
+              case ArchiveTransferId:     job.setArchiveTransactionId(value); break;
+              case ArchiveCorrelationId:  job.setArchiveCorrelationId(value); break;
               case StageAppTransferId:    job.setStageAppTransactionId(value); break;
               case StageAppCorrelationId: job.setStageAppCorrelationId(value); break;
           }
@@ -2170,10 +2170,10 @@ public final class JobsDao
               ResultSet rs = pstmt.executeQuery();
               if (rs != null && rs.next()) {
                   result = new JobTransferInfo();
-                  result.inputTransactionId   = rs.getString(1);
-                  result.inputCorrelationId   = rs.getString(2);
-                  result.archiveTransactionId = rs.getString(3);
-                  result.archiveCorrelationId = rs.getString(4);
+                  result.inputTransactionId    = rs.getString(1);
+                  result.inputCorrelationId    = rs.getString(2);
+                  result.archiveTransactionId  = rs.getString(3);
+                  result.archiveCorrelationId  = rs.getString(4);
                   result.appAssetTransactionId = rs.getString(5);
                   result.appAssetCorrelationId = rs.getString(6);
               }

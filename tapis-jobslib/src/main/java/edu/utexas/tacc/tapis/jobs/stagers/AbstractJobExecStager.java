@@ -239,8 +239,8 @@ public abstract class AbstractJobExecStager
 
         // We must always fully qualify at least one of the paths.
         var fm = _jobCtx.getJobFileManager();
-
         resolvedConfig.setStdoutFilename(fm.makeAbsExecSysOutputPath(origConfig.getStdoutFilename()));
+        
         // Avoid recalculating the fully qualified path when there's only one log file.
         if (origConfig.canMerge())
             resolvedConfig.setStderrFilename(resolvedConfig.getStdoutFilename());

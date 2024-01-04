@@ -43,10 +43,10 @@ public class ZipStager
     // Zip run command object.
     private final ZipRunCmd _zipRunCmd;
     // Attributes describing the app archive and container image
-    private String _appArchivePath;
-    private String _appArchiveFile;
+    private String  _appArchivePath;
+    private String  _appArchiveFile;
     private boolean _appArchiveIsZip;
-    private String _containerImage;
+    private String  _containerImage;
     private boolean _containerImageIsUrl;
     private final JobScheduler scheduler;
     private final boolean isBatch;

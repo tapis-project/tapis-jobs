@@ -195,11 +195,11 @@ public class ZipStager
             
             # Check for errors. If all OK then ensure that file is executable.
             if [ -z "${APP_EXEC}" ]; then
-              echo "ERROR: Unable to determine application executable"
+              echo "ERROR: Unable to determine application executable."
               echo "ERROR: Please provide tapisjob_app.sh or a manifest specifying tapisjob_executable."
               exit 1
             elif [ ! -f "./${APP_EXEC}" ]; then
-              echo "ERROR: Looking for application executable = $APP_EXEC but file does not exist"
+              echo "ERROR: Looking for application executable = $APP_EXEC but file does not exist."
               exit 2
             else
               chmod +x "./${APP_EXEC}"

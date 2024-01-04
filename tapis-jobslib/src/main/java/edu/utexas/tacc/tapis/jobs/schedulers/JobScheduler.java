@@ -1,8 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.schedulers;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
-import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import org.apache.commons.lang3.StringUtils;
 
 public interface JobScheduler
 {

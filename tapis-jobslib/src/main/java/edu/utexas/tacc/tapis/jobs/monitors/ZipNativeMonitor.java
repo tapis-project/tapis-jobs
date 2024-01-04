@@ -1,19 +1,18 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_STATUS_DONE;
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_STATUS_RUNNING;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.file.Paths;
-
-import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_STATUS_DONE;
-import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_STATUS_RUNNING;
 
 /*
  * Provide support for monitoring a ZIP job of type FORK.

@@ -3121,8 +3121,8 @@ public final class JobsDao
 	        obj.setInputCorrelationId(rs.getString(48));
 	        obj.setArchiveTransactionId(rs.getString(49));
 	        obj.setArchiveCorrelationId(rs.getString(50));
-		obj.setStageAppTransactionId(rs.getString(51));
-		obj.setStageAppCorrelationId(rs.getString(52));
+		    obj.setStageAppTransactionId(rs.getString(51));
+		    obj.setStageAppCorrelationId(rs.getString(52));
 
 	        obj.setTapisQueue(rs.getString(53));
 	        obj.setVisible(rs.getBoolean(54));

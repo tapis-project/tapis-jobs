@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import java.util.ArrayList;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +37,10 @@ import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisSSH;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
-import edu.utexas.tacc.tapis.systems.client.gen.model.*;
-
-import java.util.ArrayList;
+import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 public final class JobExecutionContext
 {

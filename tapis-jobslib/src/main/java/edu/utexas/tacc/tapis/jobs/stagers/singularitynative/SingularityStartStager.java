@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

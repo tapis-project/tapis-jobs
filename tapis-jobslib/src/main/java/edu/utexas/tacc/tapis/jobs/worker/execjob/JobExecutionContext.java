@@ -302,20 +302,13 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* archiveOutputs:                                                        */
     /* ---------------------------------------------------------------------- */
-    public void archiveOutputs() throws TapisImplException, TapisException, TapisClientException
+    public void archiveOutputs() throws TapisException, TapisClientException
     {
         // Load the exec, archive and dtn systems now
         // to avoid double faults in FileManager.
         initSystems();
         getJobFileManager().archiveOutputs();
-        // If it is a ZIP job and ZIP_SAVE is not included in the runtime options then
-        //   remove the application archive if it was transferred onto the exec system by Tapis.
-        var runtimeType = getApp().getRuntime();
-        var runtimeOpts = getApp().getRuntimeOptions();
-        runtimeOpts = runtimeOpts != null ? runtimeOpts : new ArrayList<>();
-        if (RuntimeEnum.ZIP.equals(runtimeType) && !runtimeOpts.contains(RuntimeOptionEnum.ZIP_SAVE)) {
-            getJobFileManager().removeZipAppArchive();
-        }
+        archivePostProcess();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -684,6 +677,22 @@ public final class JobExecutionContext
         JobExecutionUtils.checkAppEnabled(app, _job);
         
         return app;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* archivePostProcess:                                                    */
+    /* ---------------------------------------------------------------------- */
+    private void archivePostProcess() throws TapisException
+    {
+        // Currently, only ZIP runtimes have post-processing.
+        var runtimeType = getApp().getRuntime();
+        if (RuntimeEnum.ZIP.equals(runtimeType)) return;
+
+        // If ZIP_SAVE is not included in the runtime options then remove the
+        // application archive if it was transferred onto the exec system by Tapis.
+        var runtimeOpts = getApp().getRuntimeOptions();
+        if (runtimeOpts != null && !runtimeOpts.contains(RuntimeOptionEnum.ZIP_SAVE))
+            getJobFileManager().removeZipAppArchive();
     }
 
     /* ---------------------------------------------------------------------- */

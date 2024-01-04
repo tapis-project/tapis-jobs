@@ -2175,8 +2175,8 @@ public final class JobsDao
                   result.inputCorrelationId    = rs.getString(2);
                   result.archiveTransactionId  = rs.getString(3);
                   result.archiveCorrelationId  = rs.getString(4);
-                  result.appAssetTransactionId = rs.getString(5);
-                  result.appAssetCorrelationId = rs.getString(6);
+                  result.stageAppTransactionId = rs.getString(5);
+                  result.stageAppCorrelationId = rs.getString(6);
               }
               
               // Close the result and statement.
@@ -3122,15 +3122,14 @@ public final class JobsDao
 	        obj.setInputCorrelationId(rs.getString(48));
 	        obj.setArchiveTransactionId(rs.getString(49));
 	        obj.setArchiveCorrelationId(rs.getString(50));
-		    obj.setStageAppTransactionId(rs.getString(51));
-		    obj.setStageAppCorrelationId(rs.getString(52));
 
-	        obj.setTapisQueue(rs.getString(53));
-	        obj.setVisible(rs.getBoolean(54));
-	        obj.setCreatedby(rs.getString(55));
-	        obj.setCreatedbyTenant(rs.getString(56));
+
+	        obj.setTapisQueue(rs.getString(51));
+	        obj.setVisible(rs.getBoolean(52));
+	        obj.setCreatedby(rs.getString(53));
+	        obj.setCreatedbyTenant(rs.getString(54));
 	        
-	        Array tagsArray = rs.getArray(57);
+	        Array tagsArray = rs.getArray(55);
 	        if (tagsArray != null) {
 	            var stringArray = (String[])tagsArray.getArray();
 	            if (stringArray != null && stringArray.length > 0) { 
@@ -3141,17 +3140,17 @@ public final class JobsDao
 	        }
 	        
 	        // Could be null until databases are migrated.
-	        String jobType = rs.getString(58);
+	        String jobType = rs.getString(56);
 	        if (jobType != null) obj.setJobType(JobType.valueOf(jobType));
 	        
 	        // MPI and command prefix.
-	        obj.setMpi(rs.getBoolean(59));
-	        obj.setMpiCmd(rs.getString(60));
-	        obj.setCmdPrefix(rs.getString(61));
+	        obj.setMpi(rs.getBoolean(57));
+	        obj.setMpiCmd(rs.getString(58));
+	        obj.setCmdPrefix(rs.getString(59));
 	        
 	        // Shared application context.  The context is never null.
-	        obj.setSharedAppCtx(rs.getString(62));
-	        Array attribArray = rs.getArray(63);
+	        obj.setSharedAppCtx(rs.getString(60));
+	        Array attribArray = rs.getArray(61);
 	        if (attribArray != null) {
 	            var stringArray = (String[])attribArray.getArray();
                 if (stringArray != null && stringArray.length > 0) { 
@@ -3165,8 +3164,11 @@ public final class JobsDao
 	        	obj.setSharedAppCtxAttribs(JobSharedAppCtx.EMPTY_APP_CTX_ATTRIBS); // immutable list
 	        
 	        // Notes non-null json value.
-	        obj.setNotes(rs.getString(64));
-	    } 
+	        obj.setNotes(rs.getString(62));
+
+	        obj.setStageAppTransactionId(rs.getString(63));
+	        obj.setStageAppCorrelationId(rs.getString(64));
+	    }
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
 	      throw new TapisJDBCException(msg, e);
@@ -3540,8 +3542,8 @@ public final class JobsDao
         public String inputCorrelationId;
         public String archiveTransactionId;
         public String archiveCorrelationId;
-        public String appAssetTransactionId;
-        public String appAssetCorrelationId;
+        public String stageAppTransactionId;
+        public String stageAppCorrelationId;
     }
 
     /* ********************************************************************** */

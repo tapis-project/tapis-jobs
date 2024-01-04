@@ -675,8 +675,8 @@ public final class JobFileManager
     {
         // Determine if we are restarting a previous request.
         var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
-        String transferId = transferInfo.appAssetTransactionId;
-        String corrId     = transferInfo.appAssetCorrelationId;
+        String transferId = transferInfo.stageAppTransactionId;
+        String corrId     = transferInfo.stageAppCorrelationId;
         // See if the transfer id has been set for this job (this implies the
         // correlation id has also been set).  If so, then the job had already
         // submitted its transfer request, and we are now in recovery processing.

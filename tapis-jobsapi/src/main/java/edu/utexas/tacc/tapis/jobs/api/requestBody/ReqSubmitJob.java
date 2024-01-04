@@ -3,6 +3,8 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
@@ -64,6 +66,20 @@ public class ReqSubmitJob
 	            if (msg != null) return msg;
 	        }
 	    
+	    // Validate the file input source URLs.
+	    return validateFileInputUrls();
+	}
+	
+	private String validateFileInputUrls()
+	{
+		if (fileInputs != null)
+			for (var fin : fileInputs) {
+				var sourceUrl = fin.getSourceUrl();
+				if (StringUtils.isBlank(sourceUrl)) continue;
+				
+			}
+		
+		
 		// Success.
 		return null; 
 	}

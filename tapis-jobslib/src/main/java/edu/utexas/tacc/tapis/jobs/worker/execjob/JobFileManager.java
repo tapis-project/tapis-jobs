@@ -1,11 +1,20 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_ARCHIVE_RM_CMD_FMT;
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_SETEXEC_CMD_FMT;
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_UNTAR_CMD_FMT;
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_UNZIP_CMD_FMT;
+
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,9 +26,9 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
-import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
 import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransfer;
 import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransferElement;
+import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao.TransferValueType;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
@@ -38,8 +47,6 @@ import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-
-import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.*;
 
 public final class JobFileManager 
 {
@@ -219,27 +226,27 @@ public final class JobFileManager
             throws TapisException
     {
         // If a url, then start or restart a file transfer and wait for it to finish.
-        if (containerImageIsUrl)
-        {
-            // Create the transfer request. sourceUrl is the containerImage
-            String sourceUrl = containerImage;
-            // Build destUrl from exec system and path = execSystemExecDir
-            String destUrl = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemExecDir(), appArchiveFile);
+        if (!containerImageIsUrl) return;
+        
+        // If a url, then start or restart a file transfer and wait for it to finish.
+        // Create the transfer request. sourceUrl is the containerImage
+        String sourceUrl = containerImage;
+        // Build destUrl from exec system and path = execSystemExecDir
+        String destUrl = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemExecDir(), appArchiveFile);
 
-            // Determine sharing info for sourceUrl and destinationUrl
-            String sharingOwnerSourceUrl = _jobCtx.getJobSharedAppCtx().getSharingContainerImageUrlAppOwner();;
-            String sharingOwnerDestUrl = _jobCtx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
+        // Determine sharing info for sourceUrl and destinationUrl
+        String sharingOwnerSourceUrl = _jobCtx.getJobSharedAppCtx().getSharingContainerImageUrlAppOwner();;
+        String sharingOwnerDestUrl = _jobCtx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
 
-            var reqTransfer = new ReqTransfer();
-            var task = new ReqTransferElement().sourceURI(sourceUrl).destinationURI(destUrl);
-            task.setOptional(false);
-            task.setSrcSharedCtx(sharingOwnerSourceUrl);
-            task.setDestSharedCtx(sharingOwnerDestUrl);
-            reqTransfer.addElementsItem(task);
-            // Transfer the app archive file. This method will start or restart the transfer and monitor
-            //   it until it completes.
-            stageAppArchiveFile(reqTransfer);
-        }
+        var reqTransfer = new ReqTransfer();
+        var task = new ReqTransferElement().sourceURI(sourceUrl).destinationURI(destUrl);
+        task.setOptional(false);
+        task.setSrcSharedCtx(sharingOwnerSourceUrl);
+        task.setDestSharedCtx(sharingOwnerDestUrl);
+        reqTransfer.addElementsItem(task);
+        // Transfer the app archive file. This method will start or restart the transfer and monitor
+        //   it until it completes.
+        stageAppArchiveFile(reqTransfer);
     }
 
     /* ---------------------------------------------------------------------- */

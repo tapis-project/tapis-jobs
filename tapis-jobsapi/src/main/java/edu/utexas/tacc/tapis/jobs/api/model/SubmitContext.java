@@ -1346,12 +1346,22 @@ public final class SubmitContext
         }
         
         // ---- REQUIRED or OPTIONAL Inputs
-        // Assign the source if necessary.
-        if (StringUtils.isBlank(reqInput.getSourceUrl()))
+        // Assign the source if necessary.  If we use the app's sourceUrl,
+        // then we do the basic format checking that we do for request
+        // file inputs in ReqSubmitJob.
+        boolean usedAppSourceUrl = false;
+        if (StringUtils.isBlank(reqInput.getSourceUrl())) {
+        	usedAppSourceUrl = true;
             reqInput.setSourceUrl(appDef.getSourceUrl());
+        }
         if (StringUtils.isBlank(reqInput.getSourceUrl())) {
             if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
             String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        if (usedAppSourceUrl && !TapisUtils.weaklyValidateUri(reqInput.getSourceUrl())) {
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "mergeFileInput", 
+            	                         "sourceUrl", reqInput.getSourceUrl());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         calculateSrcSharedCtx(reqInput, appDef.getSourceUrl());
@@ -1698,13 +1708,26 @@ public final class SubmitContext
         }
         
         // ---- REQUIRED or OPTIONAL Inputs
-        // Assign the source if necessary.
-        if (reqInput.emptySourceUrls())
+        // Assign the source if necessary.  If we use the app's sourceUrls,
+        // then we do the basic format checking that we do for request
+        // file input arrays in ReqSubmitJob.
+        boolean usedAppSourceUrls = false;
+        if (reqInput.emptySourceUrls()) {
+        	usedAppSourceUrls = true;
             reqInput.setSourceUrls(appDef.getSourceUrls());
+        }
         if (reqInput.emptySourceUrls()) {
             if (inputMode == FileInputModeEnum.OPTIONAL) return false; // ignore input
             String msg = MsgUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        }
+        if (usedAppSourceUrls) {
+        	for (var sourceUrl : reqInput.getSourceUrls()) 
+        		if (!TapisUtils.weaklyValidateUri(sourceUrl)) {
+                    String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "mergeFileInputArray", 
+	                                             "sourceUrl", sourceUrl);
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        		}
         }
         calculateSrcSharedCtxArray(reqInput, appDef.getSourceUrls());
         

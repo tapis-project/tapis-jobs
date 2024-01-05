@@ -3,9 +3,13 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
+import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ReqSubmitJob 
@@ -64,6 +68,49 @@ public class ReqSubmitJob
 	            if (msg != null) return msg;
 	        }
 	    
+	    // Validate the file input source URLs.
+	    var msg = validateFileInputUrls();
+	    if (msg != null) return msg;
+	    
+	    // Validate the file input arrays' source URLs.
+	    return validateFileInputArrayUrls();
+	}
+	
+	private String validateFileInputUrls()
+	{
+		// Individual input file source url validation.  Note that
+		// we skip null or empty source urls since the source url
+		// doesn't have to be filled in on the job submission 
+		// request.
+		if (fileInputs != null)
+			for (var fin : fileInputs) {
+				var sourceUrl = fin.getSourceUrl();
+				if (StringUtils.isBlank(sourceUrl)) continue;
+				if (!TapisUtils.weaklyValidateUri(sourceUrl)) {
+					return MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateFileInputUrls", "sourceUrl", sourceUrl);
+				}
+			}
+		
+		// Success.
+		return null; 
+	}
+	
+	private String validateFileInputArrayUrls() 
+	{
+		// Validation for each source url in the input file array.
+		// Though the source url list can be null or empty, each
+		// source url in the list should be weakly valid.
+		if (fileInputArrays != null) 
+			for (var farray : fileInputArrays) {
+				var sourceUrls = farray.getSourceUrls();
+				if (sourceUrls != null)
+					for (var sourceUrl : farray.getSourceUrls()) {
+						if (!TapisUtils.weaklyValidateUri(sourceUrl)) {
+							return MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "validateFileInputArrayUrls", "sourceUrl", sourceUrl);
+						}
+				}
+			}
+		
 		// Success.
 		return null; 
 	}

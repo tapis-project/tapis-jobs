@@ -43,13 +43,13 @@ public class ZipStager
     // Zip run command object.
     private final ZipRunCmd _zipRunCmd;
     // Attributes describing the app archive and container image
-    private String  _appArchivePath;
-    private String  _appArchiveFile;
-    private boolean _appArchiveIsZip;
+    private String _zipFullPath; // Full path to zip/tar archive file, including filename.
+    private String _zipFileName; // Name of zip/tar archive file.
+    private boolean _hasZipExtension; // True if archive file ends with .zip
     private String  _containerImage;
     private boolean _containerImageIsUrl;
-    private final JobScheduler scheduler;
-    private final boolean isBatch;
+    private final JobScheduler _scheduler;
+    private final boolean _isBatch;
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -64,16 +64,19 @@ public class ZipStager
         super(jobCtx);
         // Set containerImage
         _containerImage = _jobCtx.getApp().getContainerImage();
-        // Configure the appArchive properties
-        configureAppArchiveInfo();
+        // Configure the zip file properties
+        configureZipFileInfo();
         // Set the scheduler properties as needed.
         if (schedulerType == null) {
-            scheduler = null;
-        } else {
+            _scheduler = null;
+        } else if (SchedulerTypeEnum.SLURM.equals(schedulerType)) {
             // NOTE: Once other schedulers are supported create the appropriate scheduler
-            scheduler = new SlurmScheduler(jobCtx, _appArchiveFile);
+            _scheduler = new SlurmScheduler(jobCtx, _zipFileName);
+        } else {
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", schedulerType, "ZipStager");
+            throw new JobException(msg);
         }
-        isBatch = (schedulerType != null);
+        _isBatch = (schedulerType != null);
         // Create and configure the zip run command
         _zipRunCmd = configureRunCmd();
     }
@@ -85,42 +88,50 @@ public class ZipStager
     /* stageJob:                                                              */
     /* ---------------------------------------------------------------------- */
     @Override
+    /*
+     * Stage application assets:
+     *  1. Check that the UNZIP command is available on the exec host.
+     *  2. Stage the zip/tar file. Will be a no-op if containerImage is an absolute path,
+     *     otherwise it will be a file transfer.
+     *  3. Run command to extract the zip/tar file into the execSystemExecDir
+     *  4. Run command to determine the app executable.
+     *  5. Create and install the wrapper script tapisjob.sh
+     *  6. Create and install the environment variable file.
+     */
     public void stageJob() throws TapisException
     {
         // Get the job file manager used to make directories, upload files, transfer files, etc.
         var jobFileManager = _jobCtx.getJobFileManager();
 
-        // If archive file is to be processed using unzip then make sure it is available on the exec host
-        if (_appArchiveIsZip) jobFileManager.checkForCommand(UNZIP_COMMAND);
+        // 1. If archive file is to be processed using unzip then make sure it is available on the exec host
+        if (_hasZipExtension) jobFileManager.checkForCommand(UNZIP_COMMAND);
 
-        // Stage the app archive. This may involve a transfer
-        jobFileManager.stageAppAssets(_containerImage, _containerImageIsUrl, _appArchiveFile);
+        // 2. Stage the app archive. This may involve a transfer
+        jobFileManager.stageAppAssets(_containerImage, _containerImageIsUrl, _zipFileName);
 
-        // Run a remote command to extract the application archive file into execSystemExecDir.
-        jobFileManager.extractZipAppArchive(_appArchivePath, _appArchiveIsZip);
+        // 3. Run a remote command to extract the application archive file into execSystemExecDir.
+        jobFileManager.extractZipArchive(_zipFullPath, _hasZipExtension);
 
-        // Now that app archive is unpacked we can determine the app executable
-        // Generate and install the script that we will run to determine the executable: tapisjob_setexec.sh
+        // Now that app archive is unpacked, we can determine the app executable
+        // 4. Get the relative path to the app executable.
+//TODO        String appExecPath = jobFileManager.getZipAppExecutable();
+
+        // TODO: remove in favor of getZipAppExecutable?
+//        // 4. Get the relative path to the app executable.
+//        // Generate and run a script to determine the executable
         String setAppExecutableScript = generateSetAppExecutableScript();
         jobFileManager.installExecFile(setAppExecutableScript, JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT, JobFileManager.RWXRWX);
+        String appExecPath = jobFileManager.runZipSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT);
 
-        // Run the script to determine the executable. Creates tapisjob.exec
-        jobFileManager.runZipSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT);
+        _zipRunCmd.setAppExecPath(appExecPath);
 
-        // Create and install the wrapper script: tapisjob.sh
+        // 5. Create and install the wrapper script: tapisjob.sh
         String wrapperScript = generateWrapperScript();
         jobFileManager.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
 
-        // Create and install the environment variable definition file: tapisjob.env
+        // 6. Create and install the environment variable definition file: tapisjob.env
         String envVarFile = generateEnvVarFile();
         jobFileManager.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
-
-        // If a FORK job then create script to monitor status
-        if (!isBatch) {
-            // Create and install the script used to monitor job status: tapisjob_status.sh
-            String jobStatusScript = generateJobStatusScript();
-            jobFileManager.installExecFile(jobStatusScript, JobExecutionUtils.JOB_MONITOR_STATUS_SCRIPT, JobFileManager.RWXRWX);
-        }
     }
 
     /* ********************************************************************** */
@@ -137,12 +148,12 @@ public class ZipStager
     protected String generateWrapperScript() throws JobException
     {
         // Run as bash script
-        if (isBatch) initBashBatchScript(); else initBashScript();
+        if (_isBatch) initBashBatchScript(); else initBashScript();
 
         // If a BATCH job add the directives and any module load commands.
-        if (isBatch) {
-            _cmd.append(scheduler.getBatchDirectives());
-            _cmd.append(scheduler.getModuleLoadCalls());
+        if (_isBatch) {
+            _cmd.append(_scheduler.getBatchDirectives());
+            _cmd.append(_scheduler.getModuleLoadCalls());
         }
 
         // Construct the command and append it to get the full command script
@@ -181,9 +192,11 @@ public class ZipStager
         // Use a text block for simplicity and clarity.
         return
             """
-            #!/bin/sh
+            #!/bin/bash
             #
             # Script to determine Tapis application executable for application defined as runtime type of ZIP.
+            # If successful echo result and exit with 0.
+            # If unsuccessful echo a message and exit with 1 or 2.
             #
             # Set a default
             APP_EXEC="tapisjob_app.sh"
@@ -204,67 +217,7 @@ public class ZipStager
             else
               chmod +x "./${APP_EXEC}"
             fi
-            echo "Found application executable = ${APP_EXEC}"
-            echo "${APP_EXEC}" > "./tapisjob.exec"
-            """;
-    }
-
-    /* ---------------------------------------------------------------------- */
-    /* generateJobStatusScript:                                               */
-    /* ---------------------------------------------------------------------- */
-    /** This method generates script to determine the status for a ZIP runtime job
-     *
-     * @return the script content
-     */
-    private String generateJobStatusScript()
-    {
-        // Use a text block for simplicity and clarity.
-        return
-            """
-            #!/bin/sh
-            #
-            # Script to determine status and exit code for a Tapis ZIP runtime job.
-            #
-            # Process ID to monitor must be passed in as the only argument
-            # Example: tapisjob_status.sh 1234
-            # This script returns 0 if it can determine the status and 1 if there is an error
-            # Status is echoed to stdout as either "RUNNING" or "DONE <exit_code>"
-            #
-            USAGE1="PID must be first and only argument."
-            USAGE2="Usage: tapisjob_status.sh <pid>"
-            
-            # File that might contain app exit code
-            APP_EXITCODE_FILE="tapisjob.exitcode"
-            # Regex for checking if input argument is an integer
-            RE_INT='^[0-9]+$'
-            
-            # Process ID to monitor must be passed in as the only argument
-            # Check number of arguments.
-            if [ $# -ne 1 ]; then
-              echo $USAGE1
-              echo $USAGE2
-              exit 1
-            fi
-            PID=$1
-            
-            # Check we have an integer
-            if ! [[ $PID =~ $RE_INT ]] ; then
-              echo $USAGE1
-              echo $USAGE2
-              exit 1
-            fi
-            
-            # Determine if application executable process is running
-            ps -p $PID >/dev/null
-            RET_CODE=$?
-            if [ $RET_CODE -eq 0 ]; then
-              echo "RUNNING"
-              exit 0
-            fi
-            
-            # Process has finished. Determine the exit code.
-            EXIT_CODE=$(if test ! -f ./${APP_EXITCODE_FILE}; then echo "0"; else head -n 1 ./${APP_EXITCODE_FILE}; fi)
-            echo "DONE $EXIT_CODE"
+            echo "${APP_EXEC}"
             exit 0
             """;
     }
@@ -296,19 +249,20 @@ public class ZipStager
     }
 
     /* ---------------------------------------------------------------------- */
-    /* configureAppArchiveInfo:                                               */
+    /* configureZipFileInfo:                                               */
     /* ---------------------------------------------------------------------- */
     /** Process containerImage and set attributes describing the app archive
      *
      * @throws  TapisException on error
      */
-    private void configureAppArchiveInfo()
+    private void configureZipFileInfo()
      throws TapisException
     {
         String msg;
         // For convenience and clarity set some variables.
         String jobUuid = _job.getUuid();
-        _containerImage = _containerImage == null ? "" : _containerImage;
+        // Make sure containerImage is not null.
+        if (_containerImage == null)  _containerImage = "";
         _containerImageIsUrl = false;
         // Determine the location of the app archive using containerImage as either a path or url.
         // If it starts with "/" then it should an absolute path, else it should be a URL
@@ -316,8 +270,8 @@ public class ZipStager
             // Process as an absolute path
             msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "PATH", _containerImage);
             _log.debug(msg);
-            _appArchivePath = FilenameUtils.normalize(_containerImage);
-            _appArchiveFile = Path.of(_appArchivePath).getFileName().toString();
+            _zipFullPath = FilenameUtils.normalize(_containerImage);
+            _zipFileName = Path.of(_zipFullPath).getFileName().toString();
         }
         else {
             msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "URL", _containerImage);
@@ -335,18 +289,18 @@ public class ZipStager
             // Get file name from the path and set full path to app archive
             Path urlPath = Path.of(FilenameUtils.normalize(urlPathStr));
             String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
-            _appArchiveFile = urlPath.getFileName().toString();
-            _appArchivePath = Paths.get(execDir, _appArchiveFile).toString();
+            _zipFileName = urlPath.getFileName().toString();
+            _zipFullPath = Paths.get(execDir, _zipFileName).toString();
         }
 
         // Do simple validation of app archive file name.
-        if (StringUtils.isBlank(_appArchiveFile) || "/".equals(_appArchiveFile))
+        if (StringUtils.isBlank(_zipFileName) || "/".equals(_zipFileName))
         {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, _containerImage, _appArchiveFile);
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, _containerImage, _zipFileName);
             throw new JobException(msg);
         }
 
         // Determine if app archive file is to be process with unzip.
-        _appArchiveIsZip = StringUtils.endsWith(_appArchiveFile, ZIP_FILE_EXTENSION);
+        _hasZipExtension = StringUtils.endsWith(_zipFileName, ZIP_FILE_EXTENSION);
     }
 }

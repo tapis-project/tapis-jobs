@@ -32,6 +32,9 @@ public final class ZipRunCmd
     // The paths in this object are absolute, fully resolved to the job's output directory.
     private LogConfig                 logConfig;
 
+    // Relative path to app executable. Relative to execSystemExecDir.
+    private String                    appExecPath;
+
     // Job info, needed for batch jobs
     private final JobExecutionContext _jobCtx;
 
@@ -54,10 +57,9 @@ public final class ZipRunCmd
     {
         // Generate the command that will launch either tapisjob_app.sh or the executable from the manifest file.
         // tapisjob.env contains all environment variables
-        // tapisjob.exec contains the relative path to the application executable. By default, it is tapisjob_app.sh
         // Example format:
         //   export $(cat ./tapisjob.env | xargs)
-        //   nohup ./$(cat ./tapisjob.exec) <appArgs> > tapisjob.out 2>&1 &
+        //   nohup ./tapisjob_app.sh <appArgs> > tapisjob.out 2>&1 &
         //   pid=$!
         //   echo $pid > ./tapisjob.pid
         
@@ -82,8 +84,8 @@ public final class ZipRunCmd
         // ------ Start the command text.
         var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
         buf.append(p);
-        // The actual app executable from the tapisjob.exec file.
-        buf.append("./$(cat ./").append(JOB_ZIP_EXEC_FILE).append(")");
+        // The actual app executable.
+        buf.append("./").append(appExecPath);
         // ------ Append the application arguments.
         if (!StringUtils.isBlank(appArguments))
             buf.append(appArguments); // begins with space char
@@ -118,19 +120,13 @@ public final class ZipRunCmd
         
         // Write each assignment to the buffer.
         for (var pair : env) {
-            // The key always starts the line.
-            buf.append(pair.getKey());
-            
-            // Are we going to use the short or long form?
-            // The short form is just the name of an environment variable
-            // that will get exported to the environment ONLY IF it exists
-            // in the environment from which the app is run. The long
-            // form is key=value.  Note that we don't escape characters in 
-            // the value.
+            // Always use <key>= to start.
+            buf.append(pair.getKey()).append("=");
+            // Only append the value if it is set.
+            // Note that this differs from docker runtime type support due to the way docker handles exports.
+            // Please see comments in DockerRunCmd.generateEnvVarFileContent()
             var value = pair.getValue();
             if (value != null && !value.isEmpty()) {
-                // The long form forces an explicit assignment.
-                buf.append("=");
                 buf.append(pair.getValue());
             }
             buf.append("\n");
@@ -192,5 +188,13 @@ public final class ZipRunCmd
 
     public void setLogConfig(LogConfig logConfig) {
         this.logConfig = logConfig;
+    }
+
+    public String getAppExecPath() {
+        return appExecPath;
+    }
+
+    public void setAppExecPath(String appExecPath) {
+        this.appExecPath = appExecPath;
     }
 }

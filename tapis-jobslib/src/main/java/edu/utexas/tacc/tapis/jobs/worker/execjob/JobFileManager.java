@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
@@ -387,7 +388,7 @@ public final class JobFileManager
      * @param archiveAbsolutePath location of archive file
      * @throws TapisException on error
      */
-    public void extractZipAppArchive(String archiveAbsolutePath, boolean archiveIsZip)
+    public void extractZipArchive(String archiveAbsolutePath, boolean archiveIsZip)
             throws TapisException
     {
         String host = _jobCtx.getExecutionSystem().getHost();
@@ -519,15 +520,56 @@ public final class JobFileManager
         }
     }
 
+// TODO
+//    /* ---------------------------------------------------------------------- */
+//    /* getZipAppExecutable:                                                   */
+//    /* ---------------------------------------------------------------------- */
+//    /** Run a script to determine the app executable for ZIP runtime applications.
+//     * The relative path to the app executable is returned. The path is relative to execSystemExecDir
+//     *
+//     * @return  relative path to the app executable.
+//     * @throws TapisException on error
+//     */
+//    public String getZipAppExecutable()
+//            throws TapisException
+//    {
+//        String host = _jobCtx.getExecutionSystem().getHost();
+//
+//        // Calculate the file path to where the script will be run.
+//        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+//        // Build the command to run the script.
+//        String cmd = String.format(ZIP_SETEXEC_CMD_FMT, execDir, setAppExecScript);
+//        // Log the command we are about to issue.
+//        if (_log.isDebugEnabled())
+//            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_CMD", _job.getUuid(), host, cmd));
+//
+//        // Run the command to extract the app archive
+//        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
+//        int exitStatus = runCmd.execute(cmd);
+//        String result  = runCmd.getOutAsTrimmedString();
+//
+//        // Log exit code and result
+//        if (_log.isDebugEnabled())
+//            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
+//
+//        // If non-zero exit code consider it a failure. Throw non-recoverable exception.
+//        if (exitStatus != 0) {
+//            String msg = MsgUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
+//            throw new TapisException(msg);
+//        }
+//        return result;
+//    }
+
     /* ---------------------------------------------------------------------- */
     /* runZipSetAppExecutable:                                                */
     /* ---------------------------------------------------------------------- */
     /** Run a script to determine the app executable for ZIP runtime applications.
+     * The relative path to the app executable is returned. The path is relative to execSystemExecDir
      *
      * @param setAppExecScript name of script to run
      * @throws TapisException on error
      */
-    public void runZipSetAppExecutable(String setAppExecScript)
+    public String runZipSetAppExecutable(String setAppExecScript)
             throws TapisException
     {
         String host = _jobCtx.getExecutionSystem().getHost();
@@ -554,6 +596,7 @@ public final class JobFileManager
             String msg = MsgUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
+        return result;
     }
 
     /* ---------------------------------------------------------------------- */
@@ -888,17 +931,29 @@ public final class JobFileManager
         // directories are same and on the same system.
         if (_job.isArchiveSameAsExec()) return;
         
-        // Assign the tasks for the two generated files.
+        // Assign the tasks for the generated files.
+        // Start with the wrapper script, tapisjob.sh
         var task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
         task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
         task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
         tasks.addElementsItem(task);
+        // Add env file tapisjob.env as needed.
         if (_jobCtx.usesEnvFile()) {
             task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
+            task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
+            task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
+            tasks.addElementsItem(task);
+        }
+        // Add the pid file for runtime type of ZIP
+        var runtimeType = _jobCtx.getApp().getRuntime();
+        if (RuntimeEnum.ZIP.equals(runtimeType)) {
+            task = new ReqTransferElement().
+                    sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ZIP_PID_FILE)).
+                    destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ZIP_PID_FILE));
             task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
             task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
             tasks.addElementsItem(task);

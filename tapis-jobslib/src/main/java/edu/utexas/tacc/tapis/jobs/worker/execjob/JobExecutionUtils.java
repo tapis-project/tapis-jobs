@@ -35,10 +35,9 @@ public final class JobExecutionUtils
     public static final String JOB_ENV_FILE              = "tapisjob.env";
     public static final String JOB_OUTPUT_REDIRECT_FILE  = "tapisjob.out";
     public static final String JOB_OUTPUT_EXITCODE_FILE  = "tapisjob.exitcode";
+    // TODO be sure to archive any files generated - pid file and possibly setexec.sh file
     public static final String JOB_ZIP_PID_FILE          = "tapisjob.pid";
-    public static final String JOB_ZIP_EXEC_FILE         = "tapisjob.exec";
     public static final String JOB_ZIP_SET_EXEC_SCRIPT   = "tapisjob_setexec.sh";
-    public static final String JOB_MONITOR_STATUS_SCRIPT = "tapisjob_status.sh";
 
     // ----------------------------- Docker Section -----------------------------
     // Docker command templates.
@@ -74,16 +73,10 @@ public final class JobExecutionUtils
     // ----------------------------- Zip Section -----------------------------
     public static final String ZIP_UNZIP_CMD_FMT = "cd %s; unzip %s";
     public static final String ZIP_UNTAR_CMD_FMT = "cd %s; tar -xf %s";
-    public static final String ZIP_STATUS_CMD_FMT = "cd %s;./%s %s";
+    public static final String ZIP_STATUS_CMD_FMT = "ps -o pid,ppid,stat,euser,cmd -p %s";
     public static final String ZIP_KILL_CMD_FMT = "kill -n 9 %s";
     public static final String ZIP_SETEXEC_CMD_FMT = "cd %s; ./%s";
     public static final String ZIP_ARCHIVE_RM_CMD_FMT = "cd %s; /bin/rm %s";
-    public static final String ZIP_STATUS_RUNNING = "RUNNING";
-    public static final String ZIP_STATUS_DONE = "DONE";
-    // Regex pattern to parse the expected output of the status command for a ZIP job.
-    // Output is expected to be in the format "DONE <exit_code>"
-    // NOTE that we do not assume the exit code is numeric. Let the parsing routine handle that for better error msg.
-    public static final Pattern ZIP_STATUS_RESULT_PATTERN = Pattern.compile("^DONE (.*)[\\n]*$");
 
 
     /* ********************************************************************** */
@@ -110,8 +103,8 @@ public final class JobExecutionUtils
     /* ---------------------------------------------------------------------- */
     /* getZipStatusCommand:                                                   */
     /* ---------------------------------------------------------------------- */
-    public static String getZipStatusCommand(String execDir, String processPid)
-    {return String.format(ZIP_STATUS_CMD_FMT, execDir, JOB_MONITOR_STATUS_SCRIPT, processPid);}
+    public static String getZipStatusCommand(String processPid)
+    {return String.format(ZIP_STATUS_CMD_FMT, processPid);}
 
     /* ---------------------------------------------------------------------- */
     /* getExecDir:                                                            */

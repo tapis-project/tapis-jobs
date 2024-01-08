@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +11,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisSSHChannelException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
@@ -92,6 +94,52 @@ abstract class AbstractJobMonitor
     /* ********************************************************************** */
     /*                          Protected Methods                             */
     /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* readExitCodeFile:                                                      */
+    /* ---------------------------------------------------------------------- */
+    protected String readExitCodeFile(TapisRunCommand runCmd)
+    {
+        // Initialize output to default to no error.
+        String exitcode = SUCCESS_RC;
+
+        // Create the command that returns the exit code contents if the
+        // file exists in the job's output directory.  There's not much we
+        // can do if we encounter an error here.
+        String cmd = null;
+        try {
+            var fm = _jobCtx.getJobFileManager();
+            var filepath = fm.makeAbsExecSysOutputPath(JobExecutionUtils.JOB_OUTPUT_EXITCODE_FILE);
+            cmd = "cat " + filepath;
+        } catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            return exitcode;
+        }
+
+        // Issue the command.
+        String result = null;
+        try {
+            int rc = runCmd.execute(cmd);
+            runCmd.logNonZeroExitCode();
+            result = runCmd.getOutAsString();
+        }
+        catch (Exception e) {
+            _log.error(e.getMessage(), e);
+            return exitcode;
+        }
+
+        // See if we even found the file.
+        if (StringUtils.isBlank(result)) return exitcode;
+        result = result.trim();
+        if (result.isEmpty() || result.startsWith("cat") || result.contains("No such"))
+            return exitcode;
+
+        // We assign exitcode as long as the result is an integer.
+        try {Integer.valueOf(result); exitcode = result;}
+        catch (Exception e) {}
+
+        return exitcode;
+    }
+
     /* ---------------------------------------------------------------------- */
     /* allowEmptyResult:                                                      */
     /* ---------------------------------------------------------------------- */

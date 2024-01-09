@@ -119,6 +119,10 @@ public class ZipStager
         jobFileManager.installExecFile(setAppExecutableScript, JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT, JobFileManager.RWXRWX);
         String appExecPath = jobFileManager.runZipSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT);
         _zipRunCmd.setAppExecPath(appExecPath);
+        // Since the set_exec script is an unchanging script, no need to keep it around.
+        // Best effort to remove it. Ignore exceptions
+        try { jobFileManager.removeFileFromExecDir(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT); }
+        catch (Exception e) { /* ignore exceptions */ }
 
         // 5. Create and install the wrapper script: tapisjob.sh
         String wrapperScript = generateWrapperScript();

@@ -31,9 +31,9 @@ public class SqlStatements
         	+ "remote_checks_failed, remote_last_status_check, "
         	+ "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
         	+ "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
-        	+ "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes"
-        	+ "stageapp_transaction_id, stageapp_correlation_id, "
-                + " FROM jobs ORDER BY id";
+        	+ "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes, "
+        	+ "stageapp_transaction_id, stageapp_correlation_id"
+            + " FROM jobs ORDER BY id";
     
     public static final String SELECT_JOBS_BY_UUID =
         "SELECT id, name, owner, tenant, description, status, "
@@ -50,8 +50,8 @@ public class SqlStatements
             + "remote_checks_failed, remote_last_status_check, "
             + "input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id, "
             + "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
-            + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes"
-            + "stageapp_transaction_id, stageapp_correlation_id, "
+            + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes,"
+            + "stageapp_transaction_id, stageapp_correlation_id"
             + " FROM jobs"
             + " WHERE uuid = ?";
         
@@ -162,14 +162,14 @@ public class SqlStatements
         "UPDATE jobs SET last_updated = ?, archive_correlation_id = ? WHERE id = ? AND tenant = ?";
 
     public static final String UPDATE_STAGEAPP_TRANSFER_ID =
-            "UPDATE jobs SET last_updated = ?, stageapp__transaction_id = ? WHERE id = ? AND tenant = ?";
+            "UPDATE jobs SET last_updated = ?, stageapp_transaction_id = ? WHERE id = ? AND tenant = ?";
 
     public static final String UPDATE_STAGEAPP_CORR_ID =
-            "UPDATE jobs SET last_updated = ?, stageapp__correlation_id = ? WHERE id = ? AND tenant = ?";
+            "UPDATE jobs SET last_updated = ?, stageapp_correlation_id = ? WHERE id = ? AND tenant = ?";
 
     public static final String SELECT_JOB_TRANSFER_INFO =
         "SELECT input_transaction_id, input_correlation_id, archive_transaction_id, archive_correlation_id,"
-        + " stageapp__transaction_id, stageapp__correlation_id"
+        + " stageapp_transaction_id, stageapp_correlation_id"
         + " FROM jobs WHERE uuid = ?";
     
     public static final String UPDATE_SUCCESS_STATUS_CHECKS =

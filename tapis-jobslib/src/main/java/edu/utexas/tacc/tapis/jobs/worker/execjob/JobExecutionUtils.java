@@ -77,7 +77,7 @@ public final class JobExecutionUtils
     public static final String ZIP_STATUS_CMD_FMT = "ps -o pid,ppid,stat,euser,cmd -p %s";
     public static final String ZIP_KILL_CMD_FMT = "kill -n 9 %s";
     public static final String ZIP_SETEXEC_CMD_FMT = "cd %s; ./%s";
-    public static final String ZIP_ARCHIVE_RM_CMD_FMT = "cd %s; /bin/rm %s";
+    public static final String ZIP_FILE_RM_FROM_EXECDIR_FMT = "cd %s; /bin/rm %s";
 
 
     /* ********************************************************************** */

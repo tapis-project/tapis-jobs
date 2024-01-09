@@ -1,6 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
-import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_ARCHIVE_RM_CMD_FMT;
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_FILE_RM_FROM_EXECDIR_FMT;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_SETEXEC_CMD_FMT;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_UNTAR_CMD_FMT;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_UNZIP_CMD_FMT;
@@ -23,7 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
@@ -432,12 +431,12 @@ public final class JobFileManager
         // For convenience and clarity set some variables.
         String jobUuid = _job.getUuid();
         String containerImage =  _jobCtx.getApp().getContainerImage();
-        String host = _jobCtx.getExecutionSystem().getHost();
         containerImage = containerImage == null ? "" : containerImage;
 
         // If an absolute path nothing to do
         if (containerImage.startsWith("/")) return;
 
+        // Figure out the name of the zip file.
         String msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_RM", jobUuid, containerImage);
         _log.debug(msg);
         // Not a path, so should be a URL in a format supported by Files service. Validate it.
@@ -451,37 +450,16 @@ public final class JobFileManager
         String urlPathStr = Optional.ofNullable(matcher.group(3)).orElse("/");
         // Get file name from the path and set full path to app archive
         Path urlPath = Path.of(FilenameUtils.normalize(urlPathStr));
-        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
-        String appArchiveFile = urlPath.getFileName().toString();
-        String appArchivePath = Paths.get(execDir, appArchiveFile).toString();
+        String zipFileName = urlPath.getFileName().toString();
         // Do simple validation of app archive file name.
-        if (StringUtils.isBlank(appArchiveFile) || "/".equals(appArchiveFile))
+        if (StringUtils.isBlank(zipFileName) || "/".equals(zipFileName))
         {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, containerImage, appArchiveFile);
+            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, containerImage, zipFileName);
             throw new JobException(msg);
         }
 
         // Remove the file
-        // Build the command to delete the archive file
-        String cmd = String.format(ZIP_ARCHIVE_RM_CMD_FMT, execDir, appArchiveFile);
-        // Log the command we are about to issue.
-        if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_ARCHIVE_RM_CMD", _job.getUuid(), host, cmd));
-
-        // Run the command to extract the app archive
-        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
-        int exitStatus = runCmd.execute(cmd);
-        String result  = runCmd.getOutAsTrimmedString();
-
-        // Log exit code and result
-        if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_ARCHIVE_RM_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
-
-        // If non-zero exit code consider it a failure. Throw non-recoverable exception.
-        if (exitStatus != 0) {
-            msg = MsgUtils.getMsg("JOBS_ZIP_ARCHIVE_RM_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
-            throw new TapisException(msg);
-        }
+        removeFileFromExecDir(zipFileName);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -557,6 +535,43 @@ public final class JobFileManager
             throw new TapisException(msg);
         }
         return result;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* removeFileFromExecDir:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Remove a file from execSystemExecDir
+     *
+     * @param fileName name of file to remove
+     * @throws TapisException on error
+     */
+    public void removeFileFromExecDir(String fileName)
+            throws TapisException
+    {
+        String host = _jobCtx.getExecutionSystem().getHost();
+
+        // Calculate the file path
+        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        // Build the command to delete the archive file
+        String cmd = String.format(ZIP_FILE_RM_FROM_EXECDIR_FMT, execDir, fileName);
+        // Log the command we are about to issue.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_FILE_RM_CMD", _job.getUuid(), host, cmd));
+
+        // Run the command to remove the file
+        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
+        int exitStatus = runCmd.execute(cmd);
+        String result  = runCmd.getOutAsTrimmedString();
+
+        // Log exit code and result
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_FILE_RM_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
+
+        // If non-zero exit code consider it a failure. Throw an exception.
+        if (exitStatus != 0) {
+            String msg = MsgUtils.getMsg("JOBS_ZIP_FILE_RM_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
+            throw new TapisException(msg);
+        }
     }
 
     /* ---------------------------------------------------------------------- */
@@ -902,20 +917,6 @@ public final class JobFileManager
             task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
-            tasks.addElementsItem(task);
-        }
-        // Additional files for runtime of type ZIP: tapisjob.pid, tapisjob_setexec.sh
-        var runtimeType = _jobCtx.getApp().getRuntime();
-        if (RuntimeEnum.ZIP.equals(runtimeType)) {
-            task = new ReqTransferElement().
-                    sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ZIP_PID_FILE)).
-                    destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ZIP_PID_FILE));
-            task.setOptional(true);
-            tasks.addElementsItem(task);
-            task = new ReqTransferElement().
-                    sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT)).
-                    destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT));
-            task.setOptional(true);
             tasks.addElementsItem(task);
         }
         // Update share info for each task

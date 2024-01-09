@@ -35,8 +35,9 @@ public final class JobExecutionUtils
     public static final String JOB_ENV_FILE              = "tapisjob.env";
     public static final String JOB_OUTPUT_REDIRECT_FILE  = "tapisjob.out";
     public static final String JOB_OUTPUT_EXITCODE_FILE  = "tapisjob.exitcode";
-    // TODO be sure to archive any files generated - pid file and possibly setexec.sh file
     public static final String JOB_ZIP_PID_FILE          = "tapisjob.pid";
+    public static final String JOB_ZIP_APP_EXEC_DEFAULT  = "tapisjob_app.sh";
+    public static final String JOB_ZIP_APP_MANIFEST      = "tapisjob.manifest";
     public static final String JOB_ZIP_SET_EXEC_SCRIPT   = "tapisjob_setexec.sh";
 
     // ----------------------------- Docker Section -----------------------------

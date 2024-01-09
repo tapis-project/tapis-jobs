@@ -520,46 +520,6 @@ public final class JobFileManager
         }
     }
 
-// TODO
-//    /* ---------------------------------------------------------------------- */
-//    /* getZipAppExecutable:                                                   */
-//    /* ---------------------------------------------------------------------- */
-//    /** Run a script to determine the app executable for ZIP runtime applications.
-//     * The relative path to the app executable is returned. The path is relative to execSystemExecDir
-//     *
-//     * @return  relative path to the app executable.
-//     * @throws TapisException on error
-//     */
-//    public String getZipAppExecutable()
-//            throws TapisException
-//    {
-//        String host = _jobCtx.getExecutionSystem().getHost();
-//
-//        // Calculate the file path to where the script will be run.
-//        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
-//        // Build the command to run the script.
-//        String cmd = String.format(ZIP_SETEXEC_CMD_FMT, execDir, setAppExecScript);
-//        // Log the command we are about to issue.
-//        if (_log.isDebugEnabled())
-//            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_CMD", _job.getUuid(), host, cmd));
-//
-//        // Run the command to extract the app archive
-//        var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
-//        int exitStatus = runCmd.execute(cmd);
-//        String result  = runCmd.getOutAsTrimmedString();
-//
-//        // Log exit code and result
-//        if (_log.isDebugEnabled())
-//            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
-//
-//        // If non-zero exit code consider it a failure. Throw non-recoverable exception.
-//        if (exitStatus != 0) {
-//            String msg = MsgUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
-//            throw new TapisException(msg);
-//        }
-//        return result;
-//    }
-
     /* ---------------------------------------------------------------------- */
     /* runZipSetAppExecutable:                                                */
     /* ---------------------------------------------------------------------- */
@@ -936,27 +896,32 @@ public final class JobFileManager
         var task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
-        task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
-        task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
         tasks.addElementsItem(task);
         // Add env file tapisjob.env as needed.
         if (_jobCtx.usesEnvFile()) {
             task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
-            task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
-            task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
             tasks.addElementsItem(task);
         }
-        // Add the pid file for runtime type of ZIP
+        // Additional files for runtime of type ZIP: tapisjob.pid, tapisjob_setexec.sh
         var runtimeType = _jobCtx.getApp().getRuntime();
         if (RuntimeEnum.ZIP.equals(runtimeType)) {
             task = new ReqTransferElement().
                     sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ZIP_PID_FILE)).
                     destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ZIP_PID_FILE));
-            task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
-            task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
+            task.setOptional(true);
             tasks.addElementsItem(task);
+            task = new ReqTransferElement().
+                    sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT)).
+                    destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT));
+            task.setOptional(true);
+            tasks.addElementsItem(task);
+        }
+        // Update share info for each task
+        for (ReqTransferElement e : tasks.getElements()) {
+            e.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
+            e.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
         }
     }
     

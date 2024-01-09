@@ -96,7 +96,7 @@ public class ZipStager
      *  3. Run command to extract the zip/tar file into the execSystemExecDir
      *  4. Run command to determine the app executable.
      *  5. Create and install the wrapper script tapisjob.sh
-     *  6. Create and install the environment variable file.
+     *  6. Create and install the environment variable file tapisjob.env
      */
     public void stageJob() throws TapisException
     {
@@ -114,15 +114,10 @@ public class ZipStager
 
         // Now that app archive is unpacked, we can determine the app executable
         // 4. Get the relative path to the app executable.
-//TODO        String appExecPath = jobFileManager.getZipAppExecutable();
-
-        // TODO: remove in favor of getZipAppExecutable?
-//        // 4. Get the relative path to the app executable.
-//        // Generate and run a script to determine the executable
+        // Generate and run a script to determine the executable
         String setAppExecutableScript = generateSetAppExecutableScript();
         jobFileManager.installExecFile(setAppExecutableScript, JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT, JobFileManager.RWXRWX);
         String appExecPath = jobFileManager.runZipSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT);
-
         _zipRunCmd.setAppExecPath(appExecPath);
 
         // 5. Create and install the wrapper script: tapisjob.sh

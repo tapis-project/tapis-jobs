@@ -14,6 +14,7 @@ https://tapis-project.github.io/live-docs
 ### New features:
 1. Support for ZIP runtime.
 2. Improve defense against command injection in job submission.
+3. Allow multiple, separate --bind options to be specified in singularity containerArgs.
 
 ### Bug fixes:
 1. Fix unrecognized sharing when application-defined system is overridden.

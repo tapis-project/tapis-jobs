@@ -20,7 +20,7 @@ abstract class AbstractSingularityExecCmd
     // List fields that we always populate are initialized on construction,
     // all others are initialized on demand.
     private String                    capabilities; // comma separated list
-    private String                    bind;         // comma separated list of src[:dest[:opts]]
+    private List<String>              bind;         // bind specs where each one is a comma separated list of src[:dest[:opts]]
     private boolean                   cleanEnv;     // clean environment before running container
     private boolean                   compat;       // apply settings for increased OCI/Docker compatibility. Infers --containall, --no-init, --no-umask, --writable-tmpfs.
     private boolean                   contain;      // use minimal /dev and empty other directories
@@ -87,10 +87,10 @@ abstract class AbstractSingularityExecCmd
             buf.append(" --add-caps ");
             buf.append(conditionalQuote(getCapabilities()));
         }
-        if (StringUtils.isNotBlank(getBind())) {
-            buf.append(" --bind ");
-            buf.append(conditionalQuote(getBind()));
-        }
+        
+        if (!bindIsNull() && !getBind().isEmpty()) 
+            buf.append(getStringListArgs(" --bind ", getBind()));
+
         if (isCleanEnv()) buf.append(" --cleanenv");
         if (isCompat()) buf.append(" --compat");
         if (isContain()) buf.append(" --contain");
@@ -243,6 +243,7 @@ abstract class AbstractSingularityExecCmd
     /*                               Accessors                                */
     /* ********************************************************************** */
     // List null checks.
+    public boolean bindIsNull()        {return bind == null;}
     public boolean envIsNull()         {return env == null;}
     public boolean fusemountIsNull()   {return fusemount == null;}
     public boolean mountIsNull()       {return mount == null;}
@@ -258,10 +259,11 @@ abstract class AbstractSingularityExecCmd
     public void setCapabilities(String capabilities) {
         this.capabilities = capabilities;
     }
-    public String getBind() {
+    public List<String> getBind() {
+    	if (bind == null) bind = new ArrayList<String>();
         return bind;
     }
-    public void setBind(String bind) {
+    public void setBind(List<String> bind) {
         this.bind = bind;
     }
     public boolean isCleanEnv() {

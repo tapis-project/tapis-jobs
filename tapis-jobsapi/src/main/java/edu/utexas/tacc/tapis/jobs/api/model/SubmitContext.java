@@ -2130,7 +2130,7 @@ public final class SubmitContext
         // Special case where the job name may reference one or more ground macros.  Any of the previously
         // assigned macros can be referenced, subsequent macro assignments are not available.
         _submitReq.setName(replaceMacros(_submitReq.getName()));
-        JobsApiUtils.detectControlCharacters("", "jobName", _submitReq.getName());;
+        JobsApiUtils.detectControlCharacters("", "jobName", _submitReq.getName());
         _macros.put(JobTemplateVariables.JobName.name(), _submitReq.getName());
         
         // ---------- Derived, required

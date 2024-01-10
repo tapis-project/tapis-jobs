@@ -69,7 +69,8 @@ public abstract class AbstractSingularityStager
                 break;
             case "--bind":
             case "-B":
-                singularityCmd.setBind(value);
+                isAssigned("singularity", option, value);
+                singularityCmd.getBind().add(value);
                 break;
             case "--cleanenv":
             case "-e":

@@ -686,7 +686,7 @@ public final class JobExecutionContext
     {
         // Currently, only ZIP runtimes have post-processing.
         var runtimeType = getApp().getRuntime();
-        if (!RuntimeEnum.ZIP.equals(runtimeType)) return;
+        if (runtimeType != RuntimeEnum.ZIP) return;
 
         // If ZIP_SAVE is not included in the runtime options then remove the
         // application archive if it was transferred onto the exec system by Tapis.

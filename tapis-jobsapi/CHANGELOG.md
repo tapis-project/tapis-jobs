@@ -9,7 +9,7 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.5.? - 2023-??-??
+## 1.5.11 - 2024-01-10
 
 ### New features:
 1. Support for ZIP runtime.

@@ -11,7 +11,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
-import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.*;
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.JOB_ZIP_PID_FILE;
+import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.JOB_ENV_FILE;
 
 /** This class represents the bash compatible shell command used to launch an application
  * defined using runtime type of ZIP.

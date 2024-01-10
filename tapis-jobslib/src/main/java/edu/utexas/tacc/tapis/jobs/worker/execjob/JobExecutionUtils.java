@@ -79,7 +79,6 @@ public final class JobExecutionUtils
     public static final String ZIP_SETEXEC_CMD_FMT = "cd %s; ./%s";
     public static final String ZIP_FILE_RM_FROM_EXECDIR_FMT = "cd %s; /bin/rm %s";
 
-
     /* ********************************************************************** */
     /*                            Public Methods                              */
     /* ********************************************************************** */

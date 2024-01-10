@@ -68,16 +68,16 @@ abstract class AbstractJobLauncher
     /* ---------------------------------------------------------------------- */
     /* getLaunchCommand:                                                      */
     /* ---------------------------------------------------------------------- */
-    protected String getLaunchCommand()
+    protected String getLaunchCommand() 
      throws TapisException
     {
-        // Create the command that changes the directory to the execution
+        // Create the command that changes the directory to the execution 
         // directory and runs the wrapper script.  The directory is expressed
         // as an absolute path on the system.
         String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
         return String.format("cd %s;./%s", conditionalQuote(execDir), JobExecutionUtils.JOB_WRAPPER_SCRIPT);
     }
-
+    
     /* ---------------------------------------------------------------------- */
     /* throttleLaunch:                                                        */
     /* ---------------------------------------------------------------------- */

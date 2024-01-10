@@ -3123,7 +3123,6 @@ public final class JobsDao
 	        obj.setArchiveTransactionId(rs.getString(49));
 	        obj.setArchiveCorrelationId(rs.getString(50));
 
-
 	        obj.setTapisQueue(rs.getString(51));
 	        obj.setVisible(rs.getBoolean(52));
 	        obj.setCreatedby(rs.getString(53));
@@ -3168,7 +3167,7 @@ public final class JobsDao
 
 	        obj.setStageAppTransactionId(rs.getString(63));
 	        obj.setStageAppCorrelationId(rs.getString(64));
-	    }
+	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
 	      throw new TapisJDBCException(msg, e);

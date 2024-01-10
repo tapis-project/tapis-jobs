@@ -13,9 +13,11 @@ https://tapis-project.github.io/live-docs
 
 ### New features:
 1. Support for ZIP runtime.
+2. Improve defense against command injection in job submission.
 
 ### Bug fixes:
-1. Fix 
+1. Fix unrecognized sharing when application-defined system is overridden.
+2. Allow spaces and reserved characters in path names expressed as URLs.  
 
 -----------------------
 ## 1.5.10 - 2023-11-20

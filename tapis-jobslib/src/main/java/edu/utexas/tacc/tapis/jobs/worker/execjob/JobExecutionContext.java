@@ -685,8 +685,6 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /** Best effort attempt to conditionally delete the archive file from 
      * the execution system when running ZIP jobs.
-     * 
-     * @throws TapisException
      */
     private void archivePostProcess()
     {

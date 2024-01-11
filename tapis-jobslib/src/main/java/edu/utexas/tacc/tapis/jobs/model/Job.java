@@ -63,6 +63,7 @@ public final class Job
     
     // Tapis-specific scheduler option.
     public static final String TAPIS_PROFILE_KEY = "--tapis-profile";
+    public static final String TAPIS_ZIP_SAVE    = "--tapis-zip-save";
 	
 	// Fields
     private int      			id;

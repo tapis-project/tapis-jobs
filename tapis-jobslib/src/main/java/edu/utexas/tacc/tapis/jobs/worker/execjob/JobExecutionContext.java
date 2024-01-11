@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
+import edu.utexas.tacc.tapis.apps.client.gen.model.JobTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
@@ -682,17 +683,34 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* archivePostProcess:                                                    */
     /* ---------------------------------------------------------------------- */
-    private void archivePostProcess() throws TapisException
+    /** Best effort attempt to conditionally delete the archive file from 
+     * the execution system when running ZIP jobs.
+     * 
+     * @throws TapisException
+     */
+    private void archivePostProcess()
     {
-        // Currently, only ZIP runtimes have post-processing.
-        var runtimeType = getApp().getRuntime();
-        if (runtimeType != RuntimeEnum.ZIP) return;
-
-        // If ZIP_SAVE is not included in the runtime options then remove the
-        // application archive if it was transferred onto the exec system by Tapis.
-        var runtimeOpts = getApp().getRuntimeOptions();
-        if (runtimeOpts != null && !runtimeOpts.contains(RuntimeOptionEnum.ZIP_SAVE))
-            getJobFileManager().removeZipAppArchive();
+    	try {
+    		// Currently, only ZIP runtimes have post-processing.
+    		if (getApp().getRuntime() != RuntimeEnum.ZIP) return;
+        
+    		// See if this job downloaded its archive file.
+    		if (!TapisUtils.weaklyValidateUri(getApp().getContainerImage())) return;
+        
+    		// See if the user requested us not to delete the downloaded archive file.
+    		boolean zipSave = false;
+    		var containerArgs = _job.getParameterSetModel().getContainerArgs();
+    		for (var arg : containerArgs)
+    			if (Job.TAPIS_ZIP_SAVE.equals(arg.getArg().strip())) {
+    				zipSave = true;
+    				break;
+    			}
+    		
+    		// Delete the archive by default.
+    		if (!zipSave) getJobFileManager().removeZipAppArchive();
+    	}
+    	// Not all called methods log their errors so we do here.
+    	catch (Exception e) {_log.error(e.getMessage(), e);}
     }
 
     /* ---------------------------------------------------------------------- */

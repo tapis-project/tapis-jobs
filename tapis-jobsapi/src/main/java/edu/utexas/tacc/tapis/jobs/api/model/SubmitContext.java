@@ -482,6 +482,7 @@ public final class SubmitContext
         validateArchiveFilters(reqParmSet.getArchiveFilter().getIncludes(), "includes");
         validateArchiveFilters(reqParmSet.getArchiveFilter().getExcludes(), "excludes");
         validateSchedulerProfile(reqParmSet.getSchedulerOptions());
+        validateZipContainerArgs(reqParmSet.getContainerArgs());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2667,6 +2668,43 @@ public final class SubmitContext
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
             _log.info(MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_FOUND", profileName, _submitReq.getTenant()));
+        }
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* validateZipContainerArgs:                                                    */
+    /* ---------------------------------------------------------------------------- */
+    /** Check that the TAPIS_ZIP_SAVE pseudo container argument is only used on 
+     * ZIP jobs.
+     * 
+     * @param containerArgs the complete, merged container arguments
+     * @throws TapisImplException if zip save is used incorrectly
+     */
+    private void validateZipContainerArgs(List<JobArgSpec> containerArgs) 
+     throws TapisImplException
+    {
+        // Guard.
+        if (containerArgs == null || containerArgs.isEmpty()) return;
+        
+        // Determine whether we are processing a zip job or not.
+        boolean isZipJob = getApp().getRuntime() == RuntimeEnum.ZIP ? true : false;
+        
+        // See if a profile is specified.
+        for (var option : containerArgs) {
+        	var arg = option.getArg().strip();
+        	if (isZipJob) {
+        		// ZIP jobs can only specify one container option.
+        		if (!Job.TAPIS_ZIP_SAVE.equals(arg)) {
+        			String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", 
+        					                     getApp().getRuntime().name(), option);
+        			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        		}
+        	  // Only ZIP jobs can specify the zip save option.	
+        	} else if (Job.TAPIS_ZIP_SAVE.equals(arg)) {
+    			String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", 
+	                     getApp().getRuntime().name(), option);
+    			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		}
         }
     }
     

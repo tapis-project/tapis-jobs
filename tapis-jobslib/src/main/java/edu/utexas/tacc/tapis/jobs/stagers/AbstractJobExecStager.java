@@ -290,7 +290,6 @@ public abstract class AbstractJobExecStager
     /* ********************************************************************** */
     /*                          Accessors                                     */
     /* ********************************************************************** */
-
     public JobExecCmd getJobExecCmd() {
         return _jobExecCmd;
     }

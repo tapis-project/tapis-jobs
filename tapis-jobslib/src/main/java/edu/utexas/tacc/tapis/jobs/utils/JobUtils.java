@@ -1,8 +1,10 @@
 package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.lang.reflect.Constructor;
+import java.util.List;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +21,8 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionExce
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 
 public final class JobUtils 
 {
@@ -230,5 +234,95 @@ public final class JobUtils
     {
         return TapisConstants.SERVICE_NAME_JOBS + "." + jobEventType.name() + "." + detail;
     }
-    
+
+    /* ---------------------------------------------------------------------------- */
+    /*  generateEnvVarFileContentForZip                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** Generate file content of env variables runtime type of ZIP
+     */
+    public static String generateEnvVarFileContentForZip(List<Pair<String, String>> env)
+    {
+        // Create the command buffer.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+
+        // Write each assignment to the buffer.
+        for (var pair : env) {
+            // Always use <key>= to start.
+            buf.append(pair.getKey()).append("=");
+            // Only append the value if it is set.
+            // Note that this differs from docker runtime type support due to the way docker handles exports.
+            // Please see comments in DockerRunCmd.generateEnvVarFileContent()
+            var value = pair.getValue();
+            if (value != null && !value.isEmpty()) {
+                buf.append(pair.getValue());
+            }
+            buf.append("\n");
+        }
+
+        return buf.toString();
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /*  generateEnvVarFileContentForDocker                                          */
+    /* ---------------------------------------------------------------------------- */
+    /** Generate file content of env variables runtime type of ZIP
+     */
+    public static String generateEnvVarFileContentForDocker(List<Pair<String, String>> env)
+    {
+        // Create the command buffer.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+
+        // Write each assignment to the buffer.
+        for (var pair : env) {
+            // The key always starts the line.
+            buf.append(pair.getKey());
+
+            // Are we going to use the short or long form?
+            // The short form is just the name of an environment variable
+            // that docker will import into the container ONLY IF it exists
+            // in the environment from which docker is called.  The long
+            // form is key=value.  Note that we don't escape characters in
+            // the value because we write to a file not the command line.
+            var value = pair.getValue();
+            if (value != null && !value.isEmpty()) {
+                // The long form forces an explicit assignment.
+                buf.append("=");
+                buf.append(pair.getValue());
+            }
+            buf.append("\n");
+        }
+
+        return buf.toString();
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /*  generateEnvVarFileContentForSingularity                                     */
+    /* ---------------------------------------------------------------------------- */
+    /** Generate file content of env variables runtimes type of Singularity
+     *  For FORK (RUN or START) and BATCH.
+     *  FORK should use insertExport=false and BATCH should use insertExport=false
+     */
+    public static String generateEnvVarFileContentForSingularity(List<Pair<String, String>> env,
+                                                                 boolean insertExport)
+    {
+        // This should never happen since tapis variables are always specified.
+        if (env.isEmpty()) return null;
+
+        // Create the key=value records, one per line.
+        // Get a buffer to accumulate the key/value pairs.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+
+        // Create a list of key=value assignment, each followed by a new line.
+        for (var v : env) {
+            if (insertExport) buf.append("export ");
+            buf.append(v.getLeft());
+            buf.append("=");
+            buf.append(TapisUtils.conditionalQuote(v.getRight()));
+            buf.append("\n");
+        }
+        return buf.toString();
+    }
 }

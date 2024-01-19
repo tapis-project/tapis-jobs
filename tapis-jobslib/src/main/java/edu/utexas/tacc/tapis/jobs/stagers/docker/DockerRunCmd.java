@@ -5,6 +5,7 @@ import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -213,31 +214,7 @@ public final class DockerRunCmd
     @Override
     public String generateEnvVarFileContent() 
     {
-        // Create the command buffer.
-        final int capacity = 1024;
-        StringBuilder buf = new StringBuilder(capacity);
-        
-        // Write each assignment to the buffer.
-        for (var pair : env) {
-            // The key always starts the line.
-            buf.append(pair.getKey());
-            
-            // Are we going to use the short or long form?
-            // The short form is just the name of an environment variable
-            // that docker will import into the container ONLY IF it exists
-            // in the environment from which docker is called.  The long 
-            // form is key=value.  Note that we don't escape characters in 
-            // the value because we write to a file not the command line.
-            var value = pair.getValue();
-            if (value != null && !value.isEmpty()) {
-                // The long form forces an explicit assignment.
-                buf.append("=");
-                buf.append(pair.getValue());
-            }
-            buf.append("\n");
-        }
-        
-        return buf.toString();
+        return JobUtils.generateEnvVarFileContentForDocker(env);
     }
     
     /* ********************************************************************** */

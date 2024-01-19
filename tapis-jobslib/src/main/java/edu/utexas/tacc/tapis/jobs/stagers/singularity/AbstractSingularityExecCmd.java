@@ -214,32 +214,6 @@ abstract class AbstractSingularityExecCmd
     }
 
     /* ---------------------------------------------------------------------- */
-    /* getPairListArgs:                                                       */
-    /* ---------------------------------------------------------------------- */
-    /** Create the string of key=value pairs separated by new line characters.
-     * 
-     * Similar code can be found at AbstractJobExecStager.getExportPairListArgs().
-     * 
-     * @param pairs NON-EMPTY list of pair values, one per occurrence
-     * @return the string that contains all assignments
-     */
-    protected String getPairListArgs(List<Pair<String,String>> pairs)
-    {
-        // Get a buffer to accumulate the key/value pairs.
-        final int capacity = 1024;
-        StringBuilder buf = new StringBuilder(capacity);
-        
-        // Create a list of key=value assignment, each followed by a new line.
-        for (var v : pairs) {
-            buf.append(v.getLeft());
-            buf.append("=");
-            buf.append(TapisUtils.conditionalQuote(v.getRight()));
-            buf.append("\n");
-        }
-        return buf.toString();
-    }
-    
-    /* ---------------------------------------------------------------------- */
     /* getStringListArgs:                                                     */
     /* ---------------------------------------------------------------------- */
     /** Create the string of multiple occurrence arguments from a non-empty

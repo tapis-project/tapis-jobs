@@ -4,6 +4,7 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -115,25 +116,7 @@ public final class ZipRunCmd
     @Override
     public String generateEnvVarFileContent() 
     {
-        // Create the command buffer.
-        final int capacity = 1024;
-        StringBuilder buf = new StringBuilder(capacity);
-        
-        // Write each assignment to the buffer.
-        for (var pair : env) {
-            // Always use <key>= to start.
-            buf.append(pair.getKey()).append("=");
-            // Only append the value if it is set.
-            // Note that this differs from docker runtime type support due to the way docker handles exports.
-            // Please see comments in DockerRunCmd.generateEnvVarFileContent()
-            var value = pair.getValue();
-            if (value != null && !value.isEmpty()) {
-                buf.append(pair.getValue());
-            }
-            buf.append("\n");
-        }
-        
-        return buf.toString();
+        return JobUtils.generateEnvVarFileContentForZip(env);
     }
 
     /* ********************************************************************** */

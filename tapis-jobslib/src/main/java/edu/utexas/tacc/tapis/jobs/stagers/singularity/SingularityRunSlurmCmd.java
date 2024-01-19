@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -74,11 +75,7 @@ public final class SingularityRunSlurmCmd
     /* ---------------------------------------------------------------------- */
     @Override
     public String generateEnvVarFileContent() {
-        // This should never happen since tapis variables are always specified.
-        if (getEnv().isEmpty()) return null;
-
-        // Create the key=value records, one per line.
-        return getExportPairListArgs(getEnv());
+        return JobUtils.generateEnvVarFileContentForSingularity(getEnv(), true);
     }
 
     /* ********************************************************************** */
@@ -117,35 +114,4 @@ public final class SingularityRunSlurmCmd
         return buf.toString();
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* getExportPairListArgs:                                                 */
-    /* ---------------------------------------------------------------------- */
-    /** Create strings of 'export key=value' separated by new line characters,
-     * which is appropriate for writing to a file that will be sourced by a
-     * script.
-     *
-     * @param pairs NON-EMPTY list of pair values, one per occurrence
-     * @return the string that contains all assignments
-     */
-    private String getExportPairListArgs(List<Pair<String,String>> pairs)
-    {
-        // This is essentially the same code as in
-        // AbstractSingularityExecCmd.getPairListArgs(),
-        // but here we insert the export keyword for sourcing
-        // by a bash script.
-
-        // Get a buffer to accumulate the key/value pairs.
-        final int capacity = 1024;
-        StringBuilder buf = new StringBuilder(capacity);
-
-        // Create a list of key=value assignment, each followed by a new line.
-        for (var v : pairs) {
-            buf.append("export ");
-            buf.append(v.getLeft());
-            buf.append("=");
-            buf.append(conditionalQuote(v.getRight()));
-            buf.append("\n");
-        }
-        return buf.toString();
-    }
 }

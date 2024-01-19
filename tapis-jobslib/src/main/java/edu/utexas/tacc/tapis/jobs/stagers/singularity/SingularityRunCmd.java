@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -75,11 +76,7 @@ public final class SingularityRunCmd
     @Override
     public String generateEnvVarFileContent() 
     {
-        // This should never happen since tapis variables are always specified.
-        if (getEnv().isEmpty()) return null;
-        
-        // Create the key=value records, one per line.
-        return getPairListArgs(getEnv());
+        return JobUtils.generateEnvVarFileContentForSingularity(getEnv(), false);
     }
     
     /* ********************************************************************** */

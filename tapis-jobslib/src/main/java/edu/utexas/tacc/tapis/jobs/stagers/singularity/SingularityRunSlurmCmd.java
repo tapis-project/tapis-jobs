@@ -74,12 +74,11 @@ public final class SingularityRunSlurmCmd
     /* ---------------------------------------------------------------------- */
     @Override
     public String generateEnvVarFileContent() {
-        // We pass environment variables to singularity from the command line
-        // so that they are embedded in the wrapper script sent to Slurm. 
-        //
-        // This method should not be called.
-        String msg = MsgUtils.getMsg("JOBS_SCHEDULER_GENERATE_ERROR", "slurm");
-        throw new TapisRuntimeException(msg);
+        // This should never happen since tapis variables are always specified.
+        if (getEnv().isEmpty()) return null;
+
+        // Create the key=value records, one per line.
+        return getExportPairListArgs(getEnv());
     }
 
     /* ********************************************************************** */
@@ -114,6 +113,38 @@ public final class SingularityRunSlurmCmd
             buf.append(v.getLeft());
             buf.append("=");
             buf.append(TapisUtils.safelyDoubleQuoteString(v.getRight()));
+        }
+        return buf.toString();
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getExportPairListArgs:                                                 */
+    /* ---------------------------------------------------------------------- */
+    /** Create strings of 'export key=value' separated by new line characters,
+     * which is appropriate for writing to a file that will be sourced by a
+     * script.
+     *
+     * @param pairs NON-EMPTY list of pair values, one per occurrence
+     * @return the string that contains all assignments
+     */
+    private String getExportPairListArgs(List<Pair<String,String>> pairs)
+    {
+        // This is essentially the same code as in
+        // AbstractSingularityExecCmd.getPairListArgs(),
+        // but here we insert the export keyword for sourcing
+        // by a bash script.
+
+        // Get a buffer to accumulate the key/value pairs.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+
+        // Create a list of key=value assignment, each followed by a new line.
+        for (var v : pairs) {
+            buf.append("export ");
+            buf.append(v.getLeft());
+            buf.append("=");
+            buf.append(conditionalQuote(v.getRight()));
+            buf.append("\n");
         }
         return buf.toString();
     }

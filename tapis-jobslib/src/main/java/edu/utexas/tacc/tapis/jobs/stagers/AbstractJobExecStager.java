@@ -225,38 +225,6 @@ public abstract class AbstractJobExecStager
     }
     
     /* ---------------------------------------------------------------------- */
-    /* getExportPairListArgs:                                                 */
-    /* ---------------------------------------------------------------------- */
-    /** Create strings of 'export key=value' separated by new line characters, 
-     * which is appropriate for writing to a file that will be sourced by a 
-     * script.
-     * 
-     * @param pairs NON-EMPTY list of pair values, one per occurrence
-     * @return the string that contains all assignments
-     */
-    protected String getExportPairListArgs(List<Pair<String,String>> pairs) 
-    {
-    	// This is essentially the same code as in 
-    	// AbstractSingularityExecCmd.getPairListArgs(),
-    	// but here we insert the export keyword for sourcing
-    	// by a bash script.
-    	
-        // Get a buffer to accumulate the key/value pairs.
-        final int capacity = 1024;
-        StringBuilder buf = new StringBuilder(capacity);
-        
-        // Create a list of key=value assignment, each followed by a new line.
-        for (var v : pairs) {
-        	buf.append("export ");
-            buf.append(v.getLeft());
-            buf.append("=");
-            buf.append(conditionalQuote(v.getRight()));
-            buf.append("\n");
-        }
-        return buf.toString();
-    }
-
-    /* ---------------------------------------------------------------------- */
     /* resolveLogConfig:                                                      */
     /* ---------------------------------------------------------------------- */
     /** Determine the stdout and stderr logging file(s).  Assign the fully qualified

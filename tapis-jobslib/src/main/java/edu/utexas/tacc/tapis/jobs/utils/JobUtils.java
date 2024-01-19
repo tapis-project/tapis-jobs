@@ -325,4 +325,37 @@ public final class JobUtils
         }
         return buf.toString();
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* generateEnvVarCommandLineArgs:                                         */
+    /* ---------------------------------------------------------------------- */
+    /** Create the string of key=value pairs separated by commas.  It's assumed
+     * that the values are NOT already double quoted.
+     *
+     * NOTE: We always double quote the value whether or not it contains
+     *       dangerous characters, which is different that most other cases
+     *       of environment variable construction.  Most of the time we use
+     *       TapisUtils.conditionalQuote(), which will only double quote when
+     *       dangerous or space characters are present.
+     *
+     * @param pairs NON-EMPTY list of pair values, one per occurrence
+     * @return the string that contains all assignments
+     */
+    public static  String generateEnvVarCommandLineArgs(List<Pair<String,String>> pairs)
+    {
+        // Get a buffer to accumulate the key/value pairs.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+
+        // Create the string " --env key=value[,key=value]".
+        boolean first = true;
+        for (var v : pairs) {
+            if (first) {buf.append(" --env "); first = false;}
+            else buf.append(",");
+            buf.append(v.getLeft());
+            buf.append("=");
+            buf.append(TapisUtils.safelyDoubleQuoteString(v.getRight()));
+        }
+        return buf.toString();
+    } 
 }

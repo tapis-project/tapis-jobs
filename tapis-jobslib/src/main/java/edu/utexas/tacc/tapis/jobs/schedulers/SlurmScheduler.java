@@ -39,25 +39,10 @@ public final class SlurmScheduler
     // Convenient access to job.
     private final Job _job;
     private final SlurmOptions _slurmOptions;
-    private String _batchJobName;
 
     /* ********************************************************************** */
     /*                              Constructors                              */
     /* ********************************************************************** */
-//    /* ---------------------------------------------------------------------- */
-//    /* constructor:                                                           */
-//    /* ---------------------------------------------------------------------- */
-//    public SlurmScheduler(JobExecutionContext jobCtx)
-//            throws TapisException
-//    {
-//    	_jobCtx = jobCtx;
-//        _job = _jobCtx.getJob();
-//        // TODO create SlurmOptions rather than having this class extend AbstractSlurmOptions
-//        _slurmOptions = new SlurmOptions(jobCtx); // TODO
-////         setUserSlurmOptions(); // TODO
-////         setTapisOptionsForSlurm(); // TODO
-//    }
-//
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
@@ -66,11 +51,7 @@ public final class SlurmScheduler
     {
         _jobCtx = jobCtx;
         _job = _jobCtx.getJob();
-        // TODO create SlurmOptions rather than having this class extend AbstractSlurmOptions
-        _slurmOptions = new SlurmOptions(jobCtx); // TODO
-//        setUserSlurmOptions(); // TODO
-//        setTapisOptionsForSlurm(); // TODO
-//TODO        setJobName(defaultJobName); // TODO
+        _slurmOptions = new SlurmOptions(jobCtx);
     }
     
     /* ********************************************************************** */
@@ -172,12 +153,4 @@ public final class SlurmScheduler
     /*                               Accessors                                */
     /* ********************************************************************** */
 
-    public String getBatchJobName() { return _batchJobName; }
-
-    public void setBatchJobName(String jobName) {
-        // Use either name provided or "tapisjob.sh" as default fallback.
-        jobName = (StringUtils.isBlank(jobName)) ? JobExecutionUtils.JOB_WRAPPER_SCRIPT : jobName;
-        // Local (i.e., TACC) policies may not allow colons in name.
-        _slurmOptions.getDirectives().put("--job-name", jobName.replace(':', '-'));
-    }
 }

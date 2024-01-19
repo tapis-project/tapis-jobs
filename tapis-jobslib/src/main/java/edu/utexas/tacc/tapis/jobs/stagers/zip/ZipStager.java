@@ -57,7 +57,7 @@ public class ZipStager
     public ZipStager(JobExecutionContext jobCtx, SchedulerTypeEnum schedulerType)
             throws TapisException
     {
-        // Set _jobCtx, _job, _cmdBuilder, _scheduler, _isBatch, _jobExecCmd
+        // Set _jobCtx, _job, _cmdBuilder, _isBatch, _jobExecCmd, _scheduler (with slurmOptions)
         super(jobCtx, schedulerType);
         // Set containerImage
         _containerImage = _jobCtx.getApp().getContainerImage();
@@ -134,8 +134,8 @@ public class ZipStager
 
         // If a BATCH job add the directives and any module load commands.
         if (_isBatch) {
-            _cmdBuilder.append(_scheduler.getBatchDirectives());
-            _cmdBuilder.append(_scheduler.getModuleLoadCalls());
+            _cmdBuilder.append(_jobScheduler.getBatchDirectives());
+            _cmdBuilder.append(_jobScheduler.getModuleLoadCalls());
         }
 
         // Construct the command and append it to get the full command script

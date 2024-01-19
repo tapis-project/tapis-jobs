@@ -57,6 +57,18 @@ abstract class AbstractSingularityExecCmd
     private boolean                   writable;     // This option makes the container file system accessible as read/write
     private boolean                   writableTmpfs;// makes the file system accessible as read-write with non persistent data (with overlay support only)
 
+    // Fields specific to singularity run.
+    private String          app;      // an application to run inside a container
+    private boolean         ipc;      // run container in a new IPC namespace
+    private boolean         noNet;    // disable VM network handling
+    private boolean         pid;      // run container in a new PID namespace
+    private String          pwd;      // initial working directory for payload process inside the container
+    private boolean         vm;       // enable VM support
+    private String          vmCPU;    // number of CPU cores to allocate to Virtual Machine
+    private boolean         vmErr;    // enable attaching stderr from VM
+    private String          vmIP;     // IP Address to assign for container usage, default is DHCP in bridge network
+    private String          vmRAM;    // amount of RAM in MiB to allocate to Virtual Machine (default "1024")
+
     // Arguments passed to application, which always begin with a space character.
     private String                    appArguments; 
     
@@ -161,7 +173,46 @@ abstract class AbstractSingularityExecCmd
         if (isWritable()) buf.append(" --writable");
         if (isWritableTmpfs()) buf.append(" --writable-tmpfs");
     }
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* addRunSpecificArgs:                                                    */
+    /* ---------------------------------------------------------------------- */
+    /** Add the container arguments that are specific to singularity run
+     *
+     * @param buf the command buffer
+     */
+    protected void addRunSpecificArgs(StringBuilder buf)
+    {
+        if (StringUtils.isNotBlank(getApp())) {
+            buf.append(" --app ");
+            buf.append(getApp());
+        }
+
+        if (isIpc()) buf.append(" --ipc");
+        if (isNoNet()) buf.append(" --nonet");
+        if (isPid()) buf.append(" --pid");
+
+        if (StringUtils.isNotBlank(getPwd())) {
+            buf.append(" --pwd ");
+            buf.append(conditionalQuote(getPwd()));
+        }
+
+        if (isVm()) buf.append(" --vm");
+        if (StringUtils.isNotBlank(getVmCPU())) {
+            buf.append(" --vm-cpu ");
+            buf.append(conditionalQuote(getVmCPU()));
+        }
+        if (isVmErr()) buf.append(" --vm-err");
+        if (StringUtils.isNotBlank(getVmIP())) {
+            buf.append(" --vm-ip ");
+            buf.append(conditionalQuote(getVmIP()));
+        }
+        if (StringUtils.isNotBlank(getVmRAM())) {
+            buf.append(" --vm-ram ");
+            buf.append(conditionalQuote(getVmRAM()));
+        }
+    }
+
     /* ---------------------------------------------------------------------- */
     /* getPairListArgs:                                                       */
     /* ---------------------------------------------------------------------- */
@@ -204,39 +255,6 @@ abstract class AbstractSingularityExecCmd
         String s = "";
         for (var v : values) s += arg + conditionalQuote(v);
         return s;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* getEnvArg:                                                             */
-    /* ---------------------------------------------------------------------- */
-    /** Create the string of key=value pairs separated by commas.  It's assumed
-     * that the values are NOT already double quoted.
-     * 
-     * NOTE: We always double quote the value whether or not it contains
-     *       dangerous characters, which is different that most other cases
-     *       of environment variable construction.  Most of the time we use
-     *       TapisUtils.conditionalQuote(), which will only double quote when
-     *       dangerous or space characters are present. 
-     * 
-     * @param values NON-EMPTY list of pair values, one per occurrence
-     * @return the string that contains all assignments
-     */
-    protected String getEnvArg(List<Pair<String,String>> pairs)
-    {
-        // Get a buffer to accumulate the key/value pairs.
-        final int capacity = 1024;
-        StringBuilder buf = new StringBuilder(capacity);
-        
-        // Create the string " --env key=value[,key=value]".
-        boolean first = true;
-        for (var v : pairs) {
-            if (first) {buf.append(" --env "); first = false;}
-              else buf.append(",");
-            buf.append(v.getLeft());
-            buf.append("=");
-            buf.append(TapisUtils.safelyDoubleQuoteString(v.getRight()));
-        }
-        return buf.toString();
     }
     
     /* ********************************************************************** */
@@ -491,4 +509,84 @@ abstract class AbstractSingularityExecCmd
     public void setAppArguments(String appArguments) {
         this.appArguments = appArguments;
     }
- }
+
+    public String getApp() {
+        return app;
+    }
+
+    public void setApp(String app) {
+        this.app = app;
+    }
+
+    public boolean isIpc() {
+        return ipc;
+    }
+
+    public void setIpc(boolean ipc) {
+        this.ipc = ipc;
+    }
+
+    public boolean isNoNet() {
+        return noNet;
+    }
+
+    public void setNoNet(boolean noNet) {
+        this.noNet = noNet;
+    }
+
+    public boolean isPid() {
+        return pid;
+    }
+
+    public void setPid(boolean pid) {
+        this.pid = pid;
+    }
+
+    public String getPwd() {
+        return pwd;
+    }
+
+    public void setPwd(String pwd) {
+        this.pwd = pwd;
+    }
+
+    public boolean isVm() {
+        return vm;
+    }
+
+    public void setVm(boolean vm) {
+        this.vm = vm;
+    }
+
+    public String getVmCPU() {
+        return vmCPU;
+    }
+
+    public void setVmCPU(String vmCPU) {
+        this.vmCPU = vmCPU;
+    }
+
+    public boolean isVmErr() {
+        return vmErr;
+    }
+
+    public void setVmErr(boolean vmErr) {
+        this.vmErr = vmErr;
+    }
+
+    public String getVmIP() {
+        return vmIP;
+    }
+
+    public void setVmIP(String vmIP) {
+        this.vmIP = vmIP;
+    }
+
+    public String getVmRAM() {
+        return vmRAM;
+    }
+
+    public void setVmRAM(String vmRAM) {
+        this.vmRAM = vmRAM;
+    }
+}

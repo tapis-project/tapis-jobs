@@ -34,7 +34,7 @@ public class SingularityRunStager
     public SingularityRunStager(JobExecutionContext jobCtx)
      throws TapisException
     {
-        // Set _jobCtx, _job, _cmdBuilder, _scheduler, _isBatch, _jobExecCmd
+        // Set _jobCtx, _job, _cmdBuilder, _isBatch, _jobExecCmd
         super(jobCtx, null /* schedulerType */);
         // The docker specific exec command
         _singularityCmd = (SingularityRunCmd) _jobExecCmd;
@@ -85,14 +85,6 @@ public class SingularityRunStager
         return configureExecCmd();
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* TODO getCmdTextWithEnvVars:        needed?                                         */ ?yes, probably // TODO where used before?
-    /* ---------------------------------------------------------------------- */
-    protected String getCmdTextWithEnvVars() 
-    {
-        return _singularityCmd.getCmdTextWithEnvVars(_job);
-    }
-    
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */

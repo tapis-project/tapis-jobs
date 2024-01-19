@@ -39,7 +39,7 @@ public final class SingularityStartStager
     public SingularityStartStager(JobExecutionContext jobCtx)
      throws TapisException
     {
-        // Set _jobCtx, _job, _cmdBuilder, _scheduler, _isBatch, _jobExecCmd
+        // Set _jobCtx, _job, _cmdBuilder, _isBatch, _jobExecCmd
         super(jobCtx, null /* schedulerType */);
         // The docker specific exec command
         _singularityCmd = (SingularityStartCmd) _jobExecCmd;

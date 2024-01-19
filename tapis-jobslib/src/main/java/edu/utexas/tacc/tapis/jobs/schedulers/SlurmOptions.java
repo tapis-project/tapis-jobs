@@ -31,7 +31,7 @@ public class SlurmOptions
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(SlurmOptions.class);
 
-    // Slurm directive. TODO will need to be public, for use in building tapisjob.sh?
+    // Slurm directive.
     private static final String DIRECTIVE_PREFIX = "#SBATCH ";
 
     /* ********************************************************************** */
@@ -163,10 +163,12 @@ public class SlurmOptions
     /* ---------------------------------------------------------------------- */
     /* Constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public SlurmOptions(JobExecutionContext jobCtx)
+    public SlurmOptions(JobExecutionContext jobCtx) throws TapisException
     {
         _jobCtx = jobCtx;
         _job = jobCtx.getJob();
+        setUserSlurmOptions();
+        setTapisOptionsForSlurm();
     }
 
     /* ********************************************************************** */
@@ -631,7 +633,6 @@ public class SlurmOptions
     /* ---------------------------------------------------------------------- */
     /* setTapisOptionsForSlurm:                                               */
     /* ---------------------------------------------------------------------- */
-// TODO Move this method to SlurmOptions?
     /** Set the standard Tapis settings for Slurm.
      *
      * @throws TapisException on error

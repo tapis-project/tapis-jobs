@@ -2,7 +2,7 @@ package edu.utexas.tacc.tapis.jobs.stagers;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
 
-public interface JobExecCmd 
+public interface JobExecCmd
 {
     /** Generate the container run command.  The generated text does not
      * contain any parameters to be passed to the application.  Depending

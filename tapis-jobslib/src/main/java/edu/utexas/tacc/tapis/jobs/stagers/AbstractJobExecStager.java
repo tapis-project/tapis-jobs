@@ -61,7 +61,7 @@ public abstract class AbstractJobExecStager
     protected final JobExecCmd _jobExecCmd;
 
     // Fields related to batch job execution
-    protected final JobScheduler _scheduler;
+    protected final JobScheduler _jobScheduler;
     protected final boolean _isBatch;
 
     /* ********************************************************************** */
@@ -80,9 +80,9 @@ public abstract class AbstractJobExecStager
         // Set the scheduler properties as needed.
         // NOTE: For now, we only support slurm. Once other schedulers are supported create the appropriate scheduler
         if (schedulerType == null) {
-            _scheduler = null;
+            _jobScheduler = null;
         } else if (SchedulerTypeEnum.SLURM.equals(schedulerType)) {
-            _scheduler = new SlurmScheduler(jobCtx);
+            _jobScheduler = new SlurmScheduler(jobCtx);
         } else {
             String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", schedulerType,
                                          AbstractJobExecStager.class.getSimpleName());
@@ -117,25 +117,22 @@ public abstract class AbstractJobExecStager
         String envVarFile = generateEnvVarFileContent();
         fm.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
     }
-    
-    /* ********************************************************************** */
-    /*                           Protected Methods                            */
-    /* ********************************************************************** */
+
     /* ---------------------------------------------------------------------- */
     /* generateWrapperScript:                                                 */
     /* ---------------------------------------------------------------------- */
     /** This method generates the wrapper script content.
-     * 
+     *
      * @return the wrapper script content
      */
     public abstract String generateWrapperScriptContent() throws TapisException;
-    
+
     /* ---------------------------------------------------------------------- */
     /* generateEnvVarFile:                                                    */
     /* ---------------------------------------------------------------------- */
     /** This method generates content for the environment variable definition file.
-     *  
-     * @return the content for a environment variable definition file 
+     *
+     * @return the content for a environment variable definition file
      */
     public abstract String generateEnvVarFileContent() throws TapisException;
 
@@ -148,6 +145,9 @@ public abstract class AbstractJobExecStager
      */
     public abstract JobExecCmd createJobExecCmd() throws TapisException;
 
+    /* ********************************************************************** */
+    /*                           Protected Methods                            */
+    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* initBashScript:                                                        */
     /* ---------------------------------------------------------------------- */
@@ -348,5 +348,9 @@ public abstract class AbstractJobExecStager
 
     public JobExecCmd getJobExecCmd() {
         return _jobExecCmd;
+    }
+
+    public JobScheduler getJobScheduler() {
+        return _jobScheduler;
     }
 }

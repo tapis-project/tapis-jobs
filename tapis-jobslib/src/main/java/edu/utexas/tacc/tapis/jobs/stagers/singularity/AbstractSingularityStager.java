@@ -36,7 +36,7 @@ abstract class AbstractSingularityStager
     public AbstractSingularityStager(JobExecutionContext jobCtx, SchedulerTypeEnum schedulerType)
      throws TapisException
     {
-        // Initialize _jobCtx, _job, _cmdBuilder, _scheduler, _isBatch, _jobExecCmd
+        // Initialize _jobCtx, _job, _cmdBuilder, _isBatch, _jobExecCmd, _scheduler (with slurmOptions)
         super(jobCtx, schedulerType);
     }
 
@@ -59,8 +59,8 @@ abstract class AbstractSingularityStager
 
         // If a BATCH job add the directives and any module load commands.
         if (_isBatch) {
-            _cmdBuilder.append(_scheduler.getBatchDirectives());
-            _cmdBuilder.append(_scheduler.getModuleLoadCalls());
+            _cmdBuilder.append(_jobScheduler.getBatchDirectives());
+            _cmdBuilder.append(_jobScheduler.getModuleLoadCalls());
         }
 
         // Generate the basic single line command text for singularity RUN or START
@@ -81,7 +81,6 @@ abstract class AbstractSingularityStager
     public String generateEnvVarFileContent()
             throws TapisException
     {
-//TODO        return _singularityExecCmd.generateEnvVarFileContent();
         return _jobExecCmd.generateEnvVarFileContent();
     }
 
@@ -263,42 +262,6 @@ abstract class AbstractSingularityStager
                 throw new JobException(msg);
         }
     }
-
-// TODO
-//    /* ---------------------------------------------------------------------- */
-//    /* configureSingularityStartCmd:                                          */
-//    /* ---------------------------------------------------------------------- */
-//    private SingularityStartCmd configureExecCmd()
-//            throws TapisException
-//    {
-//        // Create and populate the singularity command.
-//        var singularityCmd = new SingularityStartCmd();
-//
-//        // ----------------- Tapis Standard Definitions -----------------
-//        // Container instances are named after the job uuid.
-//        singularityCmd.setName(_job.getUuid());
-//
-//        // Write the container id to a host file.
-//        setPidFile(singularityCmd);
-//
-//        // Write all the environment variables to file.
-//        singularityCmd.setEnvFile(makeEnvFilePath());
-//
-//        // Set the image.
-//        singularityCmd.setImage(_jobCtx.getApp().getContainerImage());
-//
-//        // ----------------- User and Tapis Definitions -----------------
-//        // Set all environment variables.
-//        singularityCmd.setEnv(getEnvVariables());
-//
-//        // Set the singularity options.
-//        setSingularityOptions(singularityCmd);
-//
-//        // Set the application arguments.
-//        singularityCmd.setAppArguments(concatAppArguments());
-//
-//        return singularityCmd;
-//    }
 
     /* ********************************************************************** */
     /*                            Private Methods                             */

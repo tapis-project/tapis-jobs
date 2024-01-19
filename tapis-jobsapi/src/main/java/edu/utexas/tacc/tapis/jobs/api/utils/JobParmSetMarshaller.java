@@ -1061,9 +1061,17 @@ public final class JobParmSetMarshaller
             // Check that the key doesn't contain prohibited characters.
             // This check means we don't have to check the argument key
             // after this for app, container or scheduler arguments. 
-            var parts = TapisUtils.splitIntoKeyValue(elem._jobArg.getArg());
-            if (parts.length > 0)
-            	JobsApiUtils.hasDangerousCharacters(argType.name(), parts[0], parts[0]); 
+            if (argType == ArgTypeEnum.APP_ARGS) {
+            	var arg = elem._jobArg.getArg();
+            	var argName = elem._jobArg.getName();
+            	if (StringUtils.isBlank(argName)) argName = "unnamed";
+            	JobsApiUtils.hasDangerousCharacters(argType.name(), argName, arg); 
+            } 
+            else {
+            	var parts = TapisUtils.splitIntoKeyValue(elem._jobArg.getArg());
+            	if (parts.length > 0)
+            		JobsApiUtils.hasDangerousCharacters(argType.name(), parts[0], parts[0]); 
+            }
             
             // Make sure notes field is a well-formed json object and convert it to string.
             // We skip elements without notes.

@@ -150,10 +150,16 @@ public abstract class AbstractJobExecStager
      * them to the caller.  If there are any arguments, the generated 
      * string always begins with a space character.
      * 
-     * NOTE: The method depends on JobParmSetMarshaller.validateScratchList()
-     *       to weed out any application parameter names that contain dangerous
-     *       command line characters. This means that conditional quoting 
-     *       need only be applied to values.
+     * NOTE: This method depends on JobParmSetMarshaller.validateScratchList()
+     *       to weed out any application parameters that contain dangerous
+     *       command line characters. 
+     *       
+     * To allow applications the most flexibility in defining how their arguments
+     * are presented (key/value, single value, comma separated lists, etc.), we
+     * do not automatically double quote application arguments.  In cases where
+     * an argument contains embedded spaces, it is the user's responsibility to 
+     * perform the double quoting on input.  This will usually require users to 
+     * escape double quotes (\") their JSON input to Jobs and Apps. 
      * 
      * @return the app argument string or null if there aren't any.
      */

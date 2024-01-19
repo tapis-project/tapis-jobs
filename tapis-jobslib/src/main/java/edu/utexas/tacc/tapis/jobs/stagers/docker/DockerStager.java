@@ -1,7 +1,8 @@
-package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
+package edu.utexas.tacc.tapis.jobs.stagers.docker;
 
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -10,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager;
-import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerRunCmd.BindMount;
+import edu.utexas.tacc.tapis.jobs.stagers.docker.DockerRunCmd.BindMount;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -18,14 +19,14 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public class DockerNativeStager 
+public class DockerStager
  extends AbstractJobExecStager
 {
     /* ********************************************************************** */
     /*                               Constants                                */
     /* ********************************************************************** */
     // Tracing.
-    private static final Logger _log = LoggerFactory.getLogger(DockerNativeStager.class);
+    private static final Logger _log = LoggerFactory.getLogger(DockerStager.class);
     
     // Container id file suffix.
     private static final String CID_SUFFIX = ".cid";
@@ -47,38 +48,41 @@ public class DockerNativeStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public DockerNativeStager(JobExecutionContext jobCtx)
+    public DockerStager(JobExecutionContext jobCtx)
      throws TapisException
     {
-        // Create and populate the docker command.
-        super(jobCtx);
-        _dockerRunCmd = configureRunCmd();
+        // Set _jobCtx, _job, _cmdBuilder, _scheduler, _isBatch, _jobExecCmd
+        super(jobCtx, null /* schedulerType */);
+        // The docker specific exec command
+        _dockerRunCmd = (DockerRunCmd) _jobExecCmd;
     }
 
     /* ********************************************************************** */
-    /*                          Protected Methods                             */
+    /*                          Public Methods                                */
     /* ********************************************************************** */
+
     /* ---------------------------------------------------------------------- */
     /* generateWrapperScript:                                                 */
     /* ---------------------------------------------------------------------- */
     /** This method generates the wrapper script content.
-     * 
+     *  Note that only FORK supported. No BATCH as of yet.
+     *
      * @return the wrapper script content
      */
     @Override
-    protected String generateWrapperScript() 
+    public String generateWrapperScriptContent()
      throws TapisException
     {
         // Construct the docker command.
         String dockerCmd = _dockerRunCmd.generateExecCmd(_job);
         
-        // Build the command file content.
+        // Start building the command file content.
         initBashScript();
         
-        // Add the docker command the the command file.
-        _cmd.append(dockerCmd);
+        // Add the docker command.
+        _cmdBuilder.append(dockerCmd);
                 
-        return _cmd.toString();
+        return _cmdBuilder.toString();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -89,11 +93,23 @@ public class DockerNativeStager
      * @return the content for a environment variable definition file 
      */
     @Override
-    protected String generateEnvVarFile()
+    public String generateEnvVarFileContent()
     {
         return _dockerRunCmd.generateEnvVarFileContent();
     }
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* createJobExecCmd:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Create the JobExecCmd.
+     *
+     */
+    @Override
+    public JobExecCmd createJobExecCmd() throws TapisException
+    {
+        return configureRunCmd();
+    }
+
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */

@@ -2,9 +2,8 @@ package edu.utexas.tacc.tapis.jobs.stagers.zip;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
-import edu.utexas.tacc.tapis.jobs.schedulers.JobScheduler;
-import edu.utexas.tacc.tapis.jobs.schedulers.SlurmScheduler;
 import edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager;
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -48,8 +47,6 @@ public class ZipStager
     private boolean _hasZipExtension; // True if archive file ends with .zip
     private String  _containerImage;
     private boolean _containerImageIsUrl;
-    private final JobScheduler _scheduler;
-    private final boolean _isBatch;
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -60,25 +57,14 @@ public class ZipStager
     public ZipStager(JobExecutionContext jobCtx, SchedulerTypeEnum schedulerType)
             throws TapisException
     {
-        // Set _jobCtx, _job, _cmd
-        super(jobCtx);
+        // Set _jobCtx, _job, _cmdBuilder, _scheduler, _isBatch, _jobExecCmd
+        super(jobCtx, schedulerType);
         // Set containerImage
         _containerImage = _jobCtx.getApp().getContainerImage();
         // Configure the zip file properties
         configureZipFileInfo();
-        // Set the scheduler properties as needed.
-        if (schedulerType == null) {
-            _scheduler = null;
-        } else if (SchedulerTypeEnum.SLURM.equals(schedulerType)) {
-            // NOTE: Once other schedulers are supported create the appropriate scheduler
-            _scheduler = new SlurmScheduler(jobCtx, _zipFileName);
-        } else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", schedulerType, "ZipStager");
-            throw new JobException(msg);
-        }
-        _isBatch = (schedulerType != null);
-        // Create and configure the zip run command
-        _zipRunCmd = configureRunCmd();
+        // The zip specific exec command
+        _zipRunCmd = (ZipRunCmd) _jobExecCmd;
     }
 
     /* ********************************************************************** */
@@ -87,8 +73,7 @@ public class ZipStager
     /* ---------------------------------------------------------------------- */
     /* stageJob:                                                              */
     /* ---------------------------------------------------------------------- */
-    @Override
-    /*
+    /**
      * Stage application assets:
      *  1. Check that the UNZIP command is available on the exec host.
      *  2. Stage the zip/tar file. Will be a no-op if containerImage is an absolute path,
@@ -98,6 +83,7 @@ public class ZipStager
      *  5. Create and install the wrapper script tapisjob.sh
      *  6. Create and install the environment variable file tapisjob.env
      */
+    @Override
     public void stageJob() throws TapisException
     {
         // Get the job file manager used to make directories, upload files, transfer files, etc.
@@ -125,17 +111,14 @@ public class ZipStager
         catch (Exception e) { /* ignore exceptions */ }
 
         // 5. Create and install the wrapper script: tapisjob.sh
-        String wrapperScript = generateWrapperScript();
+        String wrapperScript = generateWrapperScriptContent();
         jobFileManager.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
 
         // 6. Create and install the environment variable definition file: tapisjob.env
-        String envVarFile = generateEnvVarFile();
+        String envVarFile = generateEnvVarFileContent();
         jobFileManager.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
     }
 
-    /* ********************************************************************** */
-    /*                          Protected Methods                             */
-    /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* generateWrapperScript:                                                 */
     /* ---------------------------------------------------------------------- */
@@ -144,22 +127,22 @@ public class ZipStager
      * @return the wrapper script content
      */
     @Override
-    protected String generateWrapperScript() throws JobException
+    public String generateWrapperScriptContent() throws JobException
     {
-        // Run as bash script
+        // Run as bash script, either BATCH or FORK
         if (_isBatch) initBashBatchScript(); else initBashScript();
 
         // If a BATCH job add the directives and any module load commands.
         if (_isBatch) {
-            _cmd.append(_scheduler.getBatchDirectives());
-            _cmd.append(_scheduler.getModuleLoadCalls());
+            _cmdBuilder.append(_scheduler.getBatchDirectives());
+            _cmdBuilder.append(_scheduler.getModuleLoadCalls());
         }
 
         // Construct the command and append it to get the full command script
         String zipCmd = _zipRunCmd.generateExecCmd(_job);
-        _cmd.append(zipCmd);
+        _cmdBuilder.append(zipCmd);
 
-        return _cmd.toString();
+        return _cmdBuilder.toString();
     }
 
     /* ---------------------------------------------------------------------- */
@@ -170,9 +153,21 @@ public class ZipStager
      * @return the content for a environment variable definition file 
      */
     @Override
-    protected String generateEnvVarFile()
+    public String generateEnvVarFileContent()
     {
         return _zipRunCmd.generateEnvVarFileContent();
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* createJobExecCmd:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Create the JobExecCmd.
+     *
+     */
+    @Override
+    public JobExecCmd createJobExecCmd() throws TapisException
+    {
+        return configureRunCmd();
     }
 
     /* ********************************************************************** */

@@ -1,14 +1,14 @@
 package edu.utexas.tacc.tapis.jobs.stagers;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
-import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerNativeStager;
-import edu.utexas.tacc.tapis.jobs.stagers.dockernative.DockerSlurmStager;
-import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityRunStager;
-import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.SingularityStartStager;
-import edu.utexas.tacc.tapis.jobs.stagers.singularityslurm.SingularityRunSlurmStager;
+import edu.utexas.tacc.tapis.jobs.stagers.docker.DockerStager;
+import edu.utexas.tacc.tapis.jobs.stagers.singularity.SingularityRunSlurmStager;
+import edu.utexas.tacc.tapis.jobs.stagers.singularity.SingularityRunStager;
+import edu.utexas.tacc.tapis.jobs.stagers.singularity.SingularityStartStager;
 import edu.utexas.tacc.tapis.jobs.stagers.zip.ZipStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -22,7 +22,11 @@ public final class JobExecStageFactory
     /* ---------------------------------------------------------------------- */
     /** Create a stager based on the type of job and its execution environment.
      * This method either returns the appropriate stager or throws an exception.
-     * 
+     *
+     * Supported stagers:   FORK for runtimes: Docker, Singularity_Start, Singularity_Run, ZIP
+     *                      BATCH for runtimes: Singularity_Run, ZIP
+     * Unsupported stagers: BATCH for Docker, Singularity_Start
+     *
      * @param jobCtx job context
      * @return the stager designated for the current job type and environment
      * @throws TapisException when no stager is found or a network error occurs
@@ -37,12 +41,16 @@ public final class JobExecStageFactory
         
         // The result.
         JobExecStager stager = null;
-        
+
+        // RuntimeOption
+        RuntimeOptionEnum runtimeOption = null;
+        if (runtime == RuntimeEnum.SINGULARITY) runtimeOption = getSingularityOption(jobCtx, app);
+
         // ------------------------- FORK -------------------------
         if (jobType == JobType.FORK) {
             stager = switch (runtime) {
-                case DOCKER      -> new DockerNativeStager(jobCtx);
-                case SINGULARITY -> getSingularityOption(jobCtx, app);
+                case DOCKER      -> new DockerStager(jobCtx);
+                case SINGULARITY -> getForkSingularityStager(jobCtx, runtimeOption);
                 case ZIP         -> new ZipStager(jobCtx, null /*schedulerType*/);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
@@ -57,7 +65,7 @@ public final class JobExecStageFactory
             var system = jobCtx.getExecutionSystem();
             var scheduler = system.getBatchScheduler();
             
-            // Doublecheck that a scheduler is assigned.
+            // Double check that a scheduler is assigned.
             if (scheduler == null) {
                 String msg = MsgUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(), 
                                               jobCtx.getJob().getUuid());
@@ -67,7 +75,7 @@ public final class JobExecStageFactory
             // Get the stager for each supported runtime/scheduler combination.
             stager = switch (runtime) {
                 case DOCKER      -> getBatchDockerStager(jobCtx, scheduler);
-                case SINGULARITY -> getBatchSingularityStager(jobCtx, scheduler);
+                case SINGULARITY -> getBatchSingularityStager(jobCtx, scheduler, runtimeOption);
                 case ZIP         -> getBatchZipStager(jobCtx, scheduler);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
@@ -85,57 +93,39 @@ public final class JobExecStageFactory
     }
 
     /* ---------------------------------------------------------------------- */
-    /* getSingularityOption:                                                  */
-    /* ---------------------------------------------------------------------- */
-    private static JobExecStager getSingularityOption(JobExecutionContext jobCtx,
-                                                      TapisApp app)
-     throws TapisException
-    {
-        // We are only interested in the singularity options.
-        var opts = app.getRuntimeOptions();
-        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
-        boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
-        
-        // Did we get conflicting information?
-        if (start && run) {
-            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT", 
-                                         jobCtx.getJob().getUuid(), 
-                                         app.getId(),
-                                         RuntimeOptionEnum.SINGULARITY_START.name(),
-                                         RuntimeOptionEnum.SINGULARITY_RUN.name());
-            throw new JobException(msg);
-        }
-        if (!(start || run)) {
-            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_MISSING", 
-                                         jobCtx.getJob().getUuid(),
-                                         app.getId());
-            throw new JobException(msg);
-        }
-        
-        // Create the specified monitor.
-        if (start) return new SingularityStartStager(jobCtx);
-          else return new SingularityRunStager(jobCtx);
-    }
-    
-    /* ---------------------------------------------------------------------- */
     /* getBatchDockerStager:                                                  */
     /* ---------------------------------------------------------------------- */
     private static JobExecStager getBatchDockerStager(JobExecutionContext jobCtx,
                                                       SchedulerTypeEnum scheduler) 
      throws TapisException
     {
-        // Get the scheduler's docker stager. 
-        JobExecStager stager = switch (scheduler) {
-            case SLURM -> new DockerSlurmStager(jobCtx);
-            
+        // Not yet supported
+        String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                              scheduler + "(DOCKER)",
+                                     "JobExecStageFactory");
+        throw new JobException(msg);
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getForkSingularityStager:                                              */
+    /* ---------------------------------------------------------------------- */
+    private static JobExecStager getForkSingularityStager(JobExecutionContext jobCtx,
+                                                          RuntimeOptionEnum runtimeOption)
+            throws TapisException
+    {
+        // Get the scheduler's stager.
+        JobExecStager stager = switch (runtimeOption) {
+            case SINGULARITY_START -> new SingularityStartStager(jobCtx);
+            case SINGULARITY_RUN -> new SingularityRunStager(jobCtx);
+
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
-                                             scheduler + "(DOCKER)", 
-                                             "JobExecStageFactory");
+                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                        runtimeOption + "(SINGULARITY)",
+                        "JobExecStageFactory");
                 throw new JobException(msg);
             }
         };
-        
+
         return stager;
     }
 
@@ -143,12 +133,21 @@ public final class JobExecStageFactory
     /* getBatchSingularityStager:                                             */
     /* ---------------------------------------------------------------------- */
     private static JobExecStager getBatchSingularityStager(JobExecutionContext jobCtx,
-                                                           SchedulerTypeEnum scheduler) 
+                                                           SchedulerTypeEnum scheduler,
+                                                           RuntimeOptionEnum runtimeOption)
      throws TapisException
     {
-        // Get the scheduler's docker stager. 
+        // Make sure the runtime option is supported.
+        if (runtimeOption != RuntimeOptionEnum.SINGULARITY_RUN) {
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                                  scheduler + "(SINGULARITY_" + runtimeOption + ")",
+                                         "JobExecStageFactory");
+            throw new JobException(msg);
+        }
+
+        // Get the scheduler's stager.
         JobExecStager stager = switch (scheduler) {
-            case SLURM -> new SingularityRunSlurmStager(jobCtx);
+            case SLURM -> new SingularityRunSlurmStager(jobCtx, scheduler);
         
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
@@ -181,5 +180,37 @@ public final class JobExecStageFactory
         };
 
         return stager;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* getSingularityOption:                                                  */
+    /* ---------------------------------------------------------------------- */
+    private static RuntimeOptionEnum getSingularityOption(JobExecutionContext jobCtx, TapisApp app)
+            throws TapisException
+    {
+        // We are only interested in the singularity options.
+        var opts = app.getRuntimeOptions();
+        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
+        boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
+
+        // Did we get conflicting information?
+        if (start && run) {
+            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT",
+                    jobCtx.getJob().getUuid(),
+                    app.getId(),
+                    RuntimeOptionEnum.SINGULARITY_START.name(),
+                    RuntimeOptionEnum.SINGULARITY_RUN.name());
+            throw new JobException(msg);
+        }
+        if (!(start || run)) {
+            String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_MISSING",
+                    jobCtx.getJob().getUuid(),
+                    app.getId());
+            throw new JobException(msg);
+        }
+
+        // At this point the option must be start or run
+        if (start) return RuntimeOptionEnum.SINGULARITY_START;
+        else return RuntimeOptionEnum.SINGULARITY_RUN;
     }
 }

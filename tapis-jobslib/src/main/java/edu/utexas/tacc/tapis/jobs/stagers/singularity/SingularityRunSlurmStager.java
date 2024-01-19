@@ -1,18 +1,18 @@
-package edu.utexas.tacc.tapis.jobs.stagers.singularityslurm;
+package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
-import edu.utexas.tacc.tapis.jobs.stagers.singularitynative.AbstractSingularityStager;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
-import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
-public final class SingularityRunSlurmStager 
+public class SingularityRunSlurmStager
   extends AbstractSingularityStager
 {
     /* ********************************************************************** */
@@ -28,7 +28,7 @@ public final class SingularityRunSlurmStager
     private final SingularityRunSlurmCmd _slurmRunCmd;
     
     // Embedded singularity stager.
-    private final WrappedSingularityRunStager _wrappedStager;
+//    private final WrappedSingularityRunStager _wrappedStager;
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -36,38 +36,24 @@ public final class SingularityRunSlurmStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public SingularityRunSlurmStager(JobExecutionContext jobCtx)
+    public SingularityRunSlurmStager(JobExecutionContext jobCtx, SchedulerTypeEnum schedulerType)
      throws TapisException
     {
         // The singularity stager must initialize before the slurm run command.
-        super(jobCtx);
-        _wrappedStager = new WrappedSingularityRunStager(jobCtx);
-        _slurmRunCmd   = configureSlurmRunCmd();
+//TODO        super(jobCtx);
+//        _wrappedStager = new WrappedSingularityRunStager(jobCtx);
+//        _slurmRunCmd   = configureSlurmRunCmd();
+
+        // Set _jobCtx, _job, _cmdBuilder, _scheduler, _isBatch, _jobExecCmd
+        super(jobCtx, schedulerType);
+        // The specific exec command
+        _slurmRunCmd = (SingularityRunSlurmCmd) _jobExecCmd;
     }
 
     /* ********************************************************************** */
     /*                             Public Methods                             */
     /* ********************************************************************** */
-    /* ---------------------------------------------------------------------- */
-    /* stageJob:                                                              */
-    /* ---------------------------------------------------------------------- */
-    @Override
-    public void stageJob() throws TapisException 
-    {
-        // Create the wrapper script.
-        String wrapperScript = generateWrapperScript();
-        
-        // Create the exported env variable content.
-        String envVarFile = generateEnvVarFile();
-        
-        // Install the wrapper script on the execution system.
-        var fm = _jobCtx.getJobFileManager();
-        fm.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
-        
-        // Install the exported env variable file.
-        fm.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
-    }
-    
+
     /* ********************************************************************** */
     /*                          Protected Methods                             */
     /* ********************************************************************** */
@@ -75,39 +61,60 @@ public final class SingularityRunSlurmStager
     /* generateWrapperScript:                                                 */
     /* ---------------------------------------------------------------------- */
     @Override
-    protected String generateWrapperScript() throws TapisException 
+    public String generateWrapperScriptContent() throws TapisException
     {
-        // Initialize the script content in superclass.
+// TODO
+        // Run as bash batch script.
         initBashBatchScript();
-        
-        // Add the batch directives to the script.
-        _cmd.append(_slurmRunCmd.generateExecCmd(_job));
-        
-        // Add zero or more module load commands.
-        appendModuleLoadCalls();
-        
+
+        // Add batch directives and any module load commands.
+        _cmdBuilder.append(_scheduler.getBatchDirectives());
+        _cmdBuilder.append(_scheduler.getModuleLoadCalls());
+
+        // Generate the basic single line command text for singularity RUN under slurm
+        String cmdText = _slurmRunCmd.generateExecCmd(_job);
+
+        // Add the exec command.
+        _cmdBuilder.append(cmdText);
+
+// TODO        _cmdBuilder.append(_slurmRunCmd.generateExecCmd(_job));
+
+
         // Add the actual singularity run command.
-        _cmd.append(_wrappedStager.getCmdTextWithEnvVars());
-        _cmd.append("\n");
-        
-        return _cmd.toString();
+        _cmdBuilder.append(_slurmRunCmd.getCmdTextWithEnvVars());
+        _cmdBuilder.append("\n");
+
+        return _cmdBuilder.toString();
     }
 
+//    /* ---------------------------------------------------------------------- */
+//    /* generateEnvVarFile:                                                    */
+//    /* ---------------------------------------------------------------------- */
+//    /** Create an exportable env variable definitions.
+//     *
+//     * @return the string that contains all exported env variable assignments
+//     */
+//    @Override
+//    public String generateEnvVarFileContent() throws TapisException
+//    {
+//// TODO
+//        // Create a list of key=value assignment, each followed by a new line.
+//        var pairs = _wrappedStager.getSingularityRunCmd().getEnv();
+//        return getExportPairListArgs(pairs);
+//    }
+//
     /* ---------------------------------------------------------------------- */
-    /* generateEnvVarFile:                                                    */
+    /* createJobExecCmd:                                                      */
     /* ---------------------------------------------------------------------- */
-    /** Create an exportable env variable definitions. 
-     * 
-     * @return the string that contains all exported env variable assignments
+    /** Create the JobExecCmd.
+     *
      */
     @Override
-    protected String generateEnvVarFile() throws TapisException 
+    public JobExecCmd createJobExecCmd() throws TapisException
     {
-        // Create a list of key=value assignment, each followed by a new line.
-        var pairs = _wrappedStager.getSingularityRunCmd().getEnv();
-        return getExportPairListArgs(pairs);
+        return configureSlurmRunCmd();
     }
-    
+
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
@@ -136,7 +143,7 @@ public final class SingularityRunSlurmStager
             // We allow commands that don't require module parameters.
             var modules = spec.getModulesToLoad();
             if (modules == null || modules.isEmpty()) {
-                _cmd.append(loadCmd + "\n");
+                _cmdBuilder.append(loadCmd + "\n");
                 continue;
             }
             
@@ -146,11 +153,11 @@ public final class SingularityRunSlurmStager
             // Create a module load command for each specified module.
             for (var module : modules)
                 if (StringUtils.isNotBlank(module)) 
-                    _cmd.append(loadCmd + module + "\n");
+                    _cmdBuilder.append(loadCmd + module + "\n");
         }
         
         // End with a blank line.
-        _cmd.append("\n");
+        _cmdBuilder.append("\n");
     }
     
     /* ---------------------------------------------------------------------- */

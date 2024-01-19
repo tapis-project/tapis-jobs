@@ -1,5 +1,6 @@
-package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
+package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +19,6 @@ public class SingularityRunStager
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SingularityRunStager.class);
 
-    // Container id file suffix.
-    private static final String PID_SUFFIX = ".pid";
-    
     /* ********************************************************************** */
     /*                                Fields                                  */
     /* ********************************************************************** */
@@ -36,55 +34,64 @@ public class SingularityRunStager
     public SingularityRunStager(JobExecutionContext jobCtx)
      throws TapisException
     {
-        super(jobCtx);
-        _singularityCmd = configureExecCmd();
+        // Set _jobCtx, _job, _cmdBuilder, _scheduler, _isBatch, _jobExecCmd
+        super(jobCtx, null /* schedulerType */);
+        // The docker specific exec command
+        _singularityCmd = (SingularityRunCmd) _jobExecCmd;
     }
 
     /* ********************************************************************** */
-    /*                          Protected Methods                             */
+    /*                          Public Methods                                */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
     /* generateWrapperScript:                                                 */
     /* ---------------------------------------------------------------------- */
     @Override
-    protected String generateWrapperScript() throws TapisException 
+    public String generateWrapperScriptContent() throws TapisException
     {
-        // The generated wrapper script will contain a singularity instance 
+        // The generated wrapper script will contain a singularity instance
         // start command that conforms to this format:
         //
         //  singularity instance start [start options...] <container path> <instance name> [startscript args...]
         String cmdText = _singularityCmd.generateExecCmd(_job);
-        
+
         // Build the command file content.
         initBashScript();
-        
-        // Add the docker command the the command file.
-        _cmd.append(cmdText);
-        
-        return _cmd.toString();
+
+        // Add the command to the content
+        _cmdBuilder.append(cmdText);
+
+        return _cmdBuilder.toString();
     }
 
     /* ---------------------------------------------------------------------- */
     /* generateEnvVarFile:                                                    */
     /* ---------------------------------------------------------------------- */
     @Override
-    protected String generateEnvVarFile() throws TapisException 
+    public String generateEnvVarFileContent() throws TapisException
     {
         return _singularityCmd.generateEnvVarFileContent();
     }
-    
+
     /* ---------------------------------------------------------------------- */
-    /* getCmdTextWithEnvVars:                                                 */
+    /* createJobExecCmd:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Create the JobExecCmd.
+     *
+     */
+    @Override
+    public JobExecCmd createJobExecCmd() throws TapisException
+    {
+        return configureExecCmd();
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* TODO getCmdTextWithEnvVars:        needed?                                         */ ?yes, probably // TODO where used before?
     /* ---------------------------------------------------------------------- */
     protected String getCmdTextWithEnvVars() 
     {
         return _singularityCmd.getCmdTextWithEnvVars(_job);
     }
-    
-    /* ---------------------------------------------------------------------- */
-    /* getSingularityRunCmd:                                                  */
-    /* ---------------------------------------------------------------------- */
-    protected SingularityRunCmd getSingularityRunCmd() {return _singularityCmd;}
     
     /* ********************************************************************** */
     /*                            Private Methods                             */

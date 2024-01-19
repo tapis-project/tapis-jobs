@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
+package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 
@@ -38,7 +38,7 @@ public final class SingularityStartCmd
         buf.append("# Format: singularity instance start [options] <container path> <instance name> [app args]\n");
         
         var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
-        buf.append(p + "singularity instance start");
+        buf.append(p).append("singularity instance start");
         buf.append(" --env-file ");
         buf.append(getEnvFile());
         buf.append(" --pid-file ");

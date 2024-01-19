@@ -1,5 +1,6 @@
-package edu.utexas.tacc.tapis.jobs.stagers.singularityslurm;
+package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,8 +11,10 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 public final class SingularityRunSlurmCmd
- extends AbstractSlurmOptions
+// extends AbstractSlurmOptions
  implements JobExecCmd
 {
     /* ********************************************************************** */
@@ -37,20 +40,36 @@ public final class SingularityRunSlurmCmd
     @Override
     public String generateExecCmd(Job job) 
     {
-        // The ultimate command produced conforms to this template:
+        // The generated singularity run command text:
         //
-        // sbatch [OPTIONS...] tapisjob.sh
-        //
-        // The generated tapisjob.sh script will contain the singularity run 
-        // command with its options, the designated image and the application
-        // arguments.
-        //
-        //   singularity run [run options...] <image> [args] 
-        //
-        // In a departure from the usual role this method plays, we only generate
-        // the slurm OPTIONS section of the tapisjob.sh script here.  The caller 
-        // constructs the complete script.
-        return getBatchDirectives();
+        //   singularity run [run options...] <container> [args]
+
+        // ------ Create the command buffer.
+        final int capacity = 1024;
+        StringBuilder buf = new StringBuilder(capacity);
+
+        // ------ Start the command text.
+        var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
+        buf.append(p + "singularity run");
+
+        // ------ Fill in environment variables.
+        buf.append(getEnvArg(getEnv()));
+
+        // ------ Fill in the common user-specified arguments.
+        addCommonExecArgs(buf);
+
+        // ------ Fill in command-specific user-specified arguments.
+        addRunSpecificArgs(buf);
+
+        // ------ Assign image.
+        buf.append(" ");
+        buf.append(conditionalQuote(getImage()));
+
+        // ------ Assign application arguments.
+        if (!StringUtils.isBlank(getAppArguments()))
+            buf.append(getAppArguments()); // begins with space char
+
+        return buf.toString();
     }
 
     /* ---------------------------------------------------------------------- */

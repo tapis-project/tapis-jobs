@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
+package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 

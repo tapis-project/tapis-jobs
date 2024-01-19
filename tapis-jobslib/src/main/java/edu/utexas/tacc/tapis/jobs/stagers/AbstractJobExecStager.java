@@ -9,6 +9,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.schedulers.JobScheduler;
+import edu.utexas.tacc.tapis.jobs.schedulers.SlurmScheduler;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
@@ -18,10 +20,10 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 
-public abstract class AbstractJobExecStager 
+public abstract class AbstractJobExecStager
  implements JobExecStager
 {
     /* ********************************************************************** */
@@ -53,7 +55,14 @@ public abstract class AbstractJobExecStager
     protected final Job                 _job;
     
     // The buffer used to build command file content. 
-    protected final StringBuilder       _cmd;
+    protected final StringBuilder _cmdBuilder;
+
+    // The command that implements the JobExecCmd interface
+    protected final JobExecCmd _jobExecCmd;
+
+    // Fields related to batch job execution
+    protected final JobScheduler _scheduler;
+    protected final boolean _isBatch;
 
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -61,13 +70,26 @@ public abstract class AbstractJobExecStager
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    protected AbstractJobExecStager(JobExecutionContext jobCtx)
+    protected AbstractJobExecStager(JobExecutionContext jobCtx, SchedulerTypeEnum schedulerType)
+            throws TapisException
     {
         _jobCtx = jobCtx;
         _job    = jobCtx.getJob();
-        
         // Initialize the command file text.
-        _cmd = new StringBuilder(INIT_CMD_LEN);
+        _cmdBuilder = new StringBuilder(INIT_CMD_LEN);
+        // Set the scheduler properties as needed.
+        // NOTE: For now, we only support slurm. Once other schedulers are supported create the appropriate scheduler
+        if (schedulerType == null) {
+            _scheduler = null;
+        } else if (SchedulerTypeEnum.SLURM.equals(schedulerType)) {
+            _scheduler = new SlurmScheduler(jobCtx);
+        } else {
+            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", schedulerType,
+                                         AbstractJobExecStager.class.getSimpleName());
+            throw new JobException(msg);
+        }
+        _isBatch = (schedulerType != null);
+        _jobExecCmd = createJobExecCmd();
     }
 
     /* ********************************************************************** */
@@ -76,23 +98,23 @@ public abstract class AbstractJobExecStager
     /* ---------------------------------------------------------------------- */
     /* stageJob:                                                              */
     /* ---------------------------------------------------------------------- */
+    /**
+     * Stage the application assets prior to running the job.
+     *  1. Generate and install the wrapper script tapisjob.sh
+     *  2. Generate and install the environment file tapisjob.env
+     *
+     * NOTE: Docker and Singularity use this implementation.
+     *       Zip overrides this implementation.
+     */
     @Override
-    public void stageJob() throws TapisException 
+    public void stageJob() throws TapisException
     {
-        // Create the wrapper script.
-        String wrapperScript = generateWrapperScript();
-        
-        // Create the environment variable definition file.
-        String envVarFile = generateEnvVarFile();
-        
-        // Get the ssh connection used by this job 
-        // to communicate with the execution system.
         var fm = _jobCtx.getJobFileManager();
-        
-        // Install the wrapper script on the execution system.
+        // Create and install the wrapper script.
+        String wrapperScript = generateWrapperScriptContent();
         fm.installExecFile(wrapperScript, JobExecutionUtils.JOB_WRAPPER_SCRIPT, JobFileManager.RWXRWX);
-        
-        // Install the env variable definition file.
+        // Create and install the environment variable definition file.
+        String envVarFile = generateEnvVarFileContent();
         fm.installExecFile(envVarFile, JobExecutionUtils.JOB_ENV_FILE, JobFileManager.RWRW);
     }
     
@@ -106,23 +128,32 @@ public abstract class AbstractJobExecStager
      * 
      * @return the wrapper script content
      */
-    protected abstract String generateWrapperScript() throws TapisException;
+    public abstract String generateWrapperScriptContent() throws TapisException;
     
     /* ---------------------------------------------------------------------- */
     /* generateEnvVarFile:                                                    */
     /* ---------------------------------------------------------------------- */
-    /** This method generates content for a environment variable definition file.
+    /** This method generates content for the environment variable definition file.
      *  
      * @return the content for a environment variable definition file 
      */
-    protected abstract String generateEnvVarFile() throws TapisException;
-    
+    public abstract String generateEnvVarFileContent() throws TapisException;
+
+    /* ---------------------------------------------------------------------- */
+    /* createJobExecCmd:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** This method creates the JobExecCmd.
+     *
+     * @return the wrapper script content
+     */
+    public abstract JobExecCmd createJobExecCmd() throws TapisException;
+
     /* ---------------------------------------------------------------------- */
     /* initBashScript:                                                        */
     /* ---------------------------------------------------------------------- */
     protected void initBashScript()
     {
-        _cmd.append("#!/bin/bash\n\n");
+        _cmdBuilder.append("#!/bin/bash\n\n");
         appendDescription();
     }
     
@@ -131,7 +162,7 @@ public abstract class AbstractJobExecStager
     /* ---------------------------------------------------------------------- */
     protected void initBashBatchScript()
     {
-        _cmd.append("#!/bin/bash\n\n");
+        _cmdBuilder.append("#!/bin/bash\n\n");
         appendBatchDescription();
     }
     
@@ -157,7 +188,7 @@ public abstract class AbstractJobExecStager
          if (opts == null || opts.isEmpty()) return null;
          
          // Assemble the application's argument string.
-         String args = "";
+         StringBuilder args = new StringBuilder();
          for (var opt : opts) {
         	 // Split the argument into key/value components
         	 var arg = opt.getArg();
@@ -171,14 +202,18 @@ public abstract class AbstractJobExecStager
         	 }
         	 
         	 // Add to the argument string.
-        	 args += " " + arg;
+        	 args.append(" ").append(arg);
          }
-         return args;
+         return args.toString();
     }
     
     /* ---------------------------------------------------------------------- */
     /* isAssigned:                                                            */
     /* ---------------------------------------------------------------------- */
+    /**
+     * Determine if a required option is assigned a value.
+     * If not assigned throw an exceptions
+     */
     protected void isAssigned(String runtimeName, String option, String value)
      throws JobException
     {
@@ -196,7 +231,7 @@ public abstract class AbstractJobExecStager
      * which is appropriate for writing to a file that will be sourced by a 
      * script.
      * 
-     * @param values NON-EMPTY list of pair values, one per occurrence
+     * @param pairs NON-EMPTY list of pair values, one per occurrence
      * @return the string that contains all assignments
      */
     protected String getExportPairListArgs(List<Pair<String,String>> pairs) 
@@ -281,14 +316,14 @@ public abstract class AbstractJobExecStager
     /* ---------------------------------------------------------------------- */
     private void appendDescription()
     {
-        _cmd.append("# This script was auto-generated by the Tapis Jobs Service for the purpose\n");
-        _cmd.append("# of running a Tapis application.  The order of execution is as follows:\n");
-        _cmd.append("#\n");
-        _cmd.append("#   1. Standard Tapis and user-supplied environment variables are exported.\n");
-        _cmd.append("#   2. The application container is run with container options, environment\n");
-        _cmd.append("#      variables and application parameters as supplied in the Tapis job,\n");
-        _cmd.append("#      application and system definitions.\n");
-        _cmd.append("\n");
+        _cmdBuilder.append("# This script was auto-generated by the Tapis Jobs Service for the purpose\n");
+        _cmdBuilder.append("# of running a Tapis application.  The order of execution is as follows:\n");
+        _cmdBuilder.append("#\n");
+        _cmdBuilder.append("#   1. Standard Tapis and user-supplied environment variables are exported.\n");
+        _cmdBuilder.append("#   2. The application container is run with container options, environment\n");
+        _cmdBuilder.append("#      variables and application parameters as supplied in the Tapis job,\n");
+        _cmdBuilder.append("#      application and system definitions.\n");
+        _cmdBuilder.append("\n");
     }
 
     /* ---------------------------------------------------------------------- */
@@ -296,14 +331,22 @@ public abstract class AbstractJobExecStager
     /* ---------------------------------------------------------------------- */
     private void appendBatchDescription()
     {
-        _cmd.append("# This script was auto-generated by the Tapis Jobs Service for the purpose\n");
-        _cmd.append("# of running a Tapis application.  The order of execution is as follows:\n");
-        _cmd.append("#\n");
-        _cmd.append("#   1. The batch scheduler options are passed to the scheduler, including any\n");
-        _cmd.append("#      user-specified, scheduler-managed environment variables.\n");
-        _cmd.append("#   2. The application container is run with container options, environment\n");
-        _cmd.append("#      variables and application parameters as supplied in the Tapis job,\n");
-        _cmd.append("#      application and system definitions.\n");
-        _cmd.append("\n");
+        _cmdBuilder.append("# This script was auto-generated by the Tapis Jobs Service for the purpose\n");
+        _cmdBuilder.append("# of running a Tapis application.  The order of execution is as follows:\n");
+        _cmdBuilder.append("#\n");
+        _cmdBuilder.append("#   1. The batch scheduler options are passed to the scheduler, including any\n");
+        _cmdBuilder.append("#      user-specified, scheduler-managed environment variables.\n");
+        _cmdBuilder.append("#   2. The application container is run with container options, environment\n");
+        _cmdBuilder.append("#      variables and application parameters as supplied in the Tapis job,\n");
+        _cmdBuilder.append("#      application and system definitions.\n");
+        _cmdBuilder.append("\n");
+    }
+
+    /* ********************************************************************** */
+    /*                          Accessors                                     */
+    /* ********************************************************************** */
+
+    public JobExecCmd getJobExecCmd() {
+        return _jobExecCmd;
     }
 }

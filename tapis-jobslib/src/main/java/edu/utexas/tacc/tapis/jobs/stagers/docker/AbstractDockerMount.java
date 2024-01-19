@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers.dockernative;
+package edu.utexas.tacc.tapis.jobs.stagers.docker;
 
 abstract class AbstractDockerMount
  implements DockerMount

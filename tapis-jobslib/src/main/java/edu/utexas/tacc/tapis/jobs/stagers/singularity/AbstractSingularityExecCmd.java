@@ -1,4 +1,4 @@
-package edu.utexas.tacc.tapis.jobs.stagers.singularitynative;
+package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 
@@ -169,7 +169,7 @@ abstract class AbstractSingularityExecCmd
      * 
      * Similar code can be found at AbstractJobExecStager.getExportPairListArgs().
      * 
-     * @param values NON-EMPTY list of pair values, one per occurrence
+     * @param pairs NON-EMPTY list of pair values, one per occurrence
      * @return the string that contains all assignments
      */
     protected String getPairListArgs(List<Pair<String,String>> pairs)

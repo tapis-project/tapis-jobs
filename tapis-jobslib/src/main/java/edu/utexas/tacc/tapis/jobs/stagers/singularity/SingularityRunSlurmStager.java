@@ -106,6 +106,9 @@ public class SingularityRunSlurmStager
         // Set the application arguments.
         singularityCmd.setAppArguments(concatAppArguments());
 
+        // Set all environment variables.
+        singularityCmd.setEnv(getEnvVariables());
+
         return singularityCmd;
     }
 }

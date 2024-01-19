@@ -101,7 +101,7 @@ public final class JobExecStageFactory
     {
         // Not yet supported
         String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
-                              scheduler + "(DOCKER)",
+                                     scheduler + "(DOCKER)",
                                      "JobExecStageFactory");
         throw new JobException(msg);
     }
@@ -116,12 +116,12 @@ public final class JobExecStageFactory
         // Get the scheduler's stager.
         JobExecStager stager = switch (runtimeOption) {
             case SINGULARITY_START -> new SingularityStartStager(jobCtx);
-            case SINGULARITY_RUN -> new SingularityRunStager(jobCtx);
+            case SINGULARITY_RUN   -> new SingularityRunStager(jobCtx);
 
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
-                        runtimeOption + "(SINGULARITY)",
-                        "JobExecStageFactory");
+                                             runtimeOption + "(SINGULARITY)",
+                                             "JobExecStageFactory");
                 throw new JobException(msg);
             }
         };
@@ -140,7 +140,7 @@ public final class JobExecStageFactory
         // Make sure the runtime option is supported.
         if (runtimeOption != RuntimeOptionEnum.SINGULARITY_RUN) {
             String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
-                                  scheduler + "(SINGULARITY_" + runtimeOption + ")",
+                                         scheduler + "(SINGULARITY_" + runtimeOption + ")",
                                          "JobExecStageFactory");
             throw new JobException(msg);
         }
@@ -174,7 +174,7 @@ public final class JobExecStageFactory
             default -> {
                 String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(ZIP)",
-                        "JobExecStageFactory");
+                                             "JobExecStageFactory");
                 throw new JobException(msg);
             }
         };

@@ -159,29 +159,15 @@ public abstract class AbstractJobExecStager
      */
     protected String concatAppArguments()
     {
-         // Get the list of user-specified container arguments.
-         var parmSet = _job.getParameterSetModel();
-         var opts    = parmSet.getAppArgs();
-         if (opts == null || opts.isEmpty()) return null;
-         
-         // Assemble the application's argument string.
-         StringBuilder args = new StringBuilder();
-         for (var opt : opts) {
-        	 // Split the argument into key/value components
-        	 var arg = opt.getArg();
-        	 var parts = TapisUtils.splitIntoKeyValue(arg);
-        	 
-        	 // Check if the value needs to be quoted and 
-        	 // rebuild the arg string if it's been modified.
-        	 if (parts.length == 2) {
-        		 var value = TapisUtils.conditionalQuote(parts[1]);
-        		 if (!value.equals(parts[1])) arg = parts[0] + " " + value;
-        	 }
-        	 
-        	 // Add to the argument string.
-        	 args.append(" ").append(arg);
-         }
-         return args.toString();
+        // Get the list of user-specified container arguments.
+        var parmSet = _job.getParameterSetModel();
+        var opts    = parmSet.getAppArgs();
+        if (opts == null || opts.isEmpty()) return null;
+        
+        // Assemble the application's argument string.
+        String args = "";
+        for (var opt : opts) args += " " + opt.getArg();
+        return args;
     }
     
     /* ---------------------------------------------------------------------- */

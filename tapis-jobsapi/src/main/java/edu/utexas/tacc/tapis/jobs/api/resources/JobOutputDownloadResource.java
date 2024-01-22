@@ -114,12 +114,13 @@ public class JobOutputDownloadResource extends AbstractResource{
      @Path("/{jobUuid}/output/download/{outputPath: (.*+)}")
      @Produces(MediaType.APPLICATION_OCTET_STREAM)
      @Operation(
-             description = "Download job's output files for previously submitted job by its UUID. \n"
-                           + "The job must be in a terminal state (FINISHED or FAILED or CANCELLED). By default, allowIfRunning=false. \n"
-            		       + "allowIfRunning=true allows job output download even if job is not in the terminal state.  \n\n"
-                           + "The caller must be the job owner, creator or a tenant administrator.\n"
-            		       + "The URL must ends with '/' even if there is no outputPath is specified. \n"
-                           + "outputPath is relative to the job output path. "
+             description = "Download a job's output files using the job's UUID. "
+      		               + "By default, the job must be in a terminal state (FINISHED or FAILED or CANCELLED) "
+      		               + "for this command to execute. "
+		                   + "To execute when a job is not in a terminal state--and possibly receive incomplete "
+		                   + "results--set _allowIfRunning=true_.  \n\n"
+                           + "The caller must be the job owner, creator or a tenant administrator. "
+            		       + "The _outputPath_ is always relative to the job output directory and must end with a '/'. "
                            + "",
              tags = "jobs",
              security = {@SecurityRequirement(name = "TapisJWT")},

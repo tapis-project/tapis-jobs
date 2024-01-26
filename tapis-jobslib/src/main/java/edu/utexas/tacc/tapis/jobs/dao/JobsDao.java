@@ -1323,8 +1323,8 @@ public final class JobsDao
           pstmt.setString(20, job.getArchiveSystemDir());       // could be null
               
           pstmt.setString(21, job.getDtnSystemId());            // could be null       
-          pstmt.setString(22, job.getDtnMountSourcePath());     // could be null
-          pstmt.setString(23, job.getDtnMountPoint());          // could be null
+          pstmt.setString(22, job.getDtnSystemInputDir());      // could be null
+          pstmt.setString(23, job.getDtnSystemOutputDir());     // could be null
           
           pstmt.setInt(24, job.getNodeCount());
           pstmt.setInt(25, job.getCoresPerNode());
@@ -3080,8 +3080,8 @@ public final class JobsDao
 	        obj.setArchiveSystemDir(rs.getString(22));
 	        
 	        obj.setDtnSystemId(rs.getString(23));
-	        obj.setDtnMountSourcePath(rs.getString(24));
-	        obj.setDtnMountPoint(rs.getString(25));
+	        obj.setDtnSystemInputDir(rs.getString(24));
+	        obj.setDtnSystemOutputDir(rs.getString(25));
 	        
 	        obj.setNodeCount(rs.getInt(26));
 	        obj.setCoresPerNode(rs.getInt(27));

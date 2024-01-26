@@ -6,13 +6,13 @@
 	<parent>
 		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis-jobs</artifactId>
-		<version>1.3.4</version>
+		<version>1.6.0</version>
 	</parent>
 	
 	<artifactId>tapis-jooq-jobslib</artifactId>
 	
-	<name>Tapis Jobs Library</name>
-	<description>Tapis Jobs backend library</description>
+	<name>Tapis Jobs Jooq Library</name>
+	<description>Tapis Jobs Jooq-generated library</description>
     
     <!-- DB connect properties for jOOQ and Flyway -->
   <properties>

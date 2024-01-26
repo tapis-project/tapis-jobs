@@ -96,8 +96,8 @@ public final class Job
     private String   			archiveSystemDir;
     
     private String              dtnSystemId;
-    private String              dtnMountSourcePath;
-    private String              dtnMountPoint;
+    private String              dtnSystemInputDir;
+    private String              dtnSystemOutputDir;
     
     private int      			nodeCount = DEFAULT_NODE_COUNT;
     private int      			coresPerNode = DEFAULT_CORES_PER_NODE;
@@ -398,12 +398,12 @@ public final class Job
             throw new JobException(msg);
         }
         if (!StringUtils.isBlank(dtnSystemId)) {
-            if (StringUtils.isBlank(dtnMountPoint)) {
-                String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "dtnMountPoint");
+            if (StringUtils.isBlank(dtnSystemInputDir)) {
+                String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "dtnSystemInputDir");
                 throw new JobException(msg);
             }
-            if (StringUtils.isBlank(dtnMountSourcePath)) {
-                String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "dtnMountSourcePath");
+            if (StringUtils.isBlank(dtnSystemOutputDir)) {
+                String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "dtnSystemOutputDir");
                 throw new JobException(msg);
             }
         }
@@ -710,20 +710,20 @@ public final class Job
         this.dtnSystemId = dtnSystemId;
     }
 
-    public String getDtnMountSourcePath() {
-        return dtnMountSourcePath;
+    public String getDtnSystemInputDir() {
+        return dtnSystemInputDir;
     }
 
-    public void setDtnMountSourcePath(String dtnMountSourcePath) {
-        this.dtnMountSourcePath = dtnMountSourcePath;
+    public void setDtnSystemInputDir(String dtnSystemInputDir) {
+        this.dtnSystemInputDir = dtnSystemInputDir;
     }
 
-    public String getDtnMountPoint() {
-        return dtnMountPoint;
+    public String getDtnSystemOutputDir() {
+        return dtnSystemOutputDir;
     }
 
-    public void setDtnMountPoint(String dtnMountPoint) {
-        this.dtnMountPoint = dtnMountPoint;
+    public void setDtnSystemOutputDir(String dtnSystemOutputDir) {
+        this.dtnSystemOutputDir = dtnSystemOutputDir;
     }
 
 	public int getNodeCount() {

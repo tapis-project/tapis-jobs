@@ -34,7 +34,7 @@ public final class JobParmSetMarshaller
     // The distinguished string value of an environment variable that is interpreted 
     // as the variable being unset (as opposed to set to the empty string, which is 
     // a valid value).
-    public static final String TAPIS_ENV_VAR_UNSET = "!tapis_not_set";
+    public static final String TAPIS_ENV_VAR_UNSET = TapisConstants.TAPIS_NOT_SET;
     public static final String TAPIS_ENV_VAR_DEFAULT_VALUE = "";
     
     /* **************************************************************************** */

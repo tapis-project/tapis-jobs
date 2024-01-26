@@ -37,8 +37,8 @@ public enum JobTemplateVariables
 	ArchiveOnAppError,
 	
 	DtnSystemId,
-	DtnMountPoint,
-	DtnMountSourcePath,
+	DtnSystemInputDir,
+	DtnSystemOutputDir,
 	
 	Nodes,
 	CoresPerNode,

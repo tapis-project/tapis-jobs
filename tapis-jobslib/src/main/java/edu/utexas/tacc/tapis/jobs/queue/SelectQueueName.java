@@ -63,8 +63,8 @@ public final class SelectQueueName
         properties.put("archiveSystemDir", job.getArchiveSystemDir());
         
         properties.put("dtnSystemId", job.getDtnSystemId());
-        properties.put("dtnMountSourcePath", job.getDtnMountSourcePath());
-        properties.put("dtnMountPoint", job.getDtnMountPoint());
+        properties.put("dtnSystemInputDir", job.getDtnSystemInputDir());
+        properties.put("dtnSystemOutputDir", job.getDtnSystemOutputDir());
         
         properties.put("nodeCount", job.getNodeCount());
         properties.put("coresPerNode", job.getCoresPerNode());

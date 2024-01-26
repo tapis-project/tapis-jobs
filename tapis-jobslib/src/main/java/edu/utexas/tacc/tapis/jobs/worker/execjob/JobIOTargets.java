@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,37 +94,22 @@ public final class JobIOTargets
     /* initSystemsAndDirs:                                                    */
     /* ---------------------------------------------------------------------- */
     /** Assign the systems and directories for the three job targets.  The
-     * values depend on whether a dtn is being used and if a particular target
-     * directory is rooted at the mountpoint of the dtn path on the execution
-     * system.
-     * 
-     * When a dtn directory is being used as a target then the system accessed
-     * will be the dtn system rather than the execution system.  Also,
-     * the mountpoint prefix in the directory path (which only has meaning on
-     * the execution system) needs to be replaced by dtn system's root directory
-     * (which has meaning on the dtn system).
+     * values depend on whether a dtn is being used.  When a dtn directory is 
+     * being used as a target then the system accessed will be the dtn system 
+     * rather than the execution system.
      */
     private void initSystemsAndDirs()
     {
-        // The mountpoint is null in the non-dtn case.
-        var mountPoint = _execSystem.getDtnMountPoint();
-        
-        // Job exec directory io target assignment.
-        if (_dtnSystem != null && _job.getExecSystemExecDir().startsWith(mountPoint)) {
-            _execTarget.systemId = _job.getDtnSystemId();
-            _execTarget.host     = _dtnSystem.getHost();
-            _execTarget.dir =_job.getExecSystemExecDir().replaceFirst(mountPoint, _dtnSystem.getRootDir());
-        } else {
-            _execTarget.systemId   = _job.getExecSystemId();
-            _execTarget.host       = _execSystem.getHost();
-            _execTarget.dir        = _job.getExecSystemExecDir();
-        }
+        // We always write directly to the job exec directory.
+        _execTarget.systemId       = _job.getExecSystemId();
+        _execTarget.host           = _execSystem.getHost();
+        _execTarget.dir            = _job.getExecSystemExecDir();
         
         // Job input directory io target assignment.
-        if (_dtnSystem != null && _job.getExecSystemInputDir().startsWith(mountPoint)) {
+        if (_dtnSystem != null && !StringUtils.isBlank(_job.getDtnSystemInputDir())) {
             _inputTarget.systemId  = _job.getDtnSystemId();
             _inputTarget.host      = _dtnSystem.getHost();
-            _inputTarget.dir =_job.getExecSystemInputDir().replaceFirst(mountPoint, _dtnSystem.getRootDir());
+            _inputTarget.dir       = _job.getDtnSystemInputDir();
         } else {
             _inputTarget.systemId  = _job.getExecSystemId();
             _inputTarget.host      = _execSystem.getHost();
@@ -131,10 +117,10 @@ public final class JobIOTargets
         }
         
         // Job output directory io target assignment.
-        if (_dtnSystem != null && _job.getExecSystemOutputDir().startsWith(mountPoint)) {
+        if (_dtnSystem != null && !StringUtils.isBlank(_job.getDtnSystemOutputDir())) {
             _outputTarget.systemId = _job.getDtnSystemId();
             _outputTarget.host     = _dtnSystem.getHost();
-            _outputTarget.dir =_job.getExecSystemOutputDir().replaceFirst(mountPoint, _dtnSystem.getRootDir());
+            _outputTarget.dir      = _job.getDtnSystemOutputDir();
         } else {
             _outputTarget.systemId = _job.getExecSystemId();
             _outputTarget.host     = _execSystem.getHost();

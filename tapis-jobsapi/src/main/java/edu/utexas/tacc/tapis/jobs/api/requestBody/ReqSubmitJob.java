@@ -34,6 +34,8 @@ public class ReqSubmitJob
     private String                  execSystemLogicalQueue;  // can be null
     private String   			    archiveSystemId;
     private String   			    archiveSystemDir;
+    private String   		     	dtnSystemInputDir;
+    private String   			    dtnSystemOutputDir;
     private Integer   			    nodeCount;
     private Integer      		    coresPerNode;
     private Integer      		    memoryMB;
@@ -415,4 +417,20 @@ public class ReqSubmitJob
     public void setNotesAsString(String notesAsString) {
         this.notesAsString = notesAsString;
     }
+
+	public String getDtnSystemInputDir() {
+		return dtnSystemInputDir;
+	}
+
+	public void setDtnSystemInputDir(String dtnSystemInputDir) {
+		this.dtnSystemInputDir = dtnSystemInputDir;
+	}
+
+	public String getDtnSystemOutputDir() {
+		return dtnSystemOutputDir;
+	}
+
+	public void setDtnSystemOutputDir(String dtnSystemOutputDir) {
+		this.dtnSystemOutputDir = dtnSystemOutputDir;
+	}
 }

@@ -47,6 +47,7 @@ import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
 import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
 import edu.utexas.tacc.tapis.jobs.utils.MacroResolver;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -181,6 +182,19 @@ public final class SubmitContext
         return _job;
     }
     
+    /* **************************************************************************** */
+    /*                                  Accessors                                   */
+    /* **************************************************************************** */
+    public Job getJob() {return _job;}
+    public TapisApp getApp() {return _app;}
+    public TapisSystem getExecSystem() {return _execSystem;}
+    public TapisSystem getDtnSystem() {return _dtnSystem;}
+    public TapisSystem getArchiveSystem() {return _archiveSystem;}
+    public ReqSubmitJob getSubmitReq() {return _submitReq;}
+
+    /* **************************************************************************** */
+    /*                               Private Methods                                */
+    /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* assignOwnerAndTenant:                                                        */
     /* ---------------------------------------------------------------------------- */
@@ -194,7 +208,7 @@ public final class SubmitContext
      * 
      * @throws TapisImplException
      */
-    public void assignOwnerAndTenant() throws TapisImplException
+    private void assignOwnerAndTenant() throws TapisImplException
     {
         // Get the verified request information.
         var oboUser   = _threadContext.getOboUser();
@@ -245,7 +259,7 @@ public final class SubmitContext
      *  
      * @throws TapisImplException
      */
-    public void assignApp() throws TapisImplException
+    private void assignApp() throws TapisImplException
     {
         // Get the application client for this user@tenant.
         AppsClient appsClient = null;
@@ -314,19 +328,6 @@ public final class SubmitContext
         _sharedAppCtx = new JobSharedAppCtx(_app);
     }
 
-    /* **************************************************************************** */
-    /*                                  Accessors                                   */
-    /* **************************************************************************** */
-    public Job getJob() {return _job;}
-    public TapisApp getApp() {return _app;}
-    public TapisSystem getExecSystem() {return _execSystem;}
-    public TapisSystem getDtnSystem() {return _dtnSystem;}
-    public TapisSystem getArchiveSystem() {return _archiveSystem;}
-    public ReqSubmitJob getSubmitReq() {return _submitReq;}
-
-    /* **************************************************************************** */
-    /*                               Private Methods                                */
-    /* **************************************************************************** */
     /* ---------------------------------------------------------------------------- */
     /* resolveArgs:                                                                 */
     /* ---------------------------------------------------------------------------- */
@@ -437,6 +438,73 @@ public final class SubmitContext
     {
         return _app.getId() + "-" + _app.getVersion() + " submitted by " + 
                _submitReq.getOwner() + "@" + _submitReq.getTenant(); 
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* assignAndValidateDtnDirectories:                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** This method is only called when the dtnSystemId is not empty or null. If either
+     * the dtn input or output directories are assigned, then one or both DTN transfers
+     * will take place.  Here's the general way the DTN directories are handled:
+     * 
+     *  1. The application definition either specifies a non-empty path relative to 
+     *     the DTN's root directory or TAPIS_NOT_SET (it's never null/empty/blank, see
+     *     validateApp()).
+     *  2. The job submit request can specify:
+     *  	a. Null/empty/blank to inherit the application's setting
+     *      b. A pathname to override the application's setting
+     *      c. TAPIS_NOT_SET to cancel the application's setting 
+     * 
+     * In the end, the DTN input and output directories are never null, empty or blank
+     * when an execution system specifies a DTN.  However, unless one or both DTN
+     * directories are set (i.e., not TAPIS_NOT_SET), the DTN won't actually be used.
+     * 
+     * @param dtnSystemId the id of the DTN system
+     * @throws TapisImplException 
+     */
+    private void assignAndValidateDtnDirectories(String dtnSystemId) throws TapisImplException
+    {
+    	// Paranoia strikes deep.
+    	if (StringUtils.isBlank(dtnSystemId)) return;
+    	
+    	// Assign the non-empty app value if no value was specified in the request. 
+    	if (StringUtils.isBlank(_submitReq.getDtnSystemInputDir())) 
+    		_submitReq.setDtnSystemInputDir(_app.getJobAttributes().getDtnSystemInputDir());
+    	if (StringUtils.isBlank(_submitReq.getDtnSystemOutputDir())) 
+    		_submitReq.setDtnSystemInputDir(_app.getJobAttributes().getDtnSystemOutputDir());
+    	
+    	// Validate the input path.
+    	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemInputDir())) {
+    		try {sanitizePath(_submitReq.getDtnSystemInputDir(), "dtnSystemInputDir");}
+    		catch (Exception e) {
+    			String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+                                           	 dtnSystemId, "dtnSystemInputDir");
+    			msg += " (" + e.getMessage() + ")";
+          	   	throw new TapisImplException(e.getMessage(), Status.BAD_REQUEST.getStatusCode());
+    		}
+    	}
+    	
+    	// Validate the output path.
+    	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemOutputDir())) {
+    		try {sanitizePath(_submitReq.getDtnSystemOutputDir(), "dtnSystemOutputDir");}
+    		catch (Exception e) {
+    			String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+    					                     dtnSystemId, "dtnSystemOutputDir");
+    			msg += " (" + e.getMessage() + ")";
+          	   	throw new TapisImplException(e.getMessage(), Status.BAD_REQUEST.getStatusCode());
+    		}
+    	}
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* usesDtn:                                                                     */
+    /* ---------------------------------------------------------------------------- */
+    private boolean usesDtn()
+    {
+    	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemInputDir()) ||
+    	    !TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemOutputDir())) 
+    		return true;
+    	return false;	
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -626,44 +694,47 @@ public final class SubmitContext
             	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", "dtnSystemId", sanitized);
             	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
+        	
+        	// Assign the DTN input and output directories to _submitReq. These values 
+        	// determine if DTN processing will actually occur on this job.
+        	assignAndValidateDtnDirectories(_execSystem.getDtnSystemId());
 
-        	// Load the DTN system definition.
-            boolean requireExecPerm = false;
-           _dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
-                                             requireExecPerm, LoadSystemTypes.dtn, 
-                                             _sharedAppCtx.getSharingExecSystemAppOwner()); // exec system sharing
-           if (_dtnSystem.getIsDtn() == null || !_dtnSystem.getIsDtn()) {
-               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM", _execSystem.getId(),
-                                            _dtnSystem.getId());
-               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-           }
-           // Make sure all required dtn definitions are assigned.
-           if (StringUtils.isBlank(_execSystem.getDtnMountPoint())) {
-               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-                                            _dtnSystem.getId(), "dtnMountPoint");
-               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-           }
-           if (StringUtils.isBlank(_execSystem.getDtnMountSourcePath())) {
-               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-                                            _dtnSystem.getId(), "dtnMountSourcePath");
-               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-           }
-           
-           // Detect control characters in paths.
-           try {sanitizePath(_execSystem.getDtnMountPoint(), "dtnMountPoint");}
-           catch (Exception e) {
-        	   String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-        			   						_dtnSystem.getId(), "dtnMountPoint");
-        	   msg += " (" + e.getMessage() + ")";
-           	   throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-           }
-           try {sanitizePath(_execSystem.getDtnMountSourcePath(), "dtnMountSourcePath");}
-           catch (Exception e) {
-        	   String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-                                         	_dtnSystem.getId(), "dtnMountSourcePath");
-        	   msg += " (" + e.getMessage() + ")";
-           	   throw new TapisImplException(e.getMessage(), Status.BAD_REQUEST.getStatusCode());
-           }
+        	// Conditionally load the DTN system definition.
+        	if (usesDtn()) {
+        		final boolean requireExecPerm = false;
+        		_dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
+                                             	  requireExecPerm, LoadSystemTypes.dtn, 
+                                                  _sharedAppCtx.getSharingExecSystemAppOwner()); // exec system sharing
+        	}
+
+// TODO: Replace with apps code           
+//           // Make sure all required dtn definitions are assigned.
+//           if (StringUtils.isBlank(_execSystem.getDtnMountPoint())) {
+//               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+//                                            _dtnSystem.getId(), "dtnMountPoint");
+//               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+//           }
+//           if (StringUtils.isBlank(_execSystem.getDtnMountSourcePath())) {
+//               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+//                                            _dtnSystem.getId(), "dtnMountSourcePath");
+//               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+//           }
+//           
+//           // Detect control characters in paths.
+//           try {sanitizePath(_execSystem.getDtnMountPoint(), "dtnMountPoint");}
+//           catch (Exception e) {
+//        	   String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+//        			   						_dtnSystem.getId(), "dtnMountPoint");
+//        	   msg += " (" + e.getMessage() + ")";
+//           	   throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+//           }
+//           try {sanitizePath(_execSystem.getDtnMountSourcePath(), "dtnMountSourcePath");}
+//           catch (Exception e) {
+//        	   String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
+//                                         	_dtnSystem.getId(), "dtnMountSourcePath");
+//        	   msg += " (" + e.getMessage() + ")";
+//           	   throw new TapisImplException(e.getMessage(), Status.BAD_REQUEST.getStatusCode());
+//           }
         }
         
         // --------------------- Archive System ------------------
@@ -2106,8 +2177,8 @@ public final class SubmitContext
         // ---------- Ground, optional
         if (_dtnSystem != null) {
             _macros.put(JobTemplateVariables.DtnSystemId.name(),        _execSystem.getDtnSystemId());
-            _macros.put(JobTemplateVariables.DtnMountPoint.name(),      _execSystem.getDtnMountPoint());
-            _macros.put(JobTemplateVariables.DtnMountSourcePath.name(), _execSystem.getDtnMountSourcePath());
+            _macros.put(JobTemplateVariables.DtnSystemInputDir.name(),  _submitReq.getDtnSystemInputDir());
+            _macros.put(JobTemplateVariables.DtnSystemOutputDir.name(), _submitReq.getDtnSystemOutputDir());
         }
         
         if (!StringUtils.isBlank(_execSystem.getBucketName()))
@@ -2569,6 +2640,17 @@ public final class SubmitContext
     	// ----- appVersion
     	JobsApiUtils.hasDangerousCharacters("", "appVersion", _submitReq.getAppVersion());
     	
+    	// ----- DTN directories
+    	// Should never by null/empty/blank in the app definition.
+    	if (StringUtils.isBlank(app.getJobAttributes().getDtnSystemInputDir())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateApp", "dtnSystemInputDir");
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    	}
+    	if (StringUtils.isBlank(app.getJobAttributes().getDtnSystemOutputDir())) {
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateApp", "dtnSystemOutputDir");
+            throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    	}
+    	
         // This should be checked in apps, but we double check here.
         if (app.getRuntime() == RuntimeEnum.SINGULARITY) {
             
@@ -2794,8 +2876,8 @@ public final class SubmitContext
         // DTN system fields.
         if (_dtnSystem != null) {
             _job.setDtnSystemId(_execSystem.getDtnSystemId());
-            _job.setDtnMountPoint(_execSystem.getDtnMountPoint());
-            _job.setDtnMountSourcePath(_execSystem.getDtnMountSourcePath());
+            _job.setDtnSystemInputDir(_submitReq.getDtnSystemInputDir());
+            _job.setDtnSystemOutputDir(_submitReq.getDtnSystemOutputDir());
         }
         
         // Assign job limits.

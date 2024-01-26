@@ -87,6 +87,16 @@
             "type": "string",
             "maxLength": 4096
           },
+          "dtnSystemInputDir": {
+            "$comment": "The optional data transfer node directory into which input files are staged",
+            "type": "string",
+            "maxLength": 4096
+          },
+          "dtnSystemOutputDir": {
+            "$comment": "The optional data transfer node into which application output is archived",
+            "type": "string",
+            "maxLength": 4096
+          },
           "nodeCount": {
             "$comment": "Number of nodes required for application execution, default=1",
             "type": "integer"

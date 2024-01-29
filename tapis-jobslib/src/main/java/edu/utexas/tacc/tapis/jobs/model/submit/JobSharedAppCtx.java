@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 
 public final class JobSharedAppCtx 
 {
@@ -31,11 +32,14 @@ public final class JobSharedAppCtx
         SAC_EXEC_SYSTEM_INPUT_DIR,
         SAC_EXEC_SYSTEM_OUTPUT_DIR,
         SAC_ARCHIVE_SYSTEM_ID,
-        SAC_ARCHIVE_SYSTEM_DIR
+        SAC_ARCHIVE_SYSTEM_DIR,
+        SAC_DTN_SYSTEM_ID,
+        SAC_DTN_SYSTEM_INPUT_DIR,
+        SAC_DTN_SYSTEM_OUTPUT_DIR
     }
     
     // Number of possible values in preceding enum.
-    public static final int MAX_SHARED_APP_CTX_ATTRIBS = 6;
+    public static final int MAX_SHARED_APP_CTX_ATTRIBS = 9;
      
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -143,6 +147,33 @@ public final class JobSharedAppCtx
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* calcDtnSystemId:                                                             */
+    /* ---------------------------------------------------------------------------- */
+    /** This method determines whether an attribute is shared.  It must be called
+     * AFTER any app value merging into the job submission request is performed. 
+     * Specifically, the exec system must already be shared, i.e. calcExecSystemId()
+     * has already been called.
+     * 
+     * @param jobExecSystemId the non-null job request value after app merge
+     * @param sysDtnSystemId the possibly null execution system definition DTN value
+     */
+    public void calcDtnSystemId(String jobExecSystemId, String sysDtnSystemId)
+    {
+        // Is the application shared with this user?
+        if (!_sharingEnabled) return;
+        
+        // We can only share a dtn system if one is specified.
+        if (StringUtils.isBlank(sysDtnSystemId)) return;
+        
+        // We only share the dtn if we have already shared the exec system.
+        // This covers the constraint that exec system is as specified in the app.
+        if (!isSharingExecSystemId()) return;
+        
+        // We share if the app and job request have the same value.
+        _sharedAppCtxAttribs.add(JobSharedAppCtxEnum.SAC_DTN_SYSTEM_ID);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* calcExecDirSharing:                                                          */
     /* ---------------------------------------------------------------------------- */
     /** This method determines whether an execution system directory attribute is shared.  
@@ -217,6 +248,29 @@ public final class JobSharedAppCtx
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* calcDtnDirSharing:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** This method determines whether a dtn system directory attribute is shared.  
+     * This method must be called AFTER the app directory value has been merged into 
+     * the job submission request and calcDtnSystemId() has been called. 
+     * 
+     * @param attrib the attribute to be shared
+     * @param jobDtnDir the possibly null job request directory
+     * @param appDtnDir the non-null application directory
+     */
+    public void calcDtnDirSharing(JobSharedAppCtxEnum attrib, String jobDtnDir, String appDtnDir)
+    {
+        // Is the application and exec system shared with this user?
+        if (!isSharingDtnSystemId()) return;
+        
+        // Is the directory unset in the job submission request (explicitly or by inheritance)?
+        if (TapisConstants.TAPIS_NOT_SET.equals(jobDtnDir)) return;
+        
+        // Sharing's in effect if the app and job directories are the same.
+        if (appDtnDir.equals(jobDtnDir)) _sharedAppCtxAttribs.add(attrib);
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* isSharingExecSystemId:                                                       */
     /* ---------------------------------------------------------------------------- */
     public boolean isSharingExecSystemId() 
@@ -251,6 +305,24 @@ public final class JobSharedAppCtx
     /* ---------------------------------------------------------------------------- */
     public boolean isSharingArchiveSystemDir() 
     {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_ARCHIVE_SYSTEM_DIR);}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* isSharingDtnSystemId:                                                        */
+    /* ---------------------------------------------------------------------------- */
+    public boolean isSharingDtnSystemId() 
+    {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_DTN_SYSTEM_ID);}
+   
+    /* ---------------------------------------------------------------------------- */
+    /* isSharingDtnSystemInputDir:                                                  */
+    /* ---------------------------------------------------------------------------- */
+    public boolean isSharingDtnSystemInputDir() 
+    {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_DTN_SYSTEM_INPUT_DIR);}
+    
+    /* ---------------------------------------------------------------------------- */
+    /* isSharingDtnSystemOutputDir:                                                 */
+    /* ---------------------------------------------------------------------------- */
+    public boolean isSharingDtnSystemOutputDir() 
+    {return _sharingEnabled && _sharedAppCtxAttribs.contains(JobSharedAppCtxEnum.SAC_DTN_SYSTEM_OUTPUT_DIR);}
     
     /* ---------------------------------------------------------------------------- */
     /* getSharingExecSystemAppOwner:                                                */
@@ -307,6 +379,30 @@ public final class JobSharedAppCtx
     /* ---------------------------------------------------------------------------- */
     public String getSharingArchiveSystemDirAppOwner() {
     	if (isSharingArchiveSystemDir()) return _sharedAppOwner;
+    	else return NOT_SHARED_APP_OWNER;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getSharingDtnSystemAppOwner:                                                */
+    /* ---------------------------------------------------------------------------- */
+    public String getSharingDtnSystemAppOwner() {
+    	if (isSharingDtnSystemId()) return _sharedAppOwner;
+    	else return NOT_SHARED_APP_OWNER;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getSharingDtnSystemInputDirAppOwner:                                         */
+    /* ---------------------------------------------------------------------------- */
+    public String getSharingDtnSystemInputDirAppOwner() {
+    	if (isSharingDtnSystemInputDir()) return _sharedAppOwner;
+    	else return NOT_SHARED_APP_OWNER;
+    }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* getSharingDtnSystemOutputDirAppOwner:                                        */
+    /* ---------------------------------------------------------------------------- */
+    public String getSharingDtnSystemOutputDirAppOwner() {
+    	if (isSharingDtnSystemOutputDir()) return _sharedAppOwner;
     	else return NOT_SHARED_APP_OWNER;
     }
     

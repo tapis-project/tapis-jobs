@@ -163,7 +163,7 @@ public final class JobExecutionContext
         if (_dtnSystem == null) {
             _dtnSystem = loadSystemDefinition(getServiceClient(SystemsClient.class), 
                              _job.getDtnSystemId(), false, LoadSystemTypes.dtn,
-                             _jobSharedAppCtx.getSharingExecSystemAppOwner());
+                             _jobSharedAppCtx.getSharingDtnSystemAppOwner());
         }
         
         return _dtnSystem;

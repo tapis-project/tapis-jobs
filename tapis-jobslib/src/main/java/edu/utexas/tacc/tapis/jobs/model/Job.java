@@ -47,11 +47,7 @@ public final class Job
 	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${JobWorkingDir}/jobs/${JobUUID}";
 	public static final String DEFAULT_EXEC_SYSTEM_EXEC_DIR    = DEFAULT_EXEC_SYSTEM_INPUT_DIR;
 	public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_DIR  = DEFAULT_EXEC_SYSTEM_INPUT_DIR + "/output";
-	public static final String DEFAULT_DTN_SYSTEM_INPUT_DIR    = "/${DtnMountPoint}/jobs/${JobUUID}";
-	public static final String DEFAULT_DTN_SYSTEM_EXEC_DIR     = DEFAULT_DTN_SYSTEM_INPUT_DIR;
-	public static final String DEFAULT_DTN_SYSTEM_OUTPUT_DIR   = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/output";
     public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${JobUUID}/archive";
-    public static final String DEFAULT_DTN_SYSTEM_ARCHIVE_DIR  = DEFAULT_DTN_SYSTEM_INPUT_DIR + "/archive";
     
     // Standard container mountpoints.
     public static final String DEFAULT_EXEC_SYSTEM_INPUT_MOUNTPOINT  = "/TapisInput";

@@ -341,7 +341,7 @@ public final class SubmitContext
         // Resolve constraints before resolving systems.
         resolveConstraints();
         
-        // Resolve all systems and their sharing attributes.
+        // Resolve all systems, their sharing attributes and dtn directories.
         resolveSystems();
         
         // Resolve job type.
@@ -456,8 +456,9 @@ public final class SubmitContext
      *      c. TAPIS_NOT_SET to cancel the application's setting 
      * 
      * In the end, the DTN input and output directories are never null, empty or blank
-     * when an execution system specifies a DTN.  However, unless one or both DTN
-     * directories are set (i.e., not TAPIS_NOT_SET), the DTN won't actually be used.
+     * when an execution system specifies a DTN.  This is enforced by validateApp().
+     * However, unless one or both DTN directories are set (i.e., not TAPIS_NOT_SET), 
+     * the DTN won't actually be used.
      * 
      * @param dtnSystemId the id of the DTN system
      * @throws TapisImplException 
@@ -473,39 +474,45 @@ public final class SubmitContext
     	if (StringUtils.isBlank(_submitReq.getDtnSystemOutputDir())) 
     		_submitReq.setDtnSystemInputDir(_app.getJobAttributes().getDtnSystemOutputDir());
     	
-    	// Validate the input path.
-    	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemInputDir())) {
-    		try {sanitizePath(_submitReq.getDtnSystemInputDir(), "dtnSystemInputDir");}
-    		catch (Exception e) {
-    			String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-                                           	 dtnSystemId, "dtnSystemInputDir");
-    			msg += " (" + e.getMessage() + ")";
-          	   	throw new TapisImplException(e.getMessage(), Status.BAD_REQUEST.getStatusCode());
-    		}
-    	}
+    	// Validate the non-null input path.
+    	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemInputDir()))
+    		sanitizePath(_submitReq.getDtnSystemInputDir(), "dtnSystemInputDir");
     	
-    	// Validate the output path.
-    	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemOutputDir())) {
-    		try {sanitizePath(_submitReq.getDtnSystemOutputDir(), "dtnSystemOutputDir");}
-    		catch (Exception e) {
-    			String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-    					                     dtnSystemId, "dtnSystemOutputDir");
-    			msg += " (" + e.getMessage() + ")";
-          	   	throw new TapisImplException(e.getMessage(), Status.BAD_REQUEST.getStatusCode());
-    		}
-    	}
+    	// Validate the non-null output path.
+    	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemOutputDir())) 
+    		sanitizePath(_submitReq.getDtnSystemOutputDir(), "dtnSystemOutputDir");
     }
     
     /* ---------------------------------------------------------------------------- */
-    /* usesDtn:                                                                     */
+    /* useDtn:                                                                      */
     /* ---------------------------------------------------------------------------- */
-    private boolean usesDtn()
+    /** Determine if a dtn is to be used for either input or output transfers.  This
+     * method can only be called AFTER the dtn directories have been resolved. 
+     * 
+     * @return true if the dtn will be used, false otherwise.
+     */
+    private boolean useDtn()
     {
+    	// Guard against improper usage.
+    	if (StringUtils.isBlank(_execSystem.getDtnSystemId())) return false;
+    	
+    	// These values can never be null.
     	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemInputDir()) ||
     	    !TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemOutputDir())) 
     		return true;
-    	return false;	
+    	return false; // neither directory was set.	
     }
+    
+    /* ---------------------------------------------------------------------------- */
+    /* dtnSystemIsLoaded:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** The dtn system is loaded only if at least one of the dtn input or output 
+     * directories will be used.  This method should only be called AFTER the 
+     * resolveSystems() call completes.
+     * 
+     * @return true if the dtn system has been loaded, false otherwise.
+     */
+    private boolean dtnSystemIsLoaded() {return _dtnSystem != null;}
     
     /* ---------------------------------------------------------------------------- */
     /* resolveParameterSet:                                                         */
@@ -695,47 +702,54 @@ public final class SubmitContext
             	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         	
+        	// Prohibit useless assignments.
+        	if (_execSystem.getId().equals(_execSystem.getDtnSystemId())) {
+            	var msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_ASSIGNMENT", _execSystem.getId());
+            	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        	}
+        	
         	// Assign the DTN input and output directories to _submitReq. These values 
-        	// determine if DTN processing will actually occur on this job.
+        	// determine if DTN processing will actually occur on this job.  useDtn() 
+        	// can only be called after this method has executed.
         	assignAndValidateDtnDirectories(_execSystem.getDtnSystemId());
 
-        	// Conditionally load the DTN system definition.
-        	if (usesDtn()) {
+        	// Conditionally load the DTN system definition based on (1) the dtnSystemId is
+        	// set and (2) at least one of the dtn directories is set.
+        	if (useDtn()) {
+        		// Determine if the application shares dtn access once we know we'll use the dtn.
+        		_sharedAppCtx.calcDtnSystemId(_execSystem.getId(), _execSystem.getDtnSystemId());
+        	
+        		// Successfully loading the dtn system allows for the 3 dtn fields to ultimately
+        		// be assigned in the job recorder.  When the dtn system is not loaded the
+        		// dtn fields in the job record will be null in the database. 
         		final boolean requireExecPerm = false;
         		_dtnSystem = loadSystemDefinition(systemsClient, _execSystem.getDtnSystemId(), 
                                              	  requireExecPerm, LoadSystemTypes.dtn, 
-                                                  _sharedAppCtx.getSharingExecSystemAppOwner()); // exec system sharing
-        	}
-
-// TODO: Replace with apps code           
-//           // Make sure all required dtn definitions are assigned.
-//           if (StringUtils.isBlank(_execSystem.getDtnMountPoint())) {
-//               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-//                                            _dtnSystem.getId(), "dtnMountPoint");
-//               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-//           }
-//           if (StringUtils.isBlank(_execSystem.getDtnMountSourcePath())) {
-//               String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-//                                            _dtnSystem.getId(), "dtnMountSourcePath");
-//               throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-//           }
-//           
-//           // Detect control characters in paths.
-//           try {sanitizePath(_execSystem.getDtnMountPoint(), "dtnMountPoint");}
-//           catch (Exception e) {
-//        	   String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-//        			   						_dtnSystem.getId(), "dtnMountPoint");
-//        	   msg += " (" + e.getMessage() + ")";
-//           	   throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-//           }
-//           try {sanitizePath(_execSystem.getDtnMountSourcePath(), "dtnMountSourcePath");}
-//           catch (Exception e) {
-//        	   String msg = MsgUtils.getMsg("JOBS_INVALID_DTN_SYSTEM_CONFIG", _execSystem.getId(),
-//                                         	_dtnSystem.getId(), "dtnMountSourcePath");
-//        	   msg += " (" + e.getMessage() + ")";
-//           	   throw new TapisImplException(e.getMessage(), Status.BAD_REQUEST.getStatusCode());
-//           }
-        }
+                                                  _sharedAppCtx.getSharingDtnSystemAppOwner());
+        	
+        		// Make sure the dtn system is enabled.
+        		if (_dtnSystem.getEnabled() == null || !_dtnSystem.getEnabled()) {
+                    String msg = MsgUtils.getMsg("JOBS_SYSTEM_NOT_AVAILABLE", _job.getUuid(), _dtnSystem.getId());
+                    throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        		}
+        		
+        		// Validate root directory conformance.
+        		if (!_execSystem.getRootDir().equals(_dtnSystem.getRootDir())) {
+        			var msg = MsgUtils.getMsg("JOBS_INVALID_DTN_ROOTDIR", _execSystem.getId(), _dtnSystem.getId(),
+            			                      _execSystem.getRootDir(), _dtnSystem.getRootDir());
+        			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+        		}
+        	
+        		// At least one of these directories is specified, but we don't know if they
+        		// will be accessed through a SAC.
+        		_sharedAppCtx.calcDtnDirSharing(JobSharedAppCtxEnum.SAC_DTN_SYSTEM_INPUT_DIR, 
+        			                            _submitReq.getDtnSystemInputDir(), 
+        			                            _app.getJobAttributes().getDtnSystemInputDir());
+        		_sharedAppCtx.calcDtnDirSharing(JobSharedAppCtxEnum.SAC_DTN_SYSTEM_OUTPUT_DIR, 
+                                                _submitReq.getDtnSystemOutputDir(), 
+                                                _app.getJobAttributes().getDtnSystemOutputDir());
+        	} // using the dtn
+        } // dtn 
         
         // --------------------- Archive System ------------------
         // Assign and load the archive system if one is specified.
@@ -941,7 +955,7 @@ public final class SubmitContext
     private void resolveDirectoryPathNames() throws TapisImplException
     {
         // Are we using a DTN?
-        final boolean useDTN = _dtnSystem != null;
+        final boolean useDTN = dtnSystemIsLoaded();
         
         // --------------------- Exec System ---------------------
         // The input directory is used as the basis for other exec system path names
@@ -952,28 +966,19 @@ public final class SubmitContext
         if (StringUtils.isBlank(_submitReq.getExecSystemInputDir()))
             _submitReq.setExecSystemInputDir(_app.getJobAttributes().getExecSystemInputDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemInputDir())) 
-            if (useDTN)
-                _submitReq.setExecSystemInputDir(Job.DEFAULT_DTN_SYSTEM_INPUT_DIR);
-            else
-                _submitReq.setExecSystemInputDir(Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR);
+        	_submitReq.setExecSystemInputDir(Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR);
         
         // Exec path.
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
             _submitReq.setExecSystemExecDir(_app.getJobAttributes().getExecSystemExecDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
-            if (useDTN)
-                _submitReq.setExecSystemExecDir(Job.DEFAULT_DTN_SYSTEM_EXEC_DIR);
-            else
-                _submitReq.setExecSystemExecDir(Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR);
+            _submitReq.setExecSystemExecDir(Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR);
         
         // Output path.
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
             _submitReq.setExecSystemOutputDir(_app.getJobAttributes().getExecSystemOutputDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
-            if (useDTN)
-                _submitReq.setExecSystemOutputDir(Job.DEFAULT_DTN_SYSTEM_OUTPUT_DIR);
-            else
-                _submitReq.setExecSystemOutputDir(Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR);
+            _submitReq.setExecSystemOutputDir(Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR);
       
         // --------------------- Archive System ------------------
         // Set the archive system directory.
@@ -983,17 +988,13 @@ public final class SubmitContext
             if (_archiveSystem == _execSystem) // Address equality OK here (see resolveSystems())
                 // Leave the output in place when the exec system is also the archive system.
                 _submitReq.setArchiveSystemDir(_submitReq.getExecSystemOutputDir());
-            else if (useDTN)
-                // When the archive system is the DTN, then we archive to the 
-                // DTN's default archive directory.
-                _submitReq.setArchiveSystemDir(Job.DEFAULT_DTN_SYSTEM_ARCHIVE_DIR);
             else
                 // When the archive system is different from the exec system,
                 // we archive to the default archive directory.
                 _submitReq.setArchiveSystemDir(Job.DEFAULT_ARCHIVE_SYSTEM_DIR);
         
         // Assign the sharing attributes for all four directories.
-        calculateDirectorySharing(useDTN);
+        calculateDirectorySharing();
         
         // Detect ".." segments and control characters in path early. 
         sanitizeDirectoryPathnames();
@@ -1002,38 +1003,34 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* calculateDirectorySharing:                                                   */
     /* ---------------------------------------------------------------------------- */
-    private void calculateDirectorySharing(boolean useDTN)
+    private void calculateDirectorySharing()
     {
         // Don't waste a lot time...
         if (!_sharedAppCtx.isSharingEnabled()) return;
         
         // Are we accessing the input directory in a shared context?
-        var defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_INPUT_DIR :
-                                  Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR;
+        var defaultDir = Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR;
         _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR,
                                          _submitReq.getExecSystemInputDir(),
                                          _app.getJobAttributes().getExecSystemInputDir(), 
                                          defaultDir);
 
         // Are we accessing the exec directory in a shared context?
-        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_EXEC_DIR :
-                              Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR;
+        defaultDir = Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR;
         _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_EXEC_DIR,
                                          _submitReq.getExecSystemExecDir(),
                                          _app.getJobAttributes().getExecSystemExecDir(), 
                                          defaultDir);
         
         // Are we accessing the output directory in a shared context?
-        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_OUTPUT_DIR :
-                              Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
+        defaultDir = Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
         _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR,
                                          _submitReq.getExecSystemOutputDir(),
                                          _app.getJobAttributes().getExecSystemOutputDir(), 
                                          defaultDir);
 
         // Are we accessing the archive directory in a shared context?
-        defaultDir = useDTN ? Job.DEFAULT_DTN_SYSTEM_ARCHIVE_DIR :
-                              Job.DEFAULT_ARCHIVE_SYSTEM_DIR;
+        defaultDir = Job.DEFAULT_ARCHIVE_SYSTEM_DIR;
         _sharedAppCtx.calcArchiveDirSharing(_submitReq.getArchiveSystemDir(),
                                             _app.getJobAttributes().getArchiveSystemDir(),
                                             _submitReq.getArchiveSystemId(),
@@ -2175,7 +2172,7 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.StderrFilename.name(), _submitReq.getParameterSet().getLogConfig().getStderrFilename());
         
         // ---------- Ground, optional
-        if (_dtnSystem != null) {
+        if (dtnSystemIsLoaded()) {
             _macros.put(JobTemplateVariables.DtnSystemId.name(),        _execSystem.getDtnSystemId());
             _macros.put(JobTemplateVariables.DtnSystemInputDir.name(),  _submitReq.getDtnSystemInputDir());
             _macros.put(JobTemplateVariables.DtnSystemOutputDir.name(), _submitReq.getDtnSystemOutputDir());
@@ -2641,7 +2638,8 @@ public final class SubmitContext
     	JobsApiUtils.hasDangerousCharacters("", "appVersion", _submitReq.getAppVersion());
     	
     	// ----- DTN directories
-    	// Should never by null/empty/blank in the app definition.
+    	// Should never be null/empty/blank in the app definition.
+    	// The default in app defintions is TAPIS_NOT_SET.
     	if (StringUtils.isBlank(app.getJobAttributes().getDtnSystemInputDir())) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateApp", "dtnSystemInputDir");
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
@@ -2874,7 +2872,7 @@ public final class SubmitContext
         _job.setArchiveSystemDir(_submitReq.getArchiveSystemDir());
         
         // DTN system fields.
-        if (_dtnSystem != null) {
+        if (dtnSystemIsLoaded()) {
             _job.setDtnSystemId(_execSystem.getDtnSystemId());
             _job.setDtnSystemInputDir(_submitReq.getDtnSystemInputDir());
             _job.setDtnSystemOutputDir(_submitReq.getDtnSystemOutputDir());

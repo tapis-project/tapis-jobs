@@ -156,8 +156,8 @@ public final class JobExecutionContext
     public TapisSystem getDtnSystem() 
      throws TapisException 
     {
-        // The dtn system is optional.
-        if (_job.getDtnSystemId() == null) return null;
+        // The dtn system is optional and may never get loaded.
+        if (!useDtn()) return null;
         
         // Load the execution system on first use.
         if (_dtnSystem == null) {
@@ -217,17 +217,6 @@ public final class JobExecutionContext
     {
         if (_jobFileManager == null) _jobFileManager = new JobFileManager(this);
         return _jobFileManager;
-    } 
-    
-    /* ---------------------------------------------------------------------- */
-    /* getJobIOTargets:                                                       */
-    /* ---------------------------------------------------------------------- */
-    public JobIOTargets getJobIOTargets() 
-     throws TapisException 
-    {
-        if (_jobIOTargets == null) 
-            _jobIOTargets = new JobIOTargets(_job, getExecutionSystem(), getDtnSystem());
-        return _jobIOTargets;
     } 
     
     /* ---------------------------------------------------------------------- */
@@ -545,11 +534,61 @@ public final class JobExecutionContext
         return false;
     }
 
+    
+    /* ---------------------------------------------------------------------- */
+    /* useDtn:                                                                */
+    /* ---------------------------------------------------------------------- */
+    /** Determine if we should use a dtn for at least one transfer.
+     * 
+     * @return true if dtn will be used, false otherwise.
+     */
+    public boolean useDtn()
+    {
+    	if (_job.getDtnSystemId() == null) return false; // common case optimized
+    	return useDtnInput() || useDtnOutput();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* useDtnInput:                                                           */
+    /* ---------------------------------------------------------------------- */
+    public boolean useDtnInput() 
+    {
+    	// First verify that we have a dtn system defined.
+    	if (StringUtils.isBlank(_job.getDtnSystemId())) return false;
+    	return StringUtils.isNotBlank(_job.getDtnSystemInputDir()) &&
+	           !TapisConstants.TAPIS_NOT_SET.equals(_job.getDtnSystemInputDir());
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* useDtnOutput:                                                          */
+    /* ---------------------------------------------------------------------- */
+    public boolean useDtnOutput() 
+    {
+    	// First verify that we have a dtn system defined.
+    	if (StringUtils.isBlank(_job.getDtnSystemId())) return false;
+    	return StringUtils.isNotBlank(_job.getDtnSystemOutputDir()) &&
+	           !TapisConstants.TAPIS_NOT_SET.equals(_job.getDtnSystemOutputDir());
+    }
+    
     /* ---------------------------------------------------------------------- */
     /* getJobsDao:                                                            */
     /* ---------------------------------------------------------------------- */
     public JobsDao getJobsDao() {return _jobsDao;}
 
+    /* ********************************************************************** */
+    /*                            Package Methods                             */
+    /* ********************************************************************** */
+    /* ---------------------------------------------------------------------- */
+    /* getJobIOTargets:                                                       */
+    /* ---------------------------------------------------------------------- */
+    JobIOTargets getJobIOTargets() 
+     throws TapisException 
+    {
+        if (_jobIOTargets == null) 
+            _jobIOTargets = new JobIOTargets(_job, getExecutionSystem(), getDtnSystem());
+        return _jobIOTargets;
+    } 
+    
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */

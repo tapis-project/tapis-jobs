@@ -61,6 +61,8 @@ public final class JobIOTargets
     private final JobIOTarget         _execTarget = new JobIOTarget();
     private final JobIOTarget         _inputTarget = new JobIOTarget();
     private final JobIOTarget         _outputTarget = new JobIOTarget();
+    private final JobIOTarget         _dtnInputTarget;   // can be null
+    private final JobIOTarget         _dtnOutputTarget;  // can be null
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -71,10 +73,20 @@ public final class JobIOTargets
     public JobIOTargets(Job job, TapisSystem execSystem, TapisSystem dtnSystem) 
      throws TapisException
     {
+    	// Assign arguments.
         _job = job;
         _execSystem = execSystem;
         _dtnSystem = dtnSystem;
         
+        // Determine if dtn is being used for either input or output.
+        if (job.getJobCtx().useDtnInput()) 
+        	_dtnInputTarget = new JobIOTarget();
+          else _dtnInputTarget = null;
+        if (job.getJobCtx().useDtnOutput()) 
+        	_dtnOutputTarget = new JobIOTarget();
+          else _dtnOutputTarget = null;
+ 
+        // Initialize io targets.
         initSystemsAndDirs();
         checkDtnEnabled();
     }
@@ -86,6 +98,8 @@ public final class JobIOTargets
     public JobIOTarget getExecTarget() {return _execTarget;}
     public JobIOTarget getInputTarget() {return _inputTarget;}
     public JobIOTarget getOutputTarget() {return _outputTarget;}
+    public JobIOTarget getDtnInputTarget() {return _dtnInputTarget;}
+    public JobIOTarget getDtnOutputTarget() {return _dtnOutputTarget;}
 
     /* ********************************************************************** */
     /*                            Private Methods                             */
@@ -106,25 +120,27 @@ public final class JobIOTargets
         _execTarget.dir            = _job.getExecSystemExecDir();
         
         // Job input directory io target assignment.
-        if (_dtnSystem != null && !StringUtils.isBlank(_job.getDtnSystemInputDir())) {
-            _inputTarget.systemId  = _job.getDtnSystemId();
-            _inputTarget.host      = _dtnSystem.getHost();
-            _inputTarget.dir       = _job.getDtnSystemInputDir();
-        } else {
-            _inputTarget.systemId  = _job.getExecSystemId();
-            _inputTarget.host      = _execSystem.getHost();
-            _inputTarget.dir       = _job.getExecSystemInputDir();
-        }
+        _inputTarget.systemId  = _job.getExecSystemId();
+        _inputTarget.host      = _execSystem.getHost();
+        _inputTarget.dir       = _job.getExecSystemInputDir();
         
         // Job output directory io target assignment.
-        if (_dtnSystem != null && !StringUtils.isBlank(_job.getDtnSystemOutputDir())) {
-            _outputTarget.systemId = _job.getDtnSystemId();
-            _outputTarget.host     = _dtnSystem.getHost();
-            _outputTarget.dir      = _job.getDtnSystemOutputDir();
-        } else {
-            _outputTarget.systemId = _job.getExecSystemId();
-            _outputTarget.host     = _execSystem.getHost();
-            _outputTarget.dir      = _job.getExecSystemOutputDir();
+        _outputTarget.systemId = _job.getExecSystemId();
+        _outputTarget.host     = _execSystem.getHost();
+        _outputTarget.dir      = _job.getExecSystemOutputDir();
+        
+        // DTN input staging io target assignment.
+        if (_dtnInputTarget != null) {
+        	_dtnInputTarget.systemId  = _dtnSystem.getId();
+        	_dtnInputTarget.host      = _dtnSystem.getHost();
+        	_dtnInputTarget.dir       = _job.getDtnSystemInputDir();
+        }
+        
+        // DTN output staging io target assignment.
+        if (_dtnOutputTarget != null) {
+        	_dtnOutputTarget.systemId = _dtnSystem.getId();
+        	_dtnOutputTarget.host     = _dtnSystem.getHost();
+        	_dtnOutputTarget.dir      = _job.getDtnSystemOutputDir();
         }
     }
 
@@ -134,14 +150,9 @@ public final class JobIOTargets
     private void checkDtnEnabled() throws TapisException
     {
         // DTN systems are not checked for availability when loaded because
-        // they are used only if the job directories reference their mountpoints.
-        if (_dtnSystem == null) return;
-        if (_inputTarget.systemId.equals(_dtnSystem.getId())  ||
-            _outputTarget.systemId.equals(_dtnSystem.getId()) ||
-            _execTarget.systemId.equals(_dtnSystem.getId())) 
-        {
+        // they are used only if the dtn directories are provided.
+    	if (_dtnInputTarget != null || _dtnOutputTarget != null)
             JobExecutionUtils.checkSystemEnabled(_dtnSystem, _job);
-        }
     }
     
     /* ********************************************************************** */

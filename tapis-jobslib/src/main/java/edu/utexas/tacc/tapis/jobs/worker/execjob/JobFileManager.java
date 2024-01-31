@@ -180,7 +180,7 @@ public final class JobFileManager
             try {
                 var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingExecSystemInputDirAppOwner();
                 filesClient.mkdir(ioTargets.getInputTarget().systemId, 
-                                 ioTargets.getInputTarget().dir, sharedAppCtx);
+                                  ioTargets.getInputTarget().dir, sharedAppCtx);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getInputTarget().host,
@@ -191,6 +191,56 @@ public final class JobFileManager
             
             // Save the created directory key to avoid attempts to recreate it.
             createdSet.add(execSysInputDirKey);
+        }
+        
+        // ---------------------- DTN System Input Dir ------------------- 
+        // Most jobs don't use a dtn.
+        if (ioTargets.getDtnInputTarget() != null) {
+        	// See if the input dir is the same as any previously created dir.
+        	var dtnSysInputDirKey = getDirectoryKey(ioTargets.getDtnInputTarget().systemId, 
+                                                 	ioTargets.getDtnInputTarget().dir);
+        	if (!createdSet.contains(dtnSysInputDirKey)) {
+        		// Create the directory on the system.
+        		try {
+        			var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingDtnSystemInputDirAppOwner();
+        			filesClient.mkdir(ioTargets.getDtnInputTarget().systemId, 
+                                 	  ioTargets.getDtnInputTarget().dir, sharedAppCtx);
+        		} catch (TapisClientException e) {
+        			String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
+                                             	 ioTargets.getDtnInputTarget().host,
+                                             	 _job.getOwner(), _job.getTenant(),
+                                             	 ioTargets.getDtnInputTarget().dir, e.getCode());
+        			throw new TapisImplException(msg, e, e.getCode());
+        		}
+            
+        		// Save the created directory key to avoid attempts to recreate it.
+        		createdSet.add(dtnSysInputDirKey);
+        	}
+        }
+        
+        // ---------------------- DTN System Output Dir ------------------ 
+        // Most jobs don't use a dtn.
+        if (ioTargets.getDtnOutputTarget() != null) {
+        	// See if the output dir is the same as any previously created dir.
+        	var dtnSysOutputDirKey = getDirectoryKey(ioTargets.getDtnOutputTarget().systemId, 
+                                                 	ioTargets.getDtnOutputTarget().dir);
+        	if (!createdSet.contains(dtnSysOutputDirKey)) {
+        		// Create the directory on the system.
+        		try {
+        			var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingDtnSystemOutputDirAppOwner();
+        			filesClient.mkdir(ioTargets.getDtnOutputTarget().systemId, 
+                                 	  ioTargets.getDtnOutputTarget().dir, sharedAppCtx);
+        		} catch (TapisClientException e) {
+        			String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
+                                             	 ioTargets.getDtnOutputTarget().host,
+                                             	 _job.getOwner(), _job.getTenant(),
+                                             	 ioTargets.getDtnOutputTarget().dir, e.getCode());
+        			throw new TapisImplException(msg, e, e.getCode());
+        		}
+            
+        		// Save the created directory key to avoid attempts to recreate it.
+        		createdSet.add(dtnSysOutputDirKey);
+        	}
         }
         
         // ---------------------- Archive System Dir ---------------------
@@ -285,6 +335,9 @@ public final class JobFileManager
         // a communication, api or transfer problem, an exception is thrown from here.
         var monitor = TransferMonitorFactory.getMonitor();
         monitor.monitorTransfer(_job, transferId, corrId);
+        
+        // DTN post-processing.
+        moveDtnInputs();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -687,7 +740,6 @@ public final class JobFileManager
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
-
     /* ---------------------------------------------------------------------- */
     /* stageAppArchiveFile:                                                   */
     /* ---------------------------------------------------------------------- */
@@ -839,6 +891,9 @@ public final class JobFileManager
                 addOutputFiles(tasks, fileList);
             }
         }
+        
+        // DTN pre-processing.
+        moveDtnOutputs();
         
         // Return a transfer id if tasks is not empty.
         if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
@@ -1166,14 +1221,50 @@ public final class JobFileManager
         
         return transferId;
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* moveDtnInputs:                                                         */
+    /* ---------------------------------------------------------------------- */
+    /** When a DTN input directory is being used, issue a local move from the 
+     * DTN input directory to the job's execution system's exec directory after
+     * the initial transfer to the DTN.
+     */
+    private void moveDtnInputs()
+    {
+    	// Did we stage inputs to a dtn?
+    	if (!_jobCtx.useDtnInput()) return;
+    	
+    	// Issue the move as an asynchronous transfer.
+    	
+    	// Monitor the move's completion.
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* moveDtnOutputs:                                                         */
+    /* ---------------------------------------------------------------------- */
+    /** When a DTN output directory is being used, issue a local move from the 
+     * job's output directory to the DTN output directory before issuing the
+     * transfer from the DTN to the actual archive directory.
+     */
+    private void moveDtnOutputs()
+    {
+    	// Did we stage inputs to a dtn?
+    	if (!_jobCtx.useDtnOutput()) return;
+    	
+    	// Issue the move as an asynchronous transfer.
+    	
+    	// Monitor the move's completion.
+    }
 
     /* ---------------------------------------------------------------------- */
     /* makeExecSysInputUrl:                                                   */
     /* ---------------------------------------------------------------------- */
-    /** Create a tapis url based on the input spec's destination path and the
-     * execution system id.  Implicit in the tapis protocol is that the Files
-     * service will prefix path portion of the url with  the execution system's 
-     * rootDir when actually transferring files. 
+    /** Create a tapis url based on the input spec's destination path and either
+     * DTN or execution system information.  
+     * 
+     * Implicit in the tapis protocol is that the Files service will prefix the 
+     * path portion of the url with the system's rootDir when actually transferring 
+     * files. 
      * 
      * The target is never null or empty.
      * 
@@ -1182,11 +1273,46 @@ public final class JobFileManager
      */
     private String makeExecSysInputUrl(JobFileInput fileInput)
     {
-        // If a DTN is involved use it for the destination instead of the exec system
-        String destSysId = StringUtils.isBlank(_job.getDtnSystemId()) ? _job.getExecSystemId() : _job.getDtnSystemId();
-        return makeSystemUrl(destSysId, _job.getExecSystemInputDir(), fileInput.getTargetPath());
+        // If a DTN is involved use it for the destination instead of the exec system.
+    	String destSysId, destInputDir;
+    	if (_jobCtx.useDtnInput()) {
+    		destSysId = _job.getDtnSystemId();
+    		destInputDir = _job.getDtnSystemInputDir();
+    	} else {
+    		destSysId = _job.getExecSystemId();
+    		destInputDir = _job.getExecSystemInputDir();
+    	}
+        return makeSystemUrl(destSysId, destInputDir, fileInput.getTargetPath());
     }
     
+    /* ---------------------------------------------------------------------- */
+    /* makeExecSysOutputUrl:                                                  */
+    /* ---------------------------------------------------------------------- */
+    /** Create a tapis url based on a file pathname and either DTN or execution 
+     * system information. 
+     * 
+     * Implicit in the tapis protocol is that the Files service will prefix path 
+     * portion of the url with the system's rootDir when actually transferring 
+     * files. 
+     * 
+     * The pathName can be null or empty.
+     * 
+     * @param pathName a file path name
+     * @return the tapis url indicating a path on the exec system.
+     */
+    private String makeExecSysOutputUrl(String pathName)
+    {
+    	String destSysId, destOutputDir;
+    	if (_jobCtx.useDtnOutput()) {
+    		destSysId = _job.getDtnSystemId();
+    		destOutputDir = _job.getDtnSystemOutputDir();
+    	} else {
+    		destSysId = _job.getExecSystemId();
+    		destOutputDir = _job.getExecSystemOutputDir();
+    	}
+    	return makeSystemUrl(destSysId, destOutputDir, pathName);
+    }
+
     /* ---------------------------------------------------------------------- */
     /* makeExecSysOutputUrl:                                                  */
     /* ---------------------------------------------------------------------- */
@@ -1206,30 +1332,13 @@ public final class JobFileManager
     }
 
     /* ---------------------------------------------------------------------- */
-    /* makeExecSysOutputUrl:                                                  */
-    /* ---------------------------------------------------------------------- */
-    /** Create a tapis url based on a file pathname and the execution system id.  
-     * Implicit in the tapis protocol is that the Files service will prefix path 
-     * portion of the url with the execution system's rootDir when actually 
-     * transferring files. 
-     * 
-     * The pathName can be null or empty.
-     * 
-     * @param pathName a file path name
-     * @return the tapis url indicating a path on the exec system.
-     */
-    private String makeExecSysOutputUrl(String pathName)
-    {
-        return makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemOutputDir(), pathName);
-    }
-
-    /* ---------------------------------------------------------------------- */
     /* makeArchiveSysUrl:                                                     */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on a file pathname and the archive system id.  
+     * 
      * Implicit in the tapis protocol is that the Files service will prefix path 
-     * portion of the url with  the execution system's rootDir when actually 
-     * transferring files. 
+     * portion of the url with  the system's rootDir when actually transferring 
+     * files. 
      * 
      * The pathName can be null or empty.
      * 
@@ -1239,9 +1348,15 @@ public final class JobFileManager
     private String makeArchiveSysUrl(String pathName) throws TapisException
     {
         // If a DTN is involved use it for the destination instead of the archive system
-        String archiveDtnSysId = _jobCtx.getArchiveSystem().getDtnSystemId();
-        String destSysId = StringUtils.isBlank(archiveDtnSysId) ? _job.getArchiveSystemId() : archiveDtnSysId;
-        return makeSystemUrl(destSysId, _job.getArchiveSystemDir(), pathName);
+    	String destSysId, destArchiveDir;
+    	if (_jobCtx.useDtnOutput()) {
+    		destSysId = _job.getDtnSystemId();
+    		destArchiveDir = _job.getDtnSystemOutputDir();
+    	} else {
+    		destSysId = _job.getArchiveSystemId();
+    		destArchiveDir = _job.getArchiveSystemDir();
+    	}
+    	return makeSystemUrl(destSysId, destArchiveDir, pathName);
     }
     
     /* ---------------------------------------------------------------------- */

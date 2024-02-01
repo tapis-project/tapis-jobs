@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.filesmonitor;
 
-import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
@@ -17,10 +16,19 @@ public interface TransferMonitor
      * @param job the job that initiated the transfer
      * @param the uuid assigned to this task by Files
      * @param corrId the correlation id (or tag) assigned by Jobs and associated with the transfer
+     * @param postEvent post an event when a terminal state is reached
      * @throws TapisException when the transfer does not complete successfully
      */
-    void monitorTransfer(Job job, String transferId, String corrId) 
+    void monitorTransfer(Job job, String transferId, String corrId, boolean postEvent) 
       throws TapisException;
+    
+    /** Default implementation of above method specifies events are posted by default.
+     */
+    default void monitorTransfer(Job job, String transferId, String corrId) 
+     throws TapisException
+    {
+    	monitorTransfer(job, transferId, corrId, true);
+    }
     
     /** Determine if a particular monitoring implementation is available.  This
      * method is used by the factory class to determine which type of monitoring

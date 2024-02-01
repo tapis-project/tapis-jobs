@@ -71,10 +71,11 @@ public final class PollingMonitor
      * @param job the job that initiated the transfer
      * @param transferId uuid assigned to this task by Files
      * @param corrId the correlation id (or tag) associated with the transfer
+     * @param postEvent post an event when a terminal state is reached
      * @throws TapisException when the transfer does not complete successfully
      */
     @Override
-    public void monitorTransfer(Job job, String transferId, String corrId)
+    public void monitorTransfer(Job job, String transferId, String corrId, boolean postEvent)
      throws TapisException 
     {
         // Get the client from the context.

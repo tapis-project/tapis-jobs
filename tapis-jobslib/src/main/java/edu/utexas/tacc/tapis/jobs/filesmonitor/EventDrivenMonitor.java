@@ -7,7 +7,7 @@ public final class EventDrivenMonitor
  implements TransferMonitor
 {
     @Override
-    public void monitorTransfer(Job job, String transferId, String corrId) 
+    public void monitorTransfer(Job job, String transferId, String corrId, boolean postEvent) 
      throws TapisException 
     {}
 

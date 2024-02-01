@@ -23,6 +23,7 @@ import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransfer;
 import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransferElement;
+import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransferElement.TransferTypeEnum;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao.TransferValueType;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -82,7 +83,8 @@ public final class JobFileManager
     private final JobExecutionContext _jobCtx;
     private final Job                 _job;
     
-    // Unpack shared context directory settings
+    // Unpack shared context directory settings.
+    private final String              _shareExecSystemInputDirAppOwner;
     private final String              _shareExecSystemExecDirAppOwner;
     private final String              _shareExecSystemOutputDirAppOwner;
     private final String              _shareArchiveSystemDirAppOwner;
@@ -102,6 +104,7 @@ public final class JobFileManager
         _job = ctx.getJob();
         
         // Empty string means not shared.
+        _shareExecSystemInputDirAppOwner  = ctx.getJobSharedAppCtx().getSharingExecSystemInputDirAppOwner();
         _shareExecSystemExecDirAppOwner   = ctx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
         _shareExecSystemOutputDirAppOwner = ctx.getJobSharedAppCtx().getSharingExecSystemOutputDirAppOwner();
         _shareArchiveSystemDirAppOwner    = ctx.getJobSharedAppCtx().getSharingArchiveSystemDirAppOwner();
@@ -333,11 +336,13 @@ public final class JobFileManager
         
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
+        // Events are not posted when using a DTN until the final move is completed.
+        var useDtn = _jobCtx.useDtnInput() ? true : false;
         var monitor = TransferMonitorFactory.getMonitor();
-        monitor.monitorTransfer(_job, transferId, corrId);
+        monitor.monitorTransfer(_job, transferId, corrId, !useDtn);
         
         // DTN post-processing.
-        moveDtnInputs();
+        if (useDtn) moveDtnInputs();
     }
     
     /* ---------------------------------------------------------------------- */
@@ -865,8 +870,8 @@ public final class JobFileManager
                 // We only need to specify the whole output directory  
                 // subtree to archive all files.
                 var task = new ReqTransferElement().
-                        sourceURI(makeExecSysOutputUrl("")).
-                        destinationURI(makeArchiveSysUrl(""));
+                               sourceURI(makeExecSysOutputUrl("")).
+                               destinationURI(makeArchiveSysUrl(""));
                 task.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
                 task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
                 tasks.addElementsItem(task);
@@ -899,6 +904,51 @@ public final class JobFileManager
         if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
         return submitTransferTask(tasks, tag, JobTransferPhase.ARCHIVE);
     }
+    
+    /* ---------------------------------------------------------------------- */
+    /* moveNewDtnInputs:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** Submit a new transfer task that moves all the content of the DTN input
+     * directory mounted on the execution system to the execSystemInputDir also
+     * on the execution system.
+     * 
+     * The transfer type is set to LOCAL_MOVE to indicate to Files that this
+     * transfer is really an os move from the mounted DTN directory to the 
+     * execSystemInputDir.  Previously, all job inputs were transferred to the
+     * DTN input directory (the directory mounted on the execution system).
+     * 
+     * If the execSystemInputDir has been shared with the user, we assume the
+     * mounted DTN directory has also been shared with the user.  This is a
+     * safe assumption because the user had permission to write to the input
+     * directory on the DTN.
+     * 
+     * @param tag - the correlation id assigned by Jobs
+     * @return the transfer id assigned by Files
+     * @throws TapisException
+     */
+    private String moveNewDtnInputs(String tag) throws TapisException
+    {
+    	// Assign the source and destination paths for a whole directory move operation.
+    	var dtnInputDir  = makeSystemUrl(_job.getExecSystemId(), _job.getDtnSystemInputDir(), "");
+    	var execInputDir = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemExecDir(), "");
+    	
+    	// Define the single element for this transfer task.
+        var task = new ReqTransferElement().
+                       sourceURI(dtnInputDir).
+                       destinationURI(execInputDir);
+        task.setSourcePattern("*"); // get all dtn directory content recursively
+        task.setTransferType(TransferTypeEnum.LOCAL_MOVE);
+        task.setOptional(false);
+        task.setSrcSharedCtx(_shareExecSystemInputDirAppOwner);
+        task.setDestSharedCtx(_shareExecSystemInputDirAppOwner);
+        
+        // Create the list of elements to send to files.
+        var tasks = new ReqTransfer();
+        tasks.addElementsItem(task);
+        
+        // Return the transfer id.
+        return submitTransferTask(tasks, tag, JobTransferPhase.DTN_IN);
+    }    
     
     /* ---------------------------------------------------------------------- */
     /* submitTransferTask:                                                    */
@@ -1240,18 +1290,40 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* moveDtnInputs:                                                         */
     /* ---------------------------------------------------------------------- */
-    /** When a DTN input directory is being used, issue a local move from the 
-     * DTN input directory to the job's execution system's exec directory after
-     * the initial transfer to the DTN.
+    /** This method must only be called when _jobCtx.useDtnInput() == true. 
+     * 
+     * When a DTN input directory is being used, issue a local move from the 
+     * mounted DTN input directory to the job's execution system's exec directory 
+     * after the initial transfer to the DTN.
+     * 
+     * The move is performed using an asynchronous Files transfer. After submitting
+     * the transfer, this method monitors the transfer by polling the Files service.
      */
-    private void moveDtnInputs()
+    private void moveDtnInputs() throws TapisException
     {
-    	// Did we stage inputs to a dtn?
-    	if (!_jobCtx.useDtnInput()) return;
-    	
     	// Issue the move as an asynchronous transfer.
+        // Determine if we are restarting a previous staging request.
+        var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
+        String transferId = transferInfo.dtnInputTransactionId;
+        String corrId     = transferInfo.dtnInputCorrelationId;
+        
+        // See if the transfer id has been set for this job (this implies the
+        // correlation id has also been set).  If so, then the job had already 
+        // submitted its transfer request and we are now in recovery processing.  
+        // There's no need to resubmit the transfer request in this case.  
+        // 
+        // It's possible that the corrId was set but we died before the transferId
+        // was saved.  In this case, we simply generate a new corrId and resubmit.
+        if (StringUtils.isBlank(transferId)) {
+            corrId = UUID.randomUUID().toString();
+            transferId = moveNewDtnInputs(corrId);
+        }
     	
     	// Monitor the move's completion.
+        // Block until the transfer is complete. If the transfer fails because of
+        // a communication, api or transfer problem, an exception is thrown from here.
+        var monitor = TransferMonitorFactory.getMonitor();
+        monitor.monitorTransfer(_job, transferId, corrId);
     }
 
     /* ---------------------------------------------------------------------- */

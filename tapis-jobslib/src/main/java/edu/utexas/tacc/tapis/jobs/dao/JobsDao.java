@@ -157,9 +157,11 @@ public final class JobsDao
     /*                                 Enums                                  */
     /* ********************************************************************** */
     // Determine which file transfer value is updated.
-    public enum TransferValueType {InputTransferId, InputCorrelationId, 
-                                   ArchiveTransferId, ArchiveCorrelationId,
-                                   StageAppTransferId, StageAppCorrelationId}
+    public enum TransferValueType {InputTransferId,     InputCorrelationId, 
+                                   ArchiveTransferId,   ArchiveCorrelationId,
+                                   StageAppTransferId,  StageAppCorrelationId,
+                                   DtnInputTransferId,  DtnInputCorrelationId,
+                                   DtnOutputTransferId, DtnOutputCorrelationId}
     
 	/* ********************************************************************** */
 	/*                              Constructors                              */
@@ -1745,12 +1747,16 @@ public final class JobsDao
           // Insert into the jobs table first.
           // Create the command using table definition field order.
           String sql = switch (type) {
-              case InputTransferId       -> SqlStatements.UPDATE_INPUT_TRANSFER_ID;
-              case InputCorrelationId    -> SqlStatements.UPDATE_INPUT_CORR_ID;
-              case ArchiveTransferId     -> SqlStatements.UPDATE_ARCHIVE_TRANSFER_ID;
-              case ArchiveCorrelationId  -> SqlStatements.UPDATE_ARCHIVE_CORR_ID;
-              case StageAppTransferId    -> SqlStatements.UPDATE_STAGEAPP_TRANSFER_ID;
-              case StageAppCorrelationId -> SqlStatements.UPDATE_STAGEAPP_CORR_ID;
+              case InputTransferId        -> SqlStatements.UPDATE_INPUT_TRANSFER_ID;
+              case InputCorrelationId     -> SqlStatements.UPDATE_INPUT_CORR_ID;
+              case ArchiveTransferId      -> SqlStatements.UPDATE_ARCHIVE_TRANSFER_ID;
+              case ArchiveCorrelationId   -> SqlStatements.UPDATE_ARCHIVE_CORR_ID;
+              case StageAppTransferId     -> SqlStatements.UPDATE_STAGEAPP_TRANSFER_ID;
+              case StageAppCorrelationId  -> SqlStatements.UPDATE_STAGEAPP_CORR_ID;
+              case DtnInputTransferId     -> SqlStatements.UPDATE_DTN_IN_TRANSFER_ID;
+              case DtnInputCorrelationId  -> SqlStatements.UPDATE_DTN_IN_CORR_ID;
+              case DtnOutputTransferId    -> SqlStatements.UPDATE_DTN_OUT_TRANSFER_ID;
+              case DtnOutputCorrelationId -> SqlStatements.UPDATE_DTN_OUT_CORR_ID;
           };
           
           // Prepare the chosen statement.
@@ -2171,12 +2177,16 @@ public final class JobsDao
               ResultSet rs = pstmt.executeQuery();
               if (rs != null && rs.next()) {
                   result = new JobTransferInfo();
-                  result.inputTransactionId    = rs.getString(1);
-                  result.inputCorrelationId    = rs.getString(2);
-                  result.archiveTransactionId  = rs.getString(3);
-                  result.archiveCorrelationId  = rs.getString(4);
-                  result.stageAppTransactionId = rs.getString(5);
-                  result.stageAppCorrelationId = rs.getString(6);
+                  result.inputTransactionId     = rs.getString(1);
+                  result.inputCorrelationId     = rs.getString(2);
+                  result.archiveTransactionId   = rs.getString(3);
+                  result.archiveCorrelationId   = rs.getString(4);
+                  result.stageAppTransactionId  = rs.getString(5);
+                  result.stageAppCorrelationId  = rs.getString(6);
+                  result.dtnInputTransactionId  = rs.getString(7);
+                  result.dtnInputCorrelationId  = rs.getString(8);
+                  result.dtnOutputTransactionId = rs.getString(9);
+                  result.dtnOutputCorrelationId = rs.getString(10);
               }
               
               // Close the result and statement.
@@ -3167,6 +3177,10 @@ public final class JobsDao
 
 	        obj.setStageAppTransactionId(rs.getString(63));
 	        obj.setStageAppCorrelationId(rs.getString(64));
+	        obj.setDtnInputTransactionId(rs.getString(65));
+	        obj.setDtnInputCorrelationId(rs.getString(66));
+	        obj.setDtnOutputTransactionId(rs.getString(67));
+	        obj.setDtnOutputCorrelationId(rs.getString(68));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
@@ -3543,6 +3557,10 @@ public final class JobsDao
         public String archiveCorrelationId;
         public String stageAppTransactionId;
         public String stageAppCorrelationId;
+        public String dtnInputTransactionId;
+        public String dtnInputCorrelationId;
+        public String dtnOutputTransactionId;
+        public String dtnOutputCorrelationId;
     }
 
     /* ********************************************************************** */

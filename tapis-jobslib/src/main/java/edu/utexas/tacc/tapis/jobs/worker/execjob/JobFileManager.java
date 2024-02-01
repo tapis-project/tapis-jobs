@@ -70,7 +70,7 @@ public final class JobFileManager
     /*                                Enums                                   */
     /* ********************************************************************** */
     // We transfer files in these phases of job processing.
-    private enum JobTransferPhase {INPUT, ARCHIVE, STAGE_APP}
+    private enum JobTransferPhase {INPUT, ARCHIVE, STAGE_APP, DTN_IN, DTN_OUT}
     
     // Archive filter types.
     private enum FilterType {INCLUDES, EXCLUDES}
@@ -917,16 +917,31 @@ public final class JobFileManager
         // Database assignment keys.
         TransferValueType tid;
         TransferValueType corrId;
-        if (phase == JobTransferPhase.STAGE_APP) {
+        if (phase == JobTransferPhase.INPUT) {
+            tid = TransferValueType.InputTransferId;
+            corrId = TransferValueType.InputCorrelationId;
+        } 
+        else if (phase == JobTransferPhase.ARCHIVE) {
+            tid = TransferValueType.ArchiveTransferId;
+            corrId = TransferValueType.ArchiveCorrelationId;
+        }
+        else if (phase == JobTransferPhase.STAGE_APP) {
             tid = TransferValueType.StageAppTransferId;
             corrId = TransferValueType.StageAppCorrelationId;
         }
-        else if (phase == JobTransferPhase.INPUT) {
-            tid = TransferValueType.InputTransferId;
-            corrId = TransferValueType.InputCorrelationId;
-        } else {
-            tid = TransferValueType.ArchiveTransferId;
-            corrId = TransferValueType.ArchiveCorrelationId;
+        else if (phase == JobTransferPhase.DTN_IN) {
+            tid = TransferValueType.DtnInputTransferId;
+            corrId = TransferValueType.DtnInputCorrelationId;
+        }
+        else if (phase == JobTransferPhase.DTN_OUT) {
+            tid = TransferValueType.DtnOutputTransferId;
+            corrId = TransferValueType.DtnOutputCorrelationId;
+        }
+        else {
+        	// This indicates a code compilation/version error.
+            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "submitTransferTask",
+            		                     "JobTransferPhase", phase.name());
+            throw new TapisImplException(msg, JobExecutionContext.HTTP_INTERNAL_SERVER_ERROR);
         }
         
         // Generate the probabilistically unique tag returned in every event

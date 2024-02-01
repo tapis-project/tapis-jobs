@@ -125,6 +125,10 @@ public final class Job
     private String              archiveCorrelationId;
     private String              stageAppTransactionId;
     private String              stageAppCorrelationId;
+    private String              dtnInputTransactionId;
+    private String              dtnInputCorrelationId;
+    private String              dtnOutputTransactionId;
+    private String              dtnOutputCorrelationId;
 
     private String   			tapisQueue;
     private boolean  			visible = true;
@@ -981,6 +985,38 @@ public final class Job
     public void setStageAppCorrelationId(String stageAppCorrelationId) {
         this.stageAppCorrelationId = stageAppCorrelationId;
     }
+
+	public String getDtnInputTransactionId() {
+		return dtnInputTransactionId;
+	}
+
+	public void setDtnInputTransactionId(String dtnInputTransactionId) {
+		this.dtnInputTransactionId = dtnInputTransactionId;
+	}
+
+	public String getDtnInputCorrelationId() {
+		return dtnInputCorrelationId;
+	}
+
+	public void setDtnInputCorrelationId(String dtnInputCorrelationId) {
+		this.dtnInputCorrelationId = dtnInputCorrelationId;
+	}
+
+	public String getDtnOutputTransactionId() {
+		return dtnOutputTransactionId;
+	}
+
+	public void setDtnOutputTransactionId(String dtnOutputTransactionId) {
+		this.dtnOutputTransactionId = dtnOutputTransactionId;
+	}
+
+	public String getDtnOutputCorrelationId() {
+		return dtnOutputCorrelationId;
+	}
+
+	public void setDtnOutputCorrelationId(String dtnOutputCorrelationId) {
+		this.dtnOutputCorrelationId = dtnOutputCorrelationId;
+	}
 
     public boolean isMpi() {
         return isMpi;

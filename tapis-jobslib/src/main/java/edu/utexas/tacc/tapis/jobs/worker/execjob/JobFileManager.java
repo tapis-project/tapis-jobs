@@ -88,6 +88,8 @@ public final class JobFileManager
     private final String              _shareExecSystemExecDirAppOwner;
     private final String              _shareExecSystemOutputDirAppOwner;
     private final String              _shareArchiveSystemDirAppOwner;
+    private final String              _shareDtnSystemInputDirAppOwner;
+    private final String              _shareDtnSystemOutputDirAppOwner;
     
     // Derived path prefix value removed before filtering.
     private String                    _filterIgnorePrefix;
@@ -108,6 +110,8 @@ public final class JobFileManager
         _shareExecSystemExecDirAppOwner   = ctx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
         _shareExecSystemOutputDirAppOwner = ctx.getJobSharedAppCtx().getSharingExecSystemOutputDirAppOwner();
         _shareArchiveSystemDirAppOwner    = ctx.getJobSharedAppCtx().getSharingArchiveSystemDirAppOwner();
+        _shareDtnSystemInputDirAppOwner   = ctx.getJobSharedAppCtx().getSharingDtnSystemInputDirAppOwner();
+        _shareDtnSystemOutputDirAppOwner  = ctx.getJobSharedAppCtx().getSharingDtnSystemOutputDirAppOwner();
     }
     
     /* ********************************************************************** */
@@ -137,9 +141,8 @@ public final class JobFileManager
         // ---------------------- Exec System Exec Dir ----------------------
         // Create the directory on the system.
         try {
-            var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
             filesClient.mkdir(ioTargets.getExecTarget().systemId, 
-                              ioTargets.getExecTarget().dir, sharedAppCtx);
+                              ioTargets.getExecTarget().dir, _shareExecSystemExecDirAppOwner);
         } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                          ioTargets.getExecTarget().host,
@@ -159,9 +162,8 @@ public final class JobFileManager
         if (!createdSet.contains(execSysOutputDirKey)) {
             // Create the directory on the system.
             try {
-                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingExecSystemOutputDirAppOwner();
                 filesClient.mkdir(ioTargets.getOutputTarget().systemId, 
-                                  _job.getExecSystemOutputDir(), sharedAppCtx);
+                                  _job.getExecSystemOutputDir(), _shareExecSystemOutputDirAppOwner);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getOutputTarget().host,
@@ -181,9 +183,8 @@ public final class JobFileManager
         if (!createdSet.contains(execSysInputDirKey)) {
             // Create the directory on the system.
             try {
-                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingExecSystemInputDirAppOwner();
                 filesClient.mkdir(ioTargets.getInputTarget().systemId, 
-                                  ioTargets.getInputTarget().dir, sharedAppCtx);
+                                  ioTargets.getInputTarget().dir, _shareExecSystemInputDirAppOwner);
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getInputTarget().host,
@@ -205,9 +206,8 @@ public final class JobFileManager
         	if (!createdSet.contains(dtnSysInputDirKey)) {
         		// Create the directory on the system.
         		try {
-        			var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingDtnSystemInputDirAppOwner();
         			filesClient.mkdir(ioTargets.getDtnInputTarget().systemId, 
-                                 	  ioTargets.getDtnInputTarget().dir, sharedAppCtx);
+                                 	  ioTargets.getDtnInputTarget().dir, _shareDtnSystemInputDirAppOwner);
         		} catch (TapisClientException e) {
         			String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              	 ioTargets.getDtnInputTarget().host,
@@ -230,9 +230,8 @@ public final class JobFileManager
         	if (!createdSet.contains(dtnSysOutputDirKey)) {
         		// Create the directory on the system.
         		try {
-        			var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingDtnSystemOutputDirAppOwner();
         			filesClient.mkdir(ioTargets.getDtnOutputTarget().systemId, 
-                                 	  ioTargets.getDtnOutputTarget().dir, sharedAppCtx);
+                                 	  ioTargets.getDtnOutputTarget().dir, _shareDtnSystemOutputDirAppOwner);
         		} catch (TapisClientException e) {
         			String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              	 ioTargets.getDtnOutputTarget().host,
@@ -289,7 +288,7 @@ public final class JobFileManager
 
         // Determine sharing info for sourceUrl and destinationUrl
         String sharingOwnerSourceUrl = _jobCtx.getJobSharedAppCtx().getSharingContainerImageUrlAppOwner();;
-        String sharingOwnerDestUrl = _jobCtx.getJobSharedAppCtx().getSharingExecSystemExecDirAppOwner();
+        String sharingOwnerDestUrl   = _shareExecSystemExecDirAppOwner;
 
         var reqTransfer = new ReqTransfer();
         var task = new ReqTransferElement().sourceURI(sourceUrl).destinationURI(destUrl);
@@ -317,6 +316,9 @@ public final class JobFileManager
         String transferId = transferInfo.inputTransactionId;
         String corrId     = transferInfo.inputCorrelationId;
         
+        // Assign the local dtn usage flag;
+        final var useDtn = _jobCtx.useDtnInput();
+        
         // See if the transfer id has been set for this job (this implies the
         // correlation id has also been set).  If so, then the job had already 
         // submitted its transfer request and we are now in recovery processing.  
@@ -326,7 +328,7 @@ public final class JobFileManager
         // was saved.  In this case, we simply generate a new corrId.
         if (StringUtils.isBlank(transferId)) {
             corrId = UUID.randomUUID().toString();
-            transferId = stageNewInputs(corrId);
+            transferId = stageNewInputs(corrId, useDtn);
         }
         
         // Is there anything to transfer?
@@ -337,7 +339,6 @@ public final class JobFileManager
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
         // Events are not posted when using a DTN until the final move is completed.
-        var useDtn = _jobCtx.useDtnInput() ? true : false;
         var monitor = TransferMonitorFactory.getMonitor();
         monitor.monitorTransfer(_job, transferId, corrId, !useDtn);
         
@@ -797,7 +798,7 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* stageNewInputs:                                                        */
     /* ---------------------------------------------------------------------- */
-    private String stageNewInputs(String tag) throws TapisException
+    private String stageNewInputs(String tag, boolean useDtn) throws TapisException
     {
         // -------------------- Assign Transfer Tasks --------------------
         // Get the job input objects.
@@ -813,15 +814,21 @@ public final class JobFileManager
             if (fileInput.getSourceUrl().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX))
                 continue;
             
+            // The source is always actual source system whether or not a dtn 
+            // is being used.  The destination, however, changes depending on 
+            // whether a dtn is used.  This requires us to adjust the destination
+            // sharing flag accordingly.
+            var shareDest = useDtn ? _shareDtnSystemInputDirAppOwner : fileInput.getDestSharedAppCtx();
+            
             // Assign the task.  Input files have already been assigned their
             // sharing attributes during submission.  For details, see
             // SubmitContext.calculateDirectorySharing().
             var task = new ReqTransferElement().
                             sourceURI(fileInput.getSourceUrl()).
-                            destinationURI(makeExecSysInputUrl(fileInput));
+                            destinationURI(makeStagingInputsDestUrl(fileInput, useDtn));
             task.setOptional(fileInput.isOptional());
             task.setSrcSharedCtx(fileInput.getSrcSharedAppCtx());
-            task.setDestSharedCtx(fileInput.getDestSharedAppCtx());
+            task.setDestSharedCtx(shareDest);
             tasks.addElementsItem(task);
         }
         
@@ -833,6 +840,28 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* archiveNewOutputs:                                                     */
     /* ---------------------------------------------------------------------- */
+    /** Build the list of archival artifacts (files and directories) and submit 
+     * it to Files in a transfer request.  The list is built with sourceURIs
+     * that indicate the actual locations from which the artifacts will be read
+     * when transferred to the archival system.  Under normal circumstances, this
+     * means sourceURIs will refer to the execution system's execSystemOutputDir
+     * for application generated output.  
+     * 
+     * When a dtn is being used, however, application generated output sourceURIs 
+     * will refer instead to the dtn system's dtnSystemOutputDir.  A separate 
+     * transfer will move (using Linux mv) the artifacts from the execution system's 
+     * execSystemOutputDir to a locally mounted directory that is accessible to 
+     * the dtn.  This local move takes place before the final transfer to the 
+     * archive system.
+     * 
+     * Launch files, if archived, are always transfered directly from the 
+     * execution system's execSystemExecDir whether or not a dtn is specified.
+     * 
+     * @param tag the Jobs generated correlation id
+     * @return the Files generated transfer id
+     * @throws TapisException
+     * @throws TapisClientException
+     */
     private String archiveNewOutputs(String tag) 
      throws TapisException, TapisClientException
     {
@@ -858,11 +887,20 @@ public final class JobFileManager
         // Create the list of elements to send to files.
         var tasks = new ReqTransfer();
         
-        // Add the tapis generated files to the task.
+        // Add the tapis generated files to the task. DTNs are never used.
         if (archiveFilter.getIncludeLaunchFiles()) addLaunchFiles(tasks);
         
+        // Assign the dtn usage flag.
+        final var useDtn = _jobCtx.useDtnOutput();
+        
+        // Determine the source sharing value.
+        final var shareSrc = useDtn ? _shareDtnSystemOutputDirAppOwner :
+        	                          _shareExecSystemOutputDirAppOwner;
+        
         // There's nothing to do if the archive and output directories are 
-        // the same or if we have to exclude all output files. 
+        // the same or if we have to exclude all output files.  Note that 
+        // the sourceURI and source share context are a function of whether
+        // or not a dtn is being used.
         if (!archiveSameAsOutput && !matchesAll(excludes)) {
             // Will any filtering be necessary at all?
             if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes))) 
@@ -870,9 +908,9 @@ public final class JobFileManager
                 // We only need to specify the whole output directory  
                 // subtree to archive all files.
                 var task = new ReqTransferElement().
-                               sourceURI(makeExecSysOutputUrl("")).
+                               sourceURI(makeArchivingSrcUrl("", useDtn)).
                                destinationURI(makeArchiveSysUrl(""));
-                task.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
+                task.setSrcSharedCtx(shareSrc);
                 task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
                 tasks.addElementsItem(task);
             } 
@@ -884,7 +922,7 @@ public final class JobFileManager
                 FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
                 var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
                                                        _job.getExecSystemOutputDir());
-                listSubtree.setSharedAppCtx(_shareArchiveSystemDirAppOwner);
+                listSubtree.setSharedAppCtx(_shareExecSystemOutputDirAppOwner);
                 var fileList = listSubtree.list();
                 
                 // Apply the excludes list first since it has precedence, then
@@ -893,12 +931,12 @@ public final class JobFileManager
                 applyArchiveFilters(includes, fileList, FilterType.INCLUDES);
                 
                 // Create a task entry for each of the filtered output files.
-                addOutputFiles(tasks, fileList);
+                addOutputFiles(tasks, fileList, useDtn, shareSrc);
             }
         }
         
-        // DTN pre-processing.
-        moveDtnOutputs();
+        // DTN pre-processing first moves job output to the dtn.
+        if (useDtn) moveDtnOutputs(tasks);
         
         // Return a transfer id if tasks is not empty.
         if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
@@ -936,7 +974,6 @@ public final class JobFileManager
         var task = new ReqTransferElement().
                        sourceURI(dtnInputDir).
                        destinationURI(execInputDir);
-        task.setSourcePattern("*"); // get all dtn directory content recursively
         task.setTransferType(TransferTypeEnum.LOCAL_MOVE);
         task.setOptional(false);
         task.setSrcSharedCtx(_shareExecSystemInputDirAppOwner);
@@ -1018,7 +1055,11 @@ public final class JobFileManager
     /** Add task entries to copy the generated tapis launch files to the archive
      * directory.
      * 
+     * All files that originate in the execSystemExecDir are archived from that 
+     * directory directly to the archiving system--DTNs are never used. 
+     * 
      * @param tasks the task collection into which new transfer tasks are inserted
+     * @param useDtn whether the archiving operation uses a dtn
      */
     private void addLaunchFiles(ReqTransfer tasks) throws TapisException
     {
@@ -1031,18 +1072,17 @@ public final class JobFileManager
         var task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_WRAPPER_SCRIPT));
+        task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
+        task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
         tasks.addElementsItem(task);
         // Add env file tapisjob.env as needed.
         if (_jobCtx.usesEnvFile()) {
             task = new ReqTransferElement().
                         sourceURI(makeExecSysExecUrl(JobExecutionUtils.JOB_ENV_FILE)).
                         destinationURI(makeArchiveSysUrl(JobExecutionUtils.JOB_ENV_FILE));
+            task.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
+            task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
             tasks.addElementsItem(task);
-        }
-        // Update share info for each task
-        for (ReqTransferElement e : tasks.getElements()) {
-            e.setSrcSharedCtx(_shareExecSystemExecDirAppOwner);
-            e.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
         }
     }
     
@@ -1053,16 +1093,19 @@ public final class JobFileManager
      * 
      * @param tasks the archive tasks
      * @param fileList the filtered list of files in the job's output directory
+     * @param useDtn whether archiving is using a dtn
      */
-    private void addOutputFiles(ReqTransfer tasks, List<FileInfo> fileList) throws TapisException
+    private void addOutputFiles(ReqTransfer tasks, List<FileInfo> fileList, 
+    		                    boolean useDtn, String shareSrc) 
+     throws TapisException
     {
         // Add each output file as a task element.
         for (var f : fileList) {
             var relativePath = getOutputRelativePath(f.getPath());
             var task = new ReqTransferElement().
-                    sourceURI(makeExecSysOutputUrl(relativePath)).
-                    destinationURI(makeArchiveSysUrl(relativePath));
-            task.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
+                           sourceURI(makeArchivingSrcUrl(relativePath, useDtn)).
+                           destinationURI(makeArchiveSysUrl(relativePath));
+            task.setSrcSharedCtx(shareSrc);
             task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
             tasks.addElementsItem(task);
         }
@@ -1301,6 +1344,14 @@ public final class JobFileManager
      */
     private void moveDtnInputs() throws TapisException
     {
+    	// This should never happen, but just to be sure.
+    	if (!_jobCtx.useDtnInput()) {
+    		var cond = TapisImplException.Condition.INTERNAL_SERVER_ERROR;
+            String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "moveInput", _job.getUuid(),
+                                         500, cond.name());
+            throw new TapisImplException(msg, cond);
+    	}
+    	
     	// Issue the move as an asynchronous transfer.
         // Determine if we are restarting a previous staging request.
         var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
@@ -1332,19 +1383,45 @@ public final class JobFileManager
     /** When a DTN output directory is being used, issue a local move from the 
      * job's output directory to the DTN output directory before issuing the
      * transfer from the DTN to the actual archive directory.
+     * @throws TapisException 
      */
-    private void moveDtnOutputs()
+    private void moveDtnOutputs(ReqTransfer tasks) throws TapisException
     {
-    	// Did we stage inputs to a dtn?
-    	if (!_jobCtx.useDtnOutput()) return;
+    	// This should never happen, but just to be sure.
+    	if (!_jobCtx.useDtnOutput()) {
+        	var cond = TapisImplException.Condition.INTERNAL_SERVER_ERROR;
+            String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "moveOutput", _job.getUuid(),
+                                         500, cond.name());
+            throw new TapisImplException(msg, cond);
+    	}
     	
-    	// Issue the move as an asynchronous transfer.
+    	// Create a new request for the move operations. 
+    	var moveTasks = new ReqTransfer();
+    	
+    	// Generate a move task for each archive task. Since we are moving
+    	// to a locally mounted directory, we allow the user's sharing privileges
+    	// associated with the execSystemOutputDir to apply to the dtn directory.
+    	for (var task : tasks.getElements()) {
+    		// We don't move launch files.
+    		if (task.getSourceURI().startsWith(_job.getExecSystemExecDir()))
+    			continue;
+    		
+    		var moveTask = new ReqTransferElement();
+    		moveTask.setSourceURI("");
+    		moveTask.setDestinationURI("");
+    		moveTask.setOptional(false);
+    		moveTask.setTransferType(TransferTypeEnum.LOCAL_MOVE);
+    		moveTask.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
+    		moveTask.setDestSharedCtx(_shareExecSystemOutputDirAppOwner);
+    		
+    		moveTasks.addElementsItem(moveTask);
+    	}
     	
     	// Monitor the move's completion.
     }
 
     /* ---------------------------------------------------------------------- */
-    /* makeExecSysInputUrl:                                                   */
+    /* makeStagingInputsDestUrl:                                                   */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on the input spec's destination path and either
      * DTN or execution system information.  
@@ -1356,13 +1433,14 @@ public final class JobFileManager
      * The target is never null or empty.
      * 
      * @param fileInput a file input spec
+     * @param useDtn whether a dtn is being used on an input transfer
      * @return the tapis url indicating a path on the exec system.
      */
-    private String makeExecSysInputUrl(JobFileInput fileInput)
+    private String makeStagingInputsDestUrl(JobFileInput fileInput, boolean useDtn)
     {
         // If a DTN is involved use it for the destination instead of the exec system.
     	String destSysId, destInputDir;
-    	if (_jobCtx.useDtnInput()) {
+    	if (useDtn) {
     		destSysId = _job.getDtnSystemId();
     		destInputDir = _job.getDtnSystemInputDir();
     	} else {
@@ -1373,7 +1451,7 @@ public final class JobFileManager
     }
     
     /* ---------------------------------------------------------------------- */
-    /* makeExecSysOutputUrl:                                                  */
+    /* makeArchivingSrcUrl:                                                   */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on a file pathname and either DTN or execution 
      * system information. 
@@ -1385,12 +1463,13 @@ public final class JobFileManager
      * The pathName can be null or empty.
      * 
      * @param pathName a file path name
+     * @param useDtn whether the archiving operation uses a dtn
      * @return the tapis url indicating a path on the exec system.
      */
-    private String makeExecSysOutputUrl(String pathName)
+    private String makeArchivingSrcUrl(String pathName, boolean useDtn)
     {
     	String destSysId, destOutputDir;
-    	if (_jobCtx.useDtnOutput()) {
+    	if (useDtn) {
     		destSysId = _job.getDtnSystemId();
     		destOutputDir = _job.getDtnSystemOutputDir();
     	} else {
@@ -1401,7 +1480,7 @@ public final class JobFileManager
     }
 
     /* ---------------------------------------------------------------------- */
-    /* makeExecSysOutputUrl:                                                  */
+    /* makeExecSysExecUrl:                                                    */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on a file pathname and the execution system id.  
      * Implicit in the tapis protocol is that the Files service will prefix path 
@@ -1434,16 +1513,10 @@ public final class JobFileManager
      */
     private String makeArchiveSysUrl(String pathName) throws TapisException
     {
-        // If a DTN is involved use it for the destination instead of the archive system
-    	String destSysId, destArchiveDir;
-    	if (_jobCtx.useDtnOutput()) {
-    		destSysId = _job.getDtnSystemId();
-    		destArchiveDir = _job.getDtnSystemOutputDir();
-    	} else {
-    		destSysId = _job.getArchiveSystemId();
-    		destArchiveDir = _job.getArchiveSystemDir();
-    	}
-    	return makeSystemUrl(destSysId, destArchiveDir, pathName);
+        // Even in cases where a DTN is used, the final destination is the 
+    	// archive path on the archive system.  It's the source path that is
+    	// sensitive to DTN processing.
+    	return makeSystemUrl(_job.getArchiveSystemId(), _job.getArchiveSystemDir(), pathName);
     }
     
     /* ---------------------------------------------------------------------- */

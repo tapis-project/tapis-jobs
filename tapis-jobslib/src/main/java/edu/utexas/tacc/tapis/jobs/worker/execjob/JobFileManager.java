@@ -299,7 +299,7 @@ public final class JobFileManager
         reqTransfer.addElementsItem(task);
         // Transfer the app archive file. This method will start or restart the transfer and monitor
         //   it until it completes.
-        stageAppArchiveFile(reqTransfer);
+        stageAppZipFile(reqTransfer);
     }
 
     /* ---------------------------------------------------------------------- */
@@ -748,14 +748,14 @@ public final class JobFileManager
     /*                            Private Methods                             */
     /* ********************************************************************** */
     /* ---------------------------------------------------------------------- */
-    /* stageAppArchiveFile:                                                   */
+    /* stageAppZipFile:                                                       */
     /* ---------------------------------------------------------------------- */
     /** Perform or restart the app assets file staging process. Both recoverable
      * and non-recoverable exceptions can be thrown from here.
      *
      * @throws TapisException on error
      */
-    private void stageAppArchiveFile(ReqTransfer reqTransfer) throws TapisException
+    private void stageAppZipFile(ReqTransfer reqTransfer) throws TapisException
     {
         // Determine if we are restarting a previous request.
         var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());

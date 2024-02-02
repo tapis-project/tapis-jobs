@@ -177,14 +177,14 @@ public class Jobs extends TableImpl<JobsRecord> {
     public final TableField<JobsRecord, String> DTN_SYSTEM_ID = createField(DSL.name("dtn_system_id"), SQLDataType.VARCHAR(80), this, "");
 
     /**
-     * The column <code>public.jobs.dtn_mount_source_path</code>.
+     * The column <code>public.jobs.dtn_system_input_dir</code>.
      */
-    public final TableField<JobsRecord, String> DTN_MOUNT_SOURCE_PATH = createField(DSL.name("dtn_mount_source_path"), SQLDataType.VARCHAR(1024), this, "");
+    public final TableField<JobsRecord, String> DTN_SYSTEM_INPUT_DIR = createField(DSL.name("dtn_system_input_dir"), SQLDataType.VARCHAR(4096), this, "");
 
     /**
-     * The column <code>public.jobs.dtn_mount_point</code>.
+     * The column <code>public.jobs.dtn_system_output_dir</code>.
      */
-    public final TableField<JobsRecord, String> DTN_MOUNT_POINT = createField(DSL.name("dtn_mount_point"), SQLDataType.VARCHAR(1024), this, "");
+    public final TableField<JobsRecord, String> DTN_SYSTEM_OUTPUT_DIR = createField(DSL.name("dtn_system_output_dir"), SQLDataType.VARCHAR(4096), this, "");
 
     /**
      * The column <code>public.jobs.node_count</code>.
@@ -370,6 +370,36 @@ public class Jobs extends TableImpl<JobsRecord> {
      * The column <code>public.jobs.notes</code>.
      */
     public final TableField<JobsRecord, JsonElement> NOTES = createField(DSL.name("notes"), SQLDataType.JSONB.nullable(false).defaultValue(DSL.field("'{}'::json", SQLDataType.JSONB)), this, "", new JSONBToJsonElementBinding());
+
+    /**
+     * The column <code>public.jobs.stageapp_transaction_id</code>.
+     */
+    public final TableField<JobsRecord, String> STAGEAPP_TRANSACTION_ID = createField(DSL.name("stageapp_transaction_id"), SQLDataType.VARCHAR(64), this, "");
+
+    /**
+     * The column <code>public.jobs.stageapp_correlation_id</code>.
+     */
+    public final TableField<JobsRecord, String> STAGEAPP_CORRELATION_ID = createField(DSL.name("stageapp_correlation_id"), SQLDataType.VARCHAR(64), this, "");
+
+    /**
+     * The column <code>public.jobs.dtn_in_transaction_id</code>.
+     */
+    public final TableField<JobsRecord, String> DTN_IN_TRANSACTION_ID = createField(DSL.name("dtn_in_transaction_id"), SQLDataType.VARCHAR(64), this, "");
+
+    /**
+     * The column <code>public.jobs.dtn_in_correlation_id</code>.
+     */
+    public final TableField<JobsRecord, String> DTN_IN_CORRELATION_ID = createField(DSL.name("dtn_in_correlation_id"), SQLDataType.VARCHAR(64), this, "");
+
+    /**
+     * The column <code>public.jobs.dtn_out_transaction_id</code>.
+     */
+    public final TableField<JobsRecord, String> DTN_OUT_TRANSACTION_ID = createField(DSL.name("dtn_out_transaction_id"), SQLDataType.VARCHAR(64), this, "");
+
+    /**
+     * The column <code>public.jobs.dtn_out_correlation_id</code>.
+     */
+    public final TableField<JobsRecord, String> DTN_OUT_CORRELATION_ID = createField(DSL.name("dtn_out_correlation_id"), SQLDataType.VARCHAR(64), this, "");
 
     private Jobs(Name alias, Table<JobsRecord> aliased) {
         this(alias, aliased, null);

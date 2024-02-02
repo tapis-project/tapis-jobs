@@ -349,30 +349,30 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
     }
 
     /**
-     * Setter for <code>public.jobs.dtn_mount_source_path</code>.
+     * Setter for <code>public.jobs.dtn_system_input_dir</code>.
      */
-    public void setDtnMountSourcePath(String value) {
+    public void setDtnSystemInputDir(String value) {
         set(23, value);
     }
 
     /**
-     * Getter for <code>public.jobs.dtn_mount_source_path</code>.
+     * Getter for <code>public.jobs.dtn_system_input_dir</code>.
      */
-    public String getDtnMountSourcePath() {
+    public String getDtnSystemInputDir() {
         return (String) get(23);
     }
 
     /**
-     * Setter for <code>public.jobs.dtn_mount_point</code>.
+     * Setter for <code>public.jobs.dtn_system_output_dir</code>.
      */
-    public void setDtnMountPoint(String value) {
+    public void setDtnSystemOutputDir(String value) {
         set(24, value);
     }
 
     /**
-     * Getter for <code>public.jobs.dtn_mount_point</code>.
+     * Getter for <code>public.jobs.dtn_system_output_dir</code>.
      */
-    public String getDtnMountPoint() {
+    public String getDtnSystemOutputDir() {
         return (String) get(24);
     }
 
@@ -894,6 +894,90 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         return (JsonElement) get(61);
     }
 
+    /**
+     * Setter for <code>public.jobs.stageapp_transaction_id</code>.
+     */
+    public void setStageappTransactionId(String value) {
+        set(62, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.stageapp_transaction_id</code>.
+     */
+    public String getStageappTransactionId() {
+        return (String) get(62);
+    }
+
+    /**
+     * Setter for <code>public.jobs.stageapp_correlation_id</code>.
+     */
+    public void setStageappCorrelationId(String value) {
+        set(63, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.stageapp_correlation_id</code>.
+     */
+    public String getStageappCorrelationId() {
+        return (String) get(63);
+    }
+
+    /**
+     * Setter for <code>public.jobs.dtn_in_transaction_id</code>.
+     */
+    public void setDtnInTransactionId(String value) {
+        set(64, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.dtn_in_transaction_id</code>.
+     */
+    public String getDtnInTransactionId() {
+        return (String) get(64);
+    }
+
+    /**
+     * Setter for <code>public.jobs.dtn_in_correlation_id</code>.
+     */
+    public void setDtnInCorrelationId(String value) {
+        set(65, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.dtn_in_correlation_id</code>.
+     */
+    public String getDtnInCorrelationId() {
+        return (String) get(65);
+    }
+
+    /**
+     * Setter for <code>public.jobs.dtn_out_transaction_id</code>.
+     */
+    public void setDtnOutTransactionId(String value) {
+        set(66, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.dtn_out_transaction_id</code>.
+     */
+    public String getDtnOutTransactionId() {
+        return (String) get(66);
+    }
+
+    /**
+     * Setter for <code>public.jobs.dtn_out_correlation_id</code>.
+     */
+    public void setDtnOutCorrelationId(String value) {
+        set(67, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.dtn_out_correlation_id</code>.
+     */
+    public String getDtnOutCorrelationId() {
+        return (String) get(67);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -917,7 +1001,7 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
     /**
      * Create a detached, initialised JobsRecord
      */
-    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnMountSourcePath, String dtnMountPoint, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags, String jobType, Boolean isMpi, String mpiCmd, String cmdPrefix, String sharedAppCtx, String[] sharedAppCtxAttribs, JsonElement notes) {
+    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnSystemInputDir, String dtnSystemOutputDir, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags, String jobType, Boolean isMpi, String mpiCmd, String cmdPrefix, String sharedAppCtx, String[] sharedAppCtxAttribs, JsonElement notes, String stageappTransactionId, String stageappCorrelationId, String dtnInTransactionId, String dtnInCorrelationId, String dtnOutTransactionId, String dtnOutCorrelationId) {
         super(Jobs.JOBS);
 
         setId(id);
@@ -943,8 +1027,8 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         setArchiveSystemId(archiveSystemId);
         setArchiveSystemDir(archiveSystemDir);
         setDtnSystemId(dtnSystemId);
-        setDtnMountSourcePath(dtnMountSourcePath);
-        setDtnMountPoint(dtnMountPoint);
+        setDtnSystemInputDir(dtnSystemInputDir);
+        setDtnSystemOutputDir(dtnSystemOutputDir);
         setNodeCount(nodeCount);
         setCoresPerNode(coresPerNode);
         setMemoryMb(memoryMb);
@@ -982,5 +1066,11 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         setSharedAppCtx(sharedAppCtx);
         setSharedAppCtxAttribs(sharedAppCtxAttribs);
         setNotes(notes);
+        setStageappTransactionId(stageappTransactionId);
+        setStageappCorrelationId(stageappCorrelationId);
+        setDtnInTransactionId(dtnInTransactionId);
+        setDtnInCorrelationId(dtnInCorrelationId);
+        setDtnOutTransactionId(dtnOutTransactionId);
+        setDtnOutCorrelationId(dtnOutCorrelationId);
     }
 }

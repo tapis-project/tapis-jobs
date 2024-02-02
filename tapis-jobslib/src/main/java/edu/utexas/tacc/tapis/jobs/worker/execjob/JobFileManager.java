@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -325,7 +326,7 @@ public final class JobFileManager
         // There's no need to resubmit the transfer request in this case.  
         // 
         // It's possible that the corrId was set but we died before the transferId
-        // was saved.  In this case, we simply generate a new corrId.
+        // was saved.  In this case, we simply generate a new corrId and resubmit.
         if (StringUtils.isBlank(transferId)) {
             corrId = UUID.randomUUID().toString();
             transferId = stageNewInputs(corrId, useDtn);
@@ -772,6 +773,7 @@ public final class JobFileManager
             transferId = submitTransferTask(reqTransfer, corrId, JobTransferPhase.STAGE_APP);
         }
 
+        // Debugging.
         _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(),
                 _job.getStatus().name(), transferId, corrId));
 
@@ -897,6 +899,10 @@ public final class JobFileManager
         final var shareSrc = useDtn ? _shareDtnSystemOutputDirAppOwner :
         	                          _shareExecSystemOutputDirAppOwner;
         
+        // Both transfers need the raw file list from Files when a DTN is used.
+        // This list only contains files from the execSystemOutputDir.
+        List<FileInfo> fileList = null;
+        
         // There's nothing to do if the archive and output directories are 
         // the same or if we have to exclude all output files.  Note that 
         // the sourceURI and source share context are a function of whether
@@ -913,6 +919,12 @@ public final class JobFileManager
                 task.setSrcSharedCtx(shareSrc);
                 task.setDestSharedCtx(_shareArchiveSystemDirAppOwner);
                 tasks.addElementsItem(task);
+                
+                // Create a file list for the move operation.
+                var fileInfo = new FileInfo(); // Only path field is necessary
+                fileInfo.setPath("");          // Empty string moves all content
+                fileList = new ArrayList<>(1); // Single element list
+                fileList.add(fileInfo);        
             } 
             else 
             {
@@ -923,7 +935,7 @@ public final class JobFileManager
                 var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
                                                        _job.getExecSystemOutputDir());
                 listSubtree.setSharedAppCtx(_shareExecSystemOutputDirAppOwner);
-                var fileList = listSubtree.list();
+                fileList = listSubtree.list();
                 
                 // Apply the excludes list first since it has precedence, then
                 // the includes list.  The fileList can be modified in both calls.
@@ -936,7 +948,7 @@ public final class JobFileManager
         }
         
         // DTN pre-processing first moves job output to the dtn.
-        if (useDtn) moveDtnOutputs(tasks);
+        if (useDtn) moveDtnOutputs(fileList);
         
         // Return a transfer id if tasks is not empty.
         if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
@@ -957,8 +969,8 @@ public final class JobFileManager
      * 
      * If the execSystemInputDir has been shared with the user, we assume the
      * mounted DTN directory has also been shared with the user.  This is a
-     * safe assumption because the user had permission to write to the input
-     * directory on the DTN.
+     * safe assumption because the user had to have permission to write to the 
+     * input directory on the DTN, so they already have access to the data.
      * 
      * @param tag - the correlation id assigned by Jobs
      * @return the transfer id assigned by Files
@@ -986,6 +998,69 @@ public final class JobFileManager
         // Return the transfer id.
         return submitTransferTask(tasks, tag, JobTransferPhase.DTN_IN);
     }    
+    
+    /* ---------------------------------------------------------------------- */
+    /* moveNewDtnOutputs:                                                     */
+    /* ---------------------------------------------------------------------- */
+    /** Submit a new transfer task that moves all the filtered content of the 
+     * execution system's execSystemOutputDir directory to the DTN's 
+     * dtnSystemOutputDir that is mounted on the execution system.
+     * 
+     * The transfer type is set to LOCAL_MOVE to indicate to Files that this
+     * transfer is really an os move to the mounted DTN directory to the 
+     * execSystemInputDir.  This move transfer precedes a second transfer from
+     * the DTN to the archive system.
+     * 
+     * If the execSystemOutputDir has been shared with the user, we assume the
+     * mounted DTN directory has also been shared with the user.  This is a
+     * safe assumption since having access to the execSystemOutputDir means
+     * the user already has access to the data.  Furthermore, the user will
+     * need access to the DTN's dtnSystemOutputDir for the second transfer to
+     * succeed.
+     * 
+     * @param tag - the correlation id assigned by Jobs
+     * @return the transfer id assigned by Files
+     * @throws TapisException
+     */    
+    private String moveNewDtnOutputs(List<FileInfo> fileList, String tag)
+     throws TapisException
+    {
+    	// Create a new request for the move operations. 
+    	var tasks = new ReqTransfer();
+    	
+    	// Generate a move task for each archive task. Since we are moving
+    	// to a locally mounted directory, we allow the user's sharing privileges
+    	// associated with the execSystemOutputDir to apply to the dtn directory.
+    	// Only files from the execSystemOutputDir should be in the list.
+    	for (var fileInfo : fileList) {
+    		// Create a url for the file in the execSystemOutputDir.
+    		var srcUrl = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemOutputDir(), 
+    				                   fileInfo.getPath());
+    		
+    		// Create a url for the file in the mounted dtn directory.  Note that the dtn
+    		// and exec systems have the same root directory.  The exec system mounts the
+    		// dtn's output directory under its root.  The result is that the dtn output
+    		// directory has the SAME absolute path on both systems. 
+    		var tgtUrl = makeSystemUrl(_job.getExecSystemId(), _job.getDtnSystemOutputDir(),
+    				                   fileInfo.getPath());
+     		
+    		// Create a local move task for each file. The source is always in the 
+    		// execSystemOutputDir and the target is always in the mounted dtn directory.
+    		var moveTask = new ReqTransferElement();
+    		moveTask.setSourceURI(srcUrl);
+    		moveTask.setDestinationURI(tgtUrl);
+    		moveTask.setOptional(false);
+    		moveTask.setTransferType(TransferTypeEnum.LOCAL_MOVE);
+    		moveTask.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
+    		moveTask.setDestSharedCtx(_shareExecSystemOutputDirAppOwner);
+    		
+    		// Accumulate task elements.
+    		tasks.addElementsItem(moveTask);
+    	}
+        
+        // Return the transfer id.
+        return submitTransferTask(tasks, tag, JobTransferPhase.DTN_OUT);
+    }
     
     /* ---------------------------------------------------------------------- */
     /* submitTransferTask:                                                    */
@@ -1370,6 +1445,10 @@ public final class JobFileManager
             transferId = moveNewDtnInputs(corrId);
         }
     	
+        // Debugging.
+        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+                                  _job.getStatus().name(), transferId, corrId));
+        
     	// Monitor the move's completion.
         // Block until the transfer is complete. If the transfer fails because of
         // a communication, api or transfer problem, an exception is thrown from here.
@@ -1383,9 +1462,11 @@ public final class JobFileManager
     /** When a DTN output directory is being used, issue a local move from the 
      * job's output directory to the DTN output directory before issuing the
      * transfer from the DTN to the actual archive directory.
+     * 
+     * @param fileList this is of execSystemOutputDir files to be moved.
      * @throws TapisException 
      */
-    private void moveDtnOutputs(ReqTransfer tasks) throws TapisException
+    private void moveDtnOutputs(List<FileInfo> fileList) throws TapisException
     {
     	// This should never happen, but just to be sure.
     	if (!_jobCtx.useDtnOutput()) {
@@ -1395,33 +1476,40 @@ public final class JobFileManager
             throw new TapisImplException(msg, cond);
     	}
     	
-    	// Create a new request for the move operations. 
-    	var moveTasks = new ReqTransfer();
+    	// Maybe there's nothing to do.
+    	if (fileList.isEmpty()) return;
     	
-    	// Generate a move task for each archive task. Since we are moving
-    	// to a locally mounted directory, we allow the user's sharing privileges
-    	// associated with the execSystemOutputDir to apply to the dtn directory.
-    	for (var task : tasks.getElements()) {
-    		// We don't move launch files.
-    		if (task.getSourceURI().startsWith(_job.getExecSystemExecDir()))
-    			continue;
-    		
-    		var moveTask = new ReqTransferElement();
-    		moveTask.setSourceURI("");
-    		moveTask.setDestinationURI("");
-    		moveTask.setOptional(false);
-    		moveTask.setTransferType(TransferTypeEnum.LOCAL_MOVE);
-    		moveTask.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
-    		moveTask.setDestSharedCtx(_shareExecSystemOutputDirAppOwner);
-    		
-    		moveTasks.addElementsItem(moveTask);
-    	}
-    	
+    	// Issue the move as an asynchronous transfer.
+        // Determine if we are restarting a previous archiving request.
+        var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
+        String transferId = transferInfo.dtnOutputTransactionId;
+        String corrId     = transferInfo.dtnOutputCorrelationId;
+        
+        // See if the transfer id has been set for this job (this implies the
+        // correlation id has also been set).  If so, then the job had already 
+        // submitted its transfer request and we are now in recovery processing.  
+        // There's no need to resubmit the transfer request in this case.  
+        // 
+        // It's possible that the corrId was set but we died before the transferId
+        // was saved.  In this case, we simply generate a new corrId and resubmit.
+        if (StringUtils.isBlank(transferId)) {
+            corrId = UUID.randomUUID().toString();
+            transferId = moveNewDtnOutputs(fileList, corrId);
+        }
+        
+        // Debugging.
+        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+                                  _job.getStatus().name(), transferId, corrId));
+        
     	// Monitor the move's completion.
+        // Block until the transfer is complete. If the transfer fails because of
+        // a communication, api or transfer problem, an exception is thrown from here.
+        var monitor = TransferMonitorFactory.getMonitor();
+        monitor.monitorTransfer(_job, transferId, corrId);
     }
 
     /* ---------------------------------------------------------------------- */
-    /* makeStagingInputsDestUrl:                                                   */
+    /* makeStagingInputsDestUrl:                                              */
     /* ---------------------------------------------------------------------- */
     /** Create a tapis url based on the input spec's destination path and either
      * DTN or execution system information.  

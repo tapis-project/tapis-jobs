@@ -17,8 +17,9 @@ To update the schema and re-create the jooq code:
    e. mvn -f jooq-pom.xml clean install - Generate the updated jooq schema and code
 4. Compile Jobs again with jooq generated code
       a. cd ..
-      a. mvn clean install
-      b. mvn -f shaded-pom.xml clean install
+      b. mvn clean install
+      c. cd tapis-jobslib
+      d. mvn -f shaded-pom.xml clean install
 5. If there is still some compilation error, try to look in JobsDao and jooq-pom.xml
 6. Using "git status" you should be able to see the updates to the jooq source code.
 7. Commit the updates.

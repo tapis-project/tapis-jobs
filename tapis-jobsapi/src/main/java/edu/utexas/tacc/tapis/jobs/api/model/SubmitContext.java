@@ -716,6 +716,12 @@ public final class SubmitContext
         	// Conditionally load the DTN system definition based on (1) the dtnSystemId is
         	// set and (2) at least one of the dtn directories is set.
         	if (useDtn()) {
+        		// TEMPORARILY DISABLE DTN USAGE.
+        		if (true) {
+        			String msgx = MsgUtils.getMsg("JOBS_UNSUPPORTED_EXEC_TYPE", "DTN-transfer", _job.getUuid(), _execSystem.getId());
+        			throw new TapisImplException(msgx, Status.BAD_REQUEST.getStatusCode());
+        		}
+        		
         		// Determine if the application shares dtn access once we know we'll use the dtn.
         		_sharedAppCtx.calcDtnSystemId(_execSystem.getId(), _execSystem.getDtnSystemId());
         	

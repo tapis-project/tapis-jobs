@@ -22,9 +22,7 @@ export GIT_COMMIT=$(git log -1 --pretty=format:"%h")
 export GIT_BRANCH=$GIT_BRANCH
 echo "git commit revision $GIT_COMMIT"
 echo "GIT_BRANCH=$GIT_BRANCH"
-	docker login -u $DCKR_USER -p $DCKR_PW
 echo "*******************"
-exit 0
 
 echo '************************ Full install: mvn clean install'
 mvn clean install
@@ -35,20 +33,23 @@ mvn -f tapis-jobslib/shaded-pom.xml package
 # Jobs Publish Image
 echo "$JobsPublish"
 if [ "$JobsPublish" == "true" ]; then
+	docker login -u $DCKR_USER -p $DCKR_PW
 	echo '************************ Building & Publishing Jobs Image'
-	docker login -u $USERNAME -p $PASSWD
 	deployment/build-jobsapi.sh
 	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG
+	docker push tapis/jobsapi:${TAPIS_VERSION}
 	docker push tapis/jobsapi:$DCKR_TAG
     
     echo '************************ Building & Publishing Jobs Migrate Image'
 	deployment/build-jobsmigrate.sh
 	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG
+	docker push tapis/jobsmigrate:${TAPIS_VERSION}
 	docker push tapis/jobsmigrate:$DCKR_TAG
     
     echo '************************ Building & Publishing Jobs Worker Image'
 	deployment/build-jobsworker.sh
 	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG
+	docker push tapis/jobsworker:${TAPIS_VERSION}
 	docker push tapis/jobsworker:$DCKR_TAG
 fi
 

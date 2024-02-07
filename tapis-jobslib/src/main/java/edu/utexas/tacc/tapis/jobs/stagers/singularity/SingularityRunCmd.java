@@ -10,6 +10,7 @@ import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
 
 public final class SingularityRunCmd 
  extends AbstractSingularityExecCmd
+ implements ISingularityRun
 {
     /* ********************************************************************** */
     /*                                Fields                                  */

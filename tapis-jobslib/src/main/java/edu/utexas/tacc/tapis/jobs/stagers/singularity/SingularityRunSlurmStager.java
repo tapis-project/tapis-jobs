@@ -1,19 +1,16 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
-import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
-import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
-import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 
 public class SingularityRunSlurmStager
   extends AbstractSingularityStager
+  implements ISingularityRun
 {
     /* ********************************************************************** */
     /*                               Constants                                */
@@ -109,6 +106,9 @@ public class SingularityRunSlurmStager
         // Set all environment variables.
         singularityCmd.setEnv(getEnvVariables());
 
+        // Set the singularity options.
+        setSingularityOptions(singularityCmd);
+        
         return singularityCmd;
     }
 }

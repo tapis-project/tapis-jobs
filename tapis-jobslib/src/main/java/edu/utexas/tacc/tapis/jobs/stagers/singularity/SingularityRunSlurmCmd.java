@@ -1,23 +1,17 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
-import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
-import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-
-import java.util.List;
-
-import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 
 public final class SingularityRunSlurmCmd
-        extends AbstractSingularityExecCmd
+  extends AbstractSingularityExecCmd
+  implements ISingularityRun
 {
     /* ********************************************************************** */
     /*                              Constants                                 */

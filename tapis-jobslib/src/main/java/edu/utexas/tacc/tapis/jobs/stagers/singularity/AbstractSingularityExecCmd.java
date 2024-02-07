@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
-import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 abstract class AbstractSingularityExecCmd 
   implements JobExecCmd

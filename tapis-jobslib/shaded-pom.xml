@@ -67,15 +67,6 @@
             <groupId>org.statefulj</groupId>
             <artifactId>statefulj-fsm</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
         <!-- Needed to hide certain methods from swagger -->
         <!-- and for date conversion handling.           -->
         <dependency>

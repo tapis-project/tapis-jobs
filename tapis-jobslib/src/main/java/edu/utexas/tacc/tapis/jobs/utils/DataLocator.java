@@ -91,8 +91,8 @@ public class DataLocator {
 		 filesClient = getServiceClient(FilesClient.class, user, tenant);
 		        
          try {
-        	 final String regex = null;
-        	 outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), regex, jobOutputInfo.getSystemUrl(), 
+        	 final String pattern = null;
+        	 outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), pattern, jobOutputInfo.getSystemUrl(), 
         	                                    limit, skip, recursiveFlag, impersonationId, sharedAppCtx);
          } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_FILESLIST_ERROR", 

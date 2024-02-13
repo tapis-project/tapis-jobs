@@ -30,6 +30,7 @@ public final class ApplicationTester
    // Validated test parameters saved as fields for convenient access.
    private String _tenantId;
    private String _appName;
+   private String _appVersion;
    private String _owner;
    
    /* **************************************************************************** */
@@ -74,7 +75,7 @@ public final class ApplicationTester
        
        // Query the system for it's current availability.
        boolean available; 
-       try {available = appsClient.isEnabled(_appName);}
+       try {available = appsClient.isEnabled(_appName, _appVersion);}
        catch (Exception e) {
                String msg = MsgUtils.getMsg("JOBS_RECOVERY_DB_ACCESS", _jobRecovery.getId(), 
                                             "SystemDao", e.getMessage());
@@ -129,6 +130,15 @@ public final class ApplicationTester
        if (StringUtils.isBlank(_appName)) {
            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
                                         "name");
+           _log.error(msg);
+           throw new JobRecoveryAbortException(msg);
+       }
+
+       // We need the app version to be specified.
+       _appVersion = testerParameters.get("version");
+       if (StringUtils.isBlank(_appVersion)) {
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters", 
+                                        "version");
            _log.error(msg);
            throw new JobRecoveryAbortException(msg);
        }

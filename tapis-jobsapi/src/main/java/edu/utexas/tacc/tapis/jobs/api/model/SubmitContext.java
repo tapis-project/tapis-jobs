@@ -315,9 +315,10 @@ public final class SubmitContext
         }
         
         // Reject the job early if its application is not available.
-        if (_app.getEnabled() == null || !_app.getEnabled()) 
+        if (_app.getEnabled() == null || _app.getVersionEnabled() == null || 
+        	!_app.getEnabled() || !_app.getVersionEnabled()) 
         {
-            String msg = MsgUtils.getMsg("JOBS_APP_NOT_AVAILABLE", _job.getUuid(), _app.getId());
+            String msg = MsgUtils.getMsg("JOBS_APP_NOT_AVAILABLE", _job.getUuid(), _app.getId(), _app.getVersion());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         

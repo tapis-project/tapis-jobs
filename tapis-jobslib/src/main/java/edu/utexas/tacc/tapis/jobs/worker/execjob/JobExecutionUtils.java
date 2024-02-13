@@ -222,13 +222,15 @@ public final class JobExecutionUtils
     static void checkAppEnabled(TapisApp app, Job job)
      throws TapisAppAvailableException 
     {
-        // See if the system has been explicitly enabled.
+        // See if the specific app version has been explicitly enabled.
+    	// We interpret null enabled or versionEnabled as implying "not enabled".
         if (app == null) return;
-        Boolean enabled = app.getEnabled();
-        if (enabled != null && enabled) return;
+        final Boolean enabled = app.getEnabled();
+        final Boolean versionEnabled = app.getVersionEnabled();
+        if (enabled != null && versionEnabled != null && enabled && versionEnabled) return;
             
         // Throw a recoverable exception.
-        String msg = MsgUtils.getMsg("JOBS_APP_NOT_AVAILABLE", job.getUuid(), app.getId());
+        String msg = MsgUtils.getMsg("JOBS_APP_NOT_AVAILABLE", job.getUuid(), app.getId(), app.getVersion());
         _log.warn(msg);
         throw new TapisAppAvailableException(msg, RecoveryUtils.captureAppState(app));        
     }

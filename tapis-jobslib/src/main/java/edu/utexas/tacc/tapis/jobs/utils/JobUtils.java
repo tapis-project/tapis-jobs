@@ -2,7 +2,6 @@ package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -21,8 +20,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionExce
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-
-import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 
 public final class JobUtils 
 {

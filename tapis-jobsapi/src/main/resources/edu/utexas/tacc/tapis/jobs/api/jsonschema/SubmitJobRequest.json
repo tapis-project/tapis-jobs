@@ -233,6 +233,7 @@
             "properties": {
                 "name": { "type": "string", "minLength": 1, "maxLength": 80 },
                 "description": { "type": "string", "minLength": 1, "maxLength": 8096 },
+                "envKey": {"type": "string", "minLength": 1},
                 "autoMountLocal": { "type": "boolean"},
                 "sourceUrl": { "type": "string", "minLength": 1 },
                 "targetPath": { "type": "string", "minLength": 0},
@@ -245,6 +246,7 @@
             "properties": {
                 "name": { "type": "string", "minLength": 1, "maxLength": 80 },
                 "description": { "type": "string", "minLength": 1, "maxLength": 8096 },
+                "envKey": {"type": "string", "minLength": 1},
                 "sourceUrls": { "type": ["array", "null"], "items": { "type": "string", "minLength": 1 } },       
                 "targetDir": { "type": "string", "minLength": 1 },
                 "notes": { "type": "object" }

@@ -12,6 +12,7 @@ public class JobFileInputArray
 {
     private String       name;
     private String       description;
+    private String       envKey;
     private List<String> sourceUrls;
     private String       targetDir;
     private Object       notes;
@@ -58,6 +59,7 @@ public class JobFileInputArray
         var reqInput = new JobFileInputArray();
         reqInput.setName(appInput.getName());
         reqInput.setDescription(appInput.getDescription());
+        reqInput.setEnvKey(appInput.getEnvKey());
         reqInput.setSourceUrls(appInput.getSourceUrls());
         reqInput.setTargetDir(appInput.getTargetDir());
         reqInput.setNotes(appInput.getNotes());
@@ -79,6 +81,12 @@ public class JobFileInputArray
     public void setDescription(String description) {
         this.description = description;
     }
+	public String getEnvKey() {
+		return envKey;
+	}
+	public void setEnvKey(String envKey) {
+		this.envKey = envKey;
+	}
     public List<String> getSourceUrls() {
         return sourceUrls;
     }

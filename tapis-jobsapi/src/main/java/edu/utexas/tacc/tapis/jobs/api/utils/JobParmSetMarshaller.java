@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response.Status;
@@ -36,6 +37,9 @@ public final class JobParmSetMarshaller
     // a valid value).
     public static final String TAPIS_ENV_VAR_UNSET = TapisConstants.TAPIS_NOT_SET;
     public static final String TAPIS_ENV_VAR_DEFAULT_VALUE = "";
+    
+    // Limit environment key names to alphnumerics and "_", starting with an alpha.
+    public static final Pattern _envKeyPattern = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
     
     /* **************************************************************************** */
     /*                                   Enums                                      */
@@ -314,7 +318,10 @@ public final class JobParmSetMarshaller
     /* finalizeEnvVariables:                                                        */
     /* ---------------------------------------------------------------------------- */
     /** Validate that all env variable objects are well-formed.  Assign all notes 
-     * fields valid json strings.
+     * fields valid json strings.  By the time this method is call, the env variable
+     * names from systems, apps and the request have been run through 
+     * validateEnvVariableNames(), so no further name checking is needed. In particular,
+     * dangerous characters have been prohibited by the validation method. 
      * 
      * @param reqKvList the list of candidate env variables
      * @throws TapisImplException on validation failure
@@ -332,9 +339,6 @@ public final class JobParmSetMarshaller
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
 
-            // Detect control characters and other unwanted characters in the key.
-    		JobsApiUtils.hasDangerousCharacters("envVariables", reqKv.getKey(), reqKv.getKey());
-            
             // Detect control characters in the value.
     		JobsApiUtils.detectControlCharacters("envVariables", reqKv.getKey(), value);
     		
@@ -801,6 +805,12 @@ public final class JobParmSetMarshaller
     		if (name.startsWith(TAPIS_ENV_VAR_PREFIX)) {
     			String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", name, 
                                              TAPIS_ENV_VAR_PREFIX, "job request");
+    			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		}
+    		
+    		// Make sure the name has the right format using the right charset.
+    		if (!_envKeyPattern.matcher(name).matches()) {
+    			String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_VAR_CHAR", name);
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
     		

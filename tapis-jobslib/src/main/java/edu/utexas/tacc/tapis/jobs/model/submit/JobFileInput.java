@@ -16,6 +16,7 @@ public class JobFileInput
 
     private String  name;
     private String  description;
+    private String  envKey;
     private Boolean autoMountLocal;
     private String  sourceUrl;
     private String  targetPath;
@@ -41,6 +42,8 @@ public class JobFileInput
         reqInput.setTargetPath(appInput.getTargetPath());
         
         reqInput.setNotes(appInput.getNotes());
+        
+        reqInput.setEnvKey(appInput.getEnvKey());
         
         // The default input mode is optional.
         if (appInput.getInputMode() == null ||
@@ -68,6 +71,12 @@ public class JobFileInput
     public void setDescription(String description) {
         this.description = description;
     }
+	public String getEnvKey() {
+		return envKey;
+	}
+	public void setEnvKey(String envKey) {
+		this.envKey = envKey;
+	}
     public Boolean getAutoMountLocal() {
         return autoMountLocal;
     }
@@ -115,5 +124,9 @@ public class JobFileInput
 	}
 	public void setNotes(Object notes) {
 		this.notes = notes;
+	}
+
+	public static Pattern getUrlPattern() {
+		return URL_PATTERN;
 	}
 }

@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -14,6 +15,7 @@ import java.util.Random;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -107,6 +109,9 @@ public final class SubmitContext
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(SubmitContext.class);
     private static final int MAX_INPUT_NAME_LEN = 80;
+    
+    // Limit environment key names to alphnumerics and "_", starting with an alpha.
+    private static final Pattern _envKeyPattern = JobParmSetMarshaller._envKeyPattern;
     
     /* ********************************************************************** */
     /*                                Enums                                   */
@@ -425,6 +430,10 @@ public final class SubmitContext
         resolveFileInputs();
         resolveFileInputArrays();
         validateFileInputs();
+        
+        // Add any file inputs that have a user assigned envKey to the env 
+        // variables list that will be passed to the application.
+        mergeFileInputsEnvKeys();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1456,7 +1465,7 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());
-        
+       
         // Fill in the automount flag.
         if (reqInput.getAutoMountLocal() == null)
             reqInput.setAutoMountLocal(appDef.getAutoMountLocal());
@@ -1479,6 +1488,11 @@ public final class SubmitContext
         if (notes == null) notes = appDef.getNotes();
         reqInput.setNotes(JobsApiUtils.convertInputObjectToString(notes));
         
+        // Merge the envKey and normalize empty/spaces to null.
+        if (StringUtils.isBlank(reqInput.getEnvKey()))
+        	reqInput.setEnvKey(appDef.getEnvKey());
+        if (StringUtils.isBlank(reqInput.getEnvKey())) reqInput.setEnvKey(null);
+
         // Successfully merged into a complete request.
         return true;
     }
@@ -1568,6 +1582,54 @@ public final class SubmitContext
     }
     
     /* ---------------------------------------------------------------------------- */
+    /* mergeFileInputsEnvKeys:                                                      */
+    /* ---------------------------------------------------------------------------- */
+    /** Add all the envKeys from the resolved file inputs to the env variable list.
+     * Name collisions will cause an exception.
+     * 
+     * @throws TapisImplException on duplicate env variables
+     */
+    private void mergeFileInputsEnvKeys() throws TapisImplException
+    {
+    	// See if we have any envKeys set.  The envKeys have been normalized to null
+    	// if they were empty or only whitespace.  They have also been validated 
+    	// against the env variable regex, so they contain only characters allowed in 
+    	// environment variable names.
+    	var fileInputs = _submitReq.getFileInputs();
+    	List<JobFileInput> inputEnvKeys = 
+    	    fileInputs.stream().filter(x -> x.getEnvKey() != null).collect(Collectors.toList());
+    	if (inputEnvKeys.isEmpty()) return; // no envKeys to merge
+    	
+    	// Get the current env variable list and the set of environment variable names.
+    	var envList = _submitReq.getParameterSet().getEnvVariables();
+    	var nameSet = envList.stream().map(x -> x.getKey()).collect(Collectors.toSet());
+    	
+    	// Add each envKey to the envList as long as the key is not already defined.
+    	for (var inputEnvKey : inputEnvKeys) {
+    		// File input name used in messages.
+    		var inputFilename = inputEnvKey.getName() == null ? "unnamed" : inputEnvKey.getName();
+    		
+    		// Detect name collisions.
+    		var newKey = inputEnvKey.getEnvKey();
+    		boolean added = nameSet.add(newKey);
+    		if (!added) {
+    			String source = "EnvKey from \"" + inputFilename +"\" input file";
+                String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", source, newKey);
+                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		}
+    		
+    		// Add the input file envKey to the list of environment variables.
+    		var newKV = new KeyValuePair();
+    		newKV.setKey(newKey);
+    		newKV.setValue(inputEnvKey.getTargetPath());
+    		newKV.setDescription("EnvKey from input file: " + inputFilename);
+    		newKV.setInclude(Boolean.TRUE); // Always include envKeys
+    		newKV.setNotes(Job.EMPTY_JSON); // No notes
+    		envList.add(newKV);
+    	}
+    }
+    
+    /* ---------------------------------------------------------------------------- */
     /* completeRequestFileInput:                                                    */
     /* ---------------------------------------------------------------------------- */
     /** This method is called when a request file input does not match the name
@@ -1610,6 +1672,9 @@ public final class SubmitContext
         // Set the automount default value if needed.
         if (reqInput.getAutoMountLocal() == null) 
             reqInput.setAutoMountLocal(AppsClient.DEFAULT_FILE_INPUT_AUTO_MOUNT_LOCAL);
+        
+        // Normalize empty/spaces to null in environment key.
+        if (StringUtils.isBlank(reqInput.getEnvKey())) reqInput.setEnvKey(null);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -1838,6 +1903,11 @@ public final class SubmitContext
         if (notes == null) notes = appDef.getNotes();
         reqInput.setNotes(JobsApiUtils.convertInputObjectToString(notes));
         
+        // Merge the envKey and normalize empty/spaces to null.
+        if (StringUtils.isBlank(reqInput.getEnvKey()))
+        	reqInput.setEnvKey(appDef.getEnvKey());
+        if (StringUtils.isBlank(reqInput.getEnvKey())) reqInput.setEnvKey(null);
+
         // Successfully merged into a complete request.
         return true;
     }
@@ -1957,6 +2027,9 @@ public final class SubmitContext
         // Make sure the notes field is valid JSON and convert it into a string.
         // Nulls are converted to the empty JSON object as string.
         reqInput.setNotes(JobsApiUtils.convertInputObjectToString(reqInput.getNotes()));
+        
+        // Normalize empty/spaces to null in environment key.
+        if (StringUtils.isBlank(reqInput.getEnvKey())) reqInput.setEnvKey(null);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2067,7 +2140,8 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* validateFileInputs:                                                          */
     /* ---------------------------------------------------------------------------- */
-    /** Detect control characters in sourceUrl and targetPath.
+    /** Detect control characters in sourceUrl and targetPath.  Validate the envKey 
+     * names. 
      * 
      * @throws TapisImplException when a control character is detected
      */
@@ -2084,6 +2158,22 @@ public final class SubmitContext
     		
     		// -- targetPath
     		JobsApiUtils.detectControlCharacters("fileInputs", fn, fileInput.getTargetPath());
+    		
+    		// -- envKey
+    		if (fileInput.getEnvKey() != null) {  // can only be null or a candidate string
+    			// Make sure the key which becomes an environment variable name does not
+    			// encroach on the tapis namespace or contain invalid characters.
+    			if (fileInput.getEnvKey().startsWith(Job.TAPIS_ENV_VAR_PREFIX)) {
+    	        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_ENVKEY", _job.getUuid(), 
+    	        			                  fn, fileInput.getEnvKey());
+    	        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    			}
+    			if (!_envKeyPattern.matcher(fileInput.getEnvKey()).matches()) {
+    	        	var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_ENVKEY", _job.getUuid(),
+    	        			                  fn, fileInput.getEnvKey());
+    	        	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    			}
+    		}
     	}
     }
     

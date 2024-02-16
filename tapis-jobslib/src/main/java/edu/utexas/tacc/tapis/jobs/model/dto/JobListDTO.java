@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.model.dto;
 
 import java.time.Instant;
 
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 
 
@@ -18,6 +19,7 @@ public class JobListDTO {
 	private String appId;
 	private Instant created;
 	private JobStatusType status;
+	private JobConditionCode condition;
 	private Instant remoteStarted; 
 	private Instant ended;
 	private String tenant;
@@ -69,6 +71,12 @@ public class JobListDTO {
 	}
 	public void setStatus(JobStatusType status) {
 		this.status = status;
+	}
+	public JobConditionCode getCondition() {
+		return condition;
+	}
+	public void setCondition(JobConditionCode condition) {
+		this.condition = condition;
 	}
 	public Instant getRemoteStarted() {
 		return remoteStarted;

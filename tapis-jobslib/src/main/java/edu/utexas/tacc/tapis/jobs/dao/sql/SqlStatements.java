@@ -33,7 +33,8 @@ public class SqlStatements
         	+ "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
         	+ "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes, "
         	+ "stageapp_transaction_id, stageapp_correlation_id, "
-        	+ "dtn_in_transaction_id, dtn_in_correlation_id, dtn_out_transaction_id, dtn_out_correlation_id "
+        	+ "dtn_in_transaction_id, dtn_in_correlation_id, dtn_out_transaction_id, dtn_out_correlation_id, "
+        	+ "condition "
             + "FROM jobs ORDER BY id";
     
     public static final String SELECT_JOBS_BY_UUID =
@@ -53,12 +54,13 @@ public class SqlStatements
             + "tapis_queue, visible, createdby, createdby_tenant, tags, job_type, "
             + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes,"
             + "stageapp_transaction_id, stageapp_correlation_id, "
-        	+ "dtn_in_transaction_id, dtn_in_correlation_id, dtn_out_transaction_id, dtn_out_correlation_id "
+        	+ "dtn_in_transaction_id, dtn_in_correlation_id, dtn_out_transaction_id, dtn_out_correlation_id,"
+        	+ "condition "
             + "FROM jobs "
             + "WHERE uuid = ?";
         
     public static final String SELECT_JOBS_BY_USERNAME =
-        "SELECT uuid, tenant, name, owner, status, "
+        "SELECT uuid, tenant, name, owner, status, condition, "
          	+ "created, ended, last_updated, app_id,"
            	+ "app_version, exec_system_id, archive_system_id, "
            	+ "remote_started "
@@ -66,16 +68,8 @@ public class SqlStatements
            	+ " WHERE owner = ? AND tenant = ? AND visible = ?"
            	+ " ORDER BY :orderby LIMIT ? OFFSET ?";
    
-    public static final String SELECT_JOBS_LIST_DTO_BY_UUID =
-        "SELECT uuid, tenant, name, owner, status, "
-          	+ "created, ended, last_updated, app_id,"
-          	+ "app_version, exec_system_id, archive_system_id, "
-           	+ "remote_started "
-            + " FROM jobs "
-          	+ " WHERE visible = ? AND uuid = ? ";
-               
     public static final String SELECT_JOBS_STATUS_INFO_BY_UUID =
-            "SELECT uuid, id,  owner, tenant, status, createdby, visible, createdby_tenant"
+            "SELECT uuid, id,  owner, tenant, status, condition, createdby, visible, createdby_tenant"
             + " FROM jobs"
             + " WHERE uuid = ?";
     
@@ -122,7 +116,7 @@ public class SqlStatements
         + " WHERE tenant = ? AND uuid = ?";
     
     public static final String UPDATE_JOB_ENDED =
-        "UPDATE jobs SET ended = ? WHERE ended IS NULL AND uuid = ?";
+        "UPDATE jobs SET ended = ?, condition = ? WHERE ended IS NULL AND uuid = ?";
       
     public static final String UPDATE_REMOTE_STARTED = 
         "UPDATE jobs SET remote_started = ? WHERE remote_started IS NULL AND uuid = ?";

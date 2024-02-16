@@ -1,10 +1,12 @@
 package edu.utexas.tacc.tapis.jobs.model.dto;
 
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 
 public class JobStatusDTO {
 	private String jobUuid;
 	private JobStatusType status;
+	private JobConditionCode condition;
 	private String owner;
 	private boolean visible;
 	private long jobId;
@@ -17,16 +19,20 @@ public class JobStatusDTO {
 	public String getJobUuid() {
 		return jobUuid;
 	}
-
 	public void setJobUuid(String jobUuid) {
 		this.jobUuid = jobUuid;
 	}
-	
 	public JobStatusType getStatus() {
 		return status;
 	}
 	public void setStatus(JobStatusType status) {
 		this.status = status;
+	}
+	public JobConditionCode getCondition() {
+		return condition;
+	}
+	public void setCondition(JobConditionCode condition) {
+		this.condition = condition;
 	}
 	public String getOwner() {
 		return owner;
@@ -46,11 +52,9 @@ public class JobStatusDTO {
 	public void setJobId(long jobId) {
 		this.jobId = jobId;
 	}
-
 	public String getTenant() {
 		return tenant;
 	}
-
 	public void setTenant(String tenant) {
 		this.tenant = tenant;
 	}

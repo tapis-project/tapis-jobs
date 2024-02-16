@@ -40,6 +40,7 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
@@ -313,21 +314,23 @@ public final class JobsDao
                 jobListObject.setName(rs.getString(3));
                 jobListObject.setOwner(rs.getString(4));
                 jobListObject.setStatus(JobStatusType.valueOf(rs.getString(5)));
-                Timestamp ts = rs.getTimestamp(6);
+                var condition = rs.getString(6); // null in non-terminal states
+                if (condition != null) jobListObject.setCondition(JobConditionCode.valueOf(condition));
+                Timestamp ts = rs.getTimestamp(7);
                 if (ts != null) 
                     jobListObject.setCreated(ts.toInstant());
                 
-                ts = rs.getTimestamp(7);
+                ts = rs.getTimestamp(8);
                 if (ts != null) jobListObject.setEnded(ts.toInstant());
                 
-                ts = rs.getTimestamp(8);
+                ts = rs.getTimestamp(9);
                 if (ts != null) jobListObject.setLastUpdated(ts.toInstant());
                 
-                jobListObject.setAppId(rs.getString(9));
-                jobListObject.setAppVersion(rs.getString(10));
-                jobListObject.setExecSystemId(rs.getString(11));
-                jobListObject.setArchiveSystemId(rs.getString(11));
-                ts = rs.getTimestamp(13);
+                jobListObject.setAppId(rs.getString(10));
+                jobListObject.setAppVersion(rs.getString(11));
+                jobListObject.setExecSystemId(rs.getString(12));
+                jobListObject.setArchiveSystemId(rs.getString(13));
+                ts = rs.getTimestamp(14);
                 
                 if (ts != null) jobListObject.setRemoteStarted(ts.toInstant());
                 
@@ -1228,9 +1231,11 @@ public final class JobsDao
 	          jobStatus.setOwner(rs.getString(3));
 	          jobStatus.setTenant(rs.getString(4));
 	          jobStatus.setStatus(JobStatusType.valueOf(rs.getString(5)));
-	          jobStatus.setCreatedBy(rs.getString(6));
-	          jobStatus.setVisible(rs.getBoolean(7));
-	          jobStatus.setCreatedByTenant(rs.getString(8));
+	          var condition = rs.getString(6); // null when not in terminal state
+	          if (condition != null) jobStatus.setCondition(JobConditionCode.valueOf(condition));
+	          jobStatus.setCreatedBy(rs.getString(7));
+	          jobStatus.setVisible(rs.getBoolean(8));
+	          jobStatus.setCreatedByTenant(rs.getString(9));
 	          
 	          // Close the result and statement.
 	          rs.close();
@@ -2702,10 +2707,19 @@ public final class JobsDao
         // Set the sql command.
         String sql = SqlStatements.UPDATE_JOB_ENDED;
             
+        // Condition should always be non-null on terminal statuses.
+        var condition = job.getCondition() == null ? null : job.getCondition().name();
+        if (condition == null) {
+        	// Log problem and continue.
+            String msg = MsgUtils.getMsg("JOBS_MISSING_CONDITION_CODE", job.getUuid(), job.getStatus().name());
+            _log.error(msg);
+        }
+        
         // Prepare the statement and fill in the placeholders.
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setTimestamp(1, ts);
-        pstmt.setString(2, job.getUuid());
+        pstmt.setString(2, condition);
+        pstmt.setString(3, job.getUuid());
             
         // Issue the call.
         int rows = pstmt.executeUpdate();
@@ -3181,6 +3195,9 @@ public final class JobsDao
 	        obj.setDtnInputCorrelationId(rs.getString(66));
 	        obj.setDtnOutputTransactionId(rs.getString(67));
 	        obj.setDtnOutputCorrelationId(rs.getString(68));
+	        
+	        // Condition code is null until job reaches a terminal state.
+	        obj.setCondition(JobConditionCode.valueOf(rs.getString(69)));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

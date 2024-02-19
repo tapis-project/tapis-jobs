@@ -31,6 +31,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
@@ -481,8 +482,8 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* removeZipAppArchive:                                                   */
     /* ---------------------------------------------------------------------- */
-    /** If containerImage was a URL then the ZIP app archive file was transferred onto the exec host
-     *  using a URL and we should remove it once job is done.
+    /** If containerImage was a URL then the ZIP app archive file was transferred 
+     * onto the exec host using a URL and we should remove it once job is done.
      *
      * @throws TapisException on error
      */
@@ -1101,6 +1102,7 @@ public final class JobFileManager
         }
         else {
         	// This indicates a code compilation/version error.
+        	_job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "submitTransferTask",
             		                     "JobTransferPhase", phase.name());
             throw new TapisImplException(msg, JobExecutionContext.HTTP_INTERNAL_SERVER_ERROR);
@@ -1379,6 +1381,7 @@ public final class JobFileManager
             }
             
             // Unrecoverable error.
+            _job.setCondition(JobConditionCode.JOB_FILES_SERVICE_ERROR);
             if (e instanceof TapisClientException) {
                 var e1 = (TapisClientException) e;
                 String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
@@ -1398,6 +1401,7 @@ public final class JobFileManager
             if (uuid != null) transferId = uuid.toString();
         }
         if (transferId == null) {
+        	_job.setCondition(JobConditionCode.JOB_FILES_SERVICE_ERROR);
             String msg = MsgUtils.getMsg("JOBS_NO_TRANSFER_ID", "input", _job.getUuid());
             throw new JobException(msg);
         }
@@ -1421,6 +1425,7 @@ public final class JobFileManager
     {
     	// This should never happen, but just to be sure.
     	if (!_jobCtx.useDtnInput()) {
+    		_job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
     		var cond = TapisImplException.Condition.INTERNAL_SERVER_ERROR;
             String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "moveInput", _job.getUuid(),
                                          500, cond.name());
@@ -1470,6 +1475,7 @@ public final class JobFileManager
     {
     	// This should never happen, but just to be sure.
     	if (!_jobCtx.useDtnOutput()) {
+    		_job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
         	var cond = TapisImplException.Condition.INTERNAL_SERVER_ERROR;
             String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "moveOutput", _job.getUuid(),
                                          500, cond.name());

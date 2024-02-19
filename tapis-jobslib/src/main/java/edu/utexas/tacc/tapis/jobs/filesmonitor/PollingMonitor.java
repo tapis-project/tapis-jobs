@@ -19,6 +19,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
@@ -117,6 +118,7 @@ public final class PollingMonitor
             
             // Unsuccessful termination.
             if (status == TransferStatusEnum.FAILED || status == TransferStatusEnum.CANCELLED) {
+            	job.setCondition(JobConditionCode.JOB_TRANSFER_FAILED_OR_CANCELLED);
                 postEvent(job, status, transferId);
                 String msg = MsgUtils.getMsg("JOBS_TRANSFER_INCOMPLETE", job.getUuid(), transferId, corrId, 
                                              status, task.getErrorMessage());
@@ -127,6 +129,7 @@ public final class PollingMonitor
             // Sleep for the prescribed amount of time.
             Long waitMillis = millisToWait(lastAttemptFailed);
             if (waitMillis == null) {
+            	job.setCondition(JobConditionCode.JOB_TRANSFER_MONITORING_TIMEOUT);
                 String msg = MsgUtils.getMsg("JOBS_TRANSFER_POLLING_ERROR", job.getUuid(), transferId, corrId, 
                                              _reasonCode.name());
                 throw new JobException(msg);

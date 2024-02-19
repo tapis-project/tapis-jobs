@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
@@ -207,6 +208,7 @@ abstract class AbstractJobMonitor
         // Sanity check.
         if (initialStatus != JobStatusType.QUEUED && initialStatus != JobStatusType.RUNNING)
         {    
+        	_job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
             String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "monitor", "initialStatus", initialStatus);
             throw new JobException(msg);
         }
@@ -235,6 +237,7 @@ abstract class AbstractJobMonitor
                     _jobCtx.setFinalMessage(finalMessage);
                 
                     // Signal that this job is kaput.
+                    _job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_TIMEOUT);
                     String msg = MsgUtils.getMsg("JOBS_MONITOR_EARLY_TERMINATION", getClass().getSimpleName(),
                                                  _job.getUuid(), _policy.getReasonCode().name(),
                                                  _job.getRemoteOutcome().name());

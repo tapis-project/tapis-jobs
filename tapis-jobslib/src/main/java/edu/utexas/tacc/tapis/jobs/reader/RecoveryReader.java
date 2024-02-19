@@ -17,6 +17,7 @@ import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.DeliveryResponse;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
@@ -525,7 +526,7 @@ public final class RecoveryReader
     /* ---------------------------------------------------------------------- */
     /* failJob:                                                               */
     /* ---------------------------------------------------------------------- */
-    private void failJob(String jobUuid, String tenantId, String failMsg)
+    private void failJob(String jobUuid, String tenantId, String failMsg, JobConditionCode cond)
     {
         // Best effort event recording and notification.  Send error event before
         // sending FAILED status event so that subscriptions are still in effect. 
@@ -539,7 +540,7 @@ public final class RecoveryReader
         }
         
         // Let's try to fail this job since we can't recover it.
-        try {_jobsDao.failJob(_parms.name, jobUuid, tenantId, failMsg);}
+        try {_jobsDao.failJob(_parms.name, jobUuid, tenantId, failMsg, cond);}
             catch (Exception e) {
                 // Double fault, what a mess.  The job will be left in 
                 // a non-terminal state and not on any queue.  It's a zombie.
@@ -584,7 +585,8 @@ public final class RecoveryReader
                 _log.error(msg, e);
                 
                 // Let's try to fail this job since we can't recover it.
-                failJob(message.getJobUuid(), message.getTenantId(), msg);                
+                var cond = JobConditionCode.JOB_INTERNAL_ERROR;
+                failJob(message.getJobUuid(), message.getTenantId(), msg, cond);                
                 return false;
             }
         if (jobStatus != JobStatusType.BLOCKED) {
@@ -602,7 +604,8 @@ public final class RecoveryReader
                 _log.error(msg, e);
                 
                 // Let's try to fail this job since we can't recover it.
-                failJob(message.getJobUuid(), message.getTenantId(), msg);                
+                var cond = JobConditionCode.JOB_INTERNAL_ERROR;
+                failJob(message.getJobUuid(), message.getTenantId(), msg, cond);                
                 return false;
             }
         
@@ -622,7 +625,8 @@ public final class RecoveryReader
                 _log.error(msg, e);
                 
                 // Let's try to fail this job since we can't recover it.
-                failJob(message.getJobUuid(), message.getTenantId(), msg);                
+                var cond = JobConditionCode.JOB_INTERNAL_ERROR;
+                failJob(message.getJobUuid(), message.getTenantId(), msg, cond);                
                 return false;
             }
         
@@ -637,7 +641,8 @@ public final class RecoveryReader
                                          jobRecovery.getConditionCode().name(), 
                                          jobRecovery.getTesterHash(), jobRecovery.getId());
             _log.error(msg);
-            failJob(message.getJobUuid(), message.getTenantId(), msg);                
+            var cond = JobConditionCode.JOB_INTERNAL_ERROR;
+            failJob(message.getJobUuid(), message.getTenantId(), msg, cond);                
             return false;
         }
         
@@ -651,7 +656,8 @@ public final class RecoveryReader
                 // an unbounded linked queue, but just in case.
                 String msg = MsgUtils.getMsg("JOBS_RECOVERY_INTERNAL_QUEUE_ERROR", e.getMessage());
                 _log.error(msg, e);
-                failJob(message.getJobUuid(), message.getTenantId(), msg);                
+                var cond = JobConditionCode.JOB_INTERNAL_ERROR;
+                failJob(message.getJobUuid(), message.getTenantId(), msg, cond);                
                 return false;
             }
         

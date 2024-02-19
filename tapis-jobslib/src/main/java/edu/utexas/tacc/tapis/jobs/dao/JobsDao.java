@@ -1660,7 +1660,8 @@ public final class JobsDao
      * @return the last update time saved in the job record
      * @throws JobException if the status could not be updated
      */
-    public Instant setStatus(String uuid, JobStatusType newStatus, String message)
+    public Instant setStatus(String uuid, JobStatusType newStatus, String message, 
+    		                 JobConditionCode cond)
      throws JobException
     {
         // Check input.
@@ -1673,6 +1674,7 @@ public final class JobsDao
         // Get the job and create its context object for event processing.
         // The new context object is referenced in the job, so it's not garbage.
         Job job = getJobByUUID(uuid);
+        job.setCondition(cond);
         Instant ts = setStatus(job, newStatus, message);
         
         return ts;
@@ -1802,6 +1804,7 @@ public final class JobsDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
+            job.setCondition(JobConditionCode.JOB_DATABASE_ERROR);
             String msg = MsgUtils.getMsg("JOBS_UPDATE_TRANSFER_VALUE_ERROR", job.getUuid(), 
                                          job.getTenant(), job.getOwner(), 
                                          type.name(), value, e.getMessage());
@@ -1834,7 +1837,8 @@ public final class JobsDao
      * @param failMsg the message to write to the job record
      * @throws JobException 
      */
-    public void failJob(String caller, String jobUuid, String tenantId, String failMsg) 
+    public void failJob(String caller, String jobUuid, String tenantId, String failMsg,
+    		            JobConditionCode cond) 
      throws JobException
     {
         // Make sure we write something to the job record.
@@ -1842,7 +1846,7 @@ public final class JobsDao
             failMsg = MsgUtils.getMsg("JOBS_STATUS_FAILED_UNKNOWN_CAUSE");
         
         // Fail the job.
-        try {setStatus(jobUuid, JobStatusType.FAILED, failMsg);}
+        try {setStatus(jobUuid, JobStatusType.FAILED, failMsg, cond);}
             catch (Exception e) {
                 // The job will be left in a non-terminal state and probably 
                 // removed from any queue.  It's likely to become a zombie.
@@ -2704,21 +2708,31 @@ public final class JobsDao
     private void updateEnded(Connection conn, Job job, Timestamp ts) 
      throws SQLException
     {
+    	// Set the condition code if not set.  Only failures incidents set
+    	// the condition, so the other two terminal states will have a null
+    	// condition when processing gets here.
+        if (job.getCondition() == null)
+        	if (job.getStatus() == JobStatusType.FINISHED) {
+        		job.setCondition(JobConditionCode.NORMAL_COMPLETION);
+        	}
+        	else if (job.getStatus() == JobStatusType.CANCELLED) {
+        		job.setCondition(JobConditionCode.CANCELLED_BY_USER);
+        	}
+        	else {
+        		// Failed jobs should already have a condition code set. This
+        		// branch also acts as a catch all, which should never happen.
+        		job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
+                String msg = MsgUtils.getMsg("JOBS_MISSING_CONDITION_CODE", job.getUuid(), job.getStatus().name());
+                _log.error(msg);
+        	}
+        
         // Set the sql command.
         String sql = SqlStatements.UPDATE_JOB_ENDED;
             
-        // Condition should always be non-null on terminal statuses.
-        var condition = job.getCondition() == null ? null : job.getCondition().name();
-        if (condition == null) {
-        	// Log problem and continue.
-            String msg = MsgUtils.getMsg("JOBS_MISSING_CONDITION_CODE", job.getUuid(), job.getStatus().name());
-            _log.error(msg);
-        }
-        
         // Prepare the statement and fill in the placeholders.
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setTimestamp(1, ts);
-        pstmt.setString(2, condition);
+        pstmt.setString(2, job.getCondition().name());
         pstmt.setString(3, job.getUuid());
             
         // Issue the call.

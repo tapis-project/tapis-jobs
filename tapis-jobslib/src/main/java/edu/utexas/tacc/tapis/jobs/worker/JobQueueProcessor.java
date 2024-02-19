@@ -17,6 +17,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions.
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.launchers.JobLauncherFactory;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
@@ -29,6 +30,7 @@ import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.QuotaChecker;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
+import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisRecoverableException;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.providers.email.EmailClient;
@@ -213,7 +215,7 @@ final class JobQueueProcessor
         // ------------ Unrecoverable Job Exception
         // If we get here with a negative ack, we have to fail the job. 
         //
-        if (!ack) failJob(job, msg);
+        if (!ack) failJob(job, msg, JobConditionCode.JOB_RECOVERY_FAILURE);
     }
     finally {
         
@@ -348,6 +350,7 @@ final class JobQueueProcessor
       // Validate the job specification.
       try {job.validateForExecution();}
           catch (Exception e) {
+        	  job.setCondition(JobConditionCode.JOB_INVALID_DEFINITION); // This should not happen!
               String msg = MsgUtils.getMsg("JOBS_INVALID_JOB", job.getUuid(), e.getMessage());
               throw JobUtils.tapisify(e, msg);
           }
@@ -367,11 +370,17 @@ final class JobQueueProcessor
       
       // Batch job validation
       try {validateBatchParameters(jobCtx);}
-          catch (Exception e) {throw JobUtils.tapisify(e, e.getMessage());}
+          catch (Exception e) {
+        	  job.setCondition(JobConditionCode.JOB_INVALID_DEFINITION); 
+        	  throw JobUtils.tapisify(e, e.getMessage());
+          }
       
       // Make sure a launcher is defined for the job type and runtime.
       try {validateLauncher(jobCtx);}
-          catch (Exception e) {throw JobUtils.tapisify(e, e.getMessage());}
+          catch (Exception e) {
+        	  job.setCondition(JobConditionCode.JOB_INVALID_DEFINITION); 
+        	  throw JobUtils.tapisify(e, e.getMessage());
+          }
       
       // Set the default return code to cause a positive ack to rabbitmq.
       boolean rc = true;
@@ -477,7 +486,11 @@ final class JobQueueProcessor
       
       // Create the input and output directories used by this job.
       try {jobCtx.createDirectories();}
-          catch (Exception e) {handleException(job, e, BlockedJobActivity.PROCESSING_INPUTS);}
+          catch (Exception e) {
+        	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
+        		  job.setCondition(JobConditionCode.JOB_REMOTE_ACCESS_ERROR);
+        	  handleException(job, e, BlockedJobActivity.PROCESSING_INPUTS);
+          }
     
       // Advance job to next state.
       setState(job, JobStatusType.STAGING_INPUTS);
@@ -547,7 +560,11 @@ final class JobQueueProcessor
     
       // Stage job.
       try {jobCtx.stageJob();}
-      catch (Exception e) {handleException(job, e, BlockedJobActivity.STAGING_JOB);}
+      catch (Exception e) {
+    	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
+    		  job.setCondition(JobConditionCode.JOB_UNABLE_TO_STAGE_JOB);
+    	  handleException(job, e, BlockedJobActivity.STAGING_JOB);
+       }
 
       // Advance job to next state.
       setState(job, JobStatusType.SUBMITTING_JOB);
@@ -582,7 +599,11 @@ final class JobQueueProcessor
     
       // Submit job.
       try {jobCtx.submitJob();}
-      catch (Exception e) {handleException(job, e, BlockedJobActivity.SUBMITTING);}
+      catch (Exception e) {
+    	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
+    		  job.setCondition(JobConditionCode.JOB_LAUNCH_FAILURE);
+    	  handleException(job, e, BlockedJobActivity.SUBMITTING);
+      }
 
       // Advance job to next state.
       setState(job, JobStatusType.QUEUED);
@@ -617,7 +638,11 @@ final class JobQueueProcessor
     
       // Check queued job.
       try {jobCtx.monitorQueuedJob();}
-      catch (Exception e) {handleException(job, e, BlockedJobActivity.QUEUED);}
+      catch (Exception e) {
+    	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
+    		  job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_ERROR);
+    	  handleException(job, e, BlockedJobActivity.QUEUED);
+      }
 
       // Advance job to next state. 
       setState(job, JobStatusType.RUNNING);
@@ -654,7 +679,11 @@ final class JobQueueProcessor
       // state, in which case there's no need for further monitoring.
       if (job.getRemoteOutcome() == null)
           try {jobCtx.monitorRunningJob();}
-          catch (Exception e) {handleException(job, e, BlockedJobActivity.RUNNING);}
+          catch (Exception e) {
+        	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
+        		  job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_ERROR);
+        	  handleException(job, e, BlockedJobActivity.RUNNING);
+          }
 
       // The connection to the execution system will already 
       // be closed if we monitored the running job.
@@ -872,7 +901,7 @@ final class JobQueueProcessor
           
           // Fail the job.
           String failMsg =  MsgUtils.getMsg("JOBS_STATUS_FAILED_IMPROPER_RECOVERY");
-          failJob(job, failMsg);
+          failJob(job, failMsg, JobConditionCode.JOB_RECOVERY_FAILURE);
           _log.error(failMsg);
           
           // There's nothing more we can do.
@@ -934,7 +963,7 @@ final class JobQueueProcessor
           String msg = MsgUtils.getMsg("JOBS_PUT_IN_RECOVERY_ERROR", job.getUuid(), 
                                        job.getTenant(), job.getOwner(), failMsg);
           _log.error(msg);
-          failJob(job, msg);
+          failJob(job, msg, JobConditionCode.JOB_RECOVERY_FAILURE);
       }
       
       return ack;
@@ -947,7 +976,7 @@ final class JobQueueProcessor
    * 
    * @param job the job to fail.
    */
-  private void failJob(Job job, String failMsg)
+  private void failJob(Job job, String failMsg, JobConditionCode cond)
   {
       // Don't blow up.
       if (job == null) return;
@@ -965,6 +994,8 @@ final class JobQueueProcessor
       
       // Fail the job.
       try {
+    	  // Always set the job condition before calling any dao method.
+    	  job.setCondition(cond);
           JobsDao dao = new JobsDao();
           dao.failJob(_jobWorker.getParms().name, job, failMsg);
       }

@@ -10,12 +10,22 @@ package edu.utexas.tacc.tapis.jobs.model.enumerations;
 public enum JobConditionCode 
 {
 	CANCELLED_BY_USER("Job cancelled by user"),
+	JOB_INVALID_DEFINITION("Invalid job record"),
+	JOB_DATABASE_ERROR("Jobs is unable to access its database"),
+	JOB_EXECUTION_MONITORING_ERROR("An unrecoverable error occurred during monitoring"),
+	JOB_EXECUTION_MONITORING_TIMEOUT("Tapis execution monitoring time expired"),
+	JOB_FILES_SERVICE_ERROR("An error involving the File service occurred"),
+	JOB_INTERNAL_ERROR("Jobs service internal error"),
+	JOB_LAUNCH_FAILURE("Tapis unable to launch job"),
+	JOB_RECOVERY_FAILURE("Tapis unable to recover job"),
+	JOB_RECOVERY_TIMEOUT("Tapis recovery time expired"),
+	JOB_REMOTE_ACCESS_ERROR("Jobs could not access a resource on a remote system"),
+	JOB_UNABLE_TO_STAGE_JOB("Unable to stage application assets"),
+	JOB_TRANSFER_FAILED_OR_CANCELLED("A file transfer failed or was cancelled"),
+	JOB_TRANSFER_MONITORING_TIMEOUT("Jobs transfer monitoring expired"),
 	NORMAL_COMPLETION("Job completed normally"),
 	SCHEDULER_TIMEOUT("Batch scheduler timed out job"),
-	SCHEDULER_TERMINATION("Batch scheduler terminated job"),
-	TAPIS_EXECUTION_TIMEOUT("Tapis execution time expired"),
-	TAPIS_LAUNCH_FAILURE("Tapis unable to launch job"),
-	TAPIS_RECOVERY_TIMEOUT("Tapis recovery time expired");
+	SCHEDULER_TERMINATION("Batch scheduler terminated job");
 	
     // ---- Fields
 	private final String _description;

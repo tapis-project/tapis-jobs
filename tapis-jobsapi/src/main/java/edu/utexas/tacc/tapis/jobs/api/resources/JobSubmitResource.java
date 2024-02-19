@@ -40,6 +40,7 @@ import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobResubmit;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -752,6 +753,8 @@ public class JobSubmitResource
          // Fail the job.  Note that current status used in the transition 
          // to FAILED is the status of the job as defined in the db.
          try {
+        	 // Always set the job condition before calling any dao method.
+        	 job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
              var jobsDao = new JobsDao();
              jobsDao.failJob("submitJob", job, failMsg);
          }

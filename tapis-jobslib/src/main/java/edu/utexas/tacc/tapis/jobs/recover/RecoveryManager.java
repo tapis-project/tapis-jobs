@@ -22,6 +22,7 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobBlocked;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery;
 import edu.utexas.tacc.tapis.jobs.model.JobRecovery.NextAttemptComparator;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
@@ -270,8 +271,9 @@ public final class RecoveryManager
             cancelMsg.statusMessage = "Recovery cancelled at user request.";
         
         // Change the status of the job.
+        var cond = JobConditionCode.CANCELLED_BY_USER;
         boolean result = true;
-        try {_jobsDao.setStatus(blockedJob.getJobUuid(), cancelMsg.newStatus, cancelMsg.statusMessage);}
+        try {_jobsDao.setStatus(blockedJob.getJobUuid(), cancelMsg.newStatus, cancelMsg.statusMessage, cond);}
         catch (JobException e) {
             String msg = MsgUtils.getMsg("JOBS_RECOVERY_CANCEL_JOB_ERROR", jobRecovery.getId(), 
                                          blockedJob.getJobUuid(), e.getMessage());
@@ -363,7 +365,8 @@ public final class RecoveryManager
             
             // Fail all blocked jobs in this recovery record. By not placing
             // the record back in the recovery set it is discarded.
-            failAllBlockedJobs(jobRecovery, e.getMessage());
+            var cond = JobConditionCode.JOB_RECOVERY_FAILURE;
+            failAllBlockedJobs(jobRecovery, e.getMessage(), cond);
             return;
         }
         
@@ -376,7 +379,8 @@ public final class RecoveryManager
                 
                 // Fail all blocked jobs in this recovery record. By not placing
                 // the record back in the recovery set it is discarded.
-                failAllBlockedJobs(jobRecovery, e.getMessage());
+                var cond = JobConditionCode.JOB_RECOVERY_FAILURE;
+                failAllBlockedJobs(jobRecovery, e.getMessage(), cond);
                 return;
             }
         
@@ -585,7 +589,8 @@ public final class RecoveryManager
             catch (JobRecoveryExpiredException e) {
                 // The job recovery method already logged the expiration,
                 // so we only have to do the cleanup.
-                failAllBlockedJobs(jobRecovery, e.getMessage());
+            	var cond = JobConditionCode.JOB_RECOVERY_TIMEOUT;
+                failAllBlockedJobs(jobRecovery, e.getMessage(), cond);
                 return;
             }
         
@@ -659,7 +664,11 @@ public final class RecoveryManager
             if (_log.isDebugEnabled()) _log.debug(message);
             
             // Change the status of the job.
-            try {_jobsDao.setStatus(blockedJob.getJobUuid(), blockedJob.getSuccessStatus(), message);}
+            try {
+                // We never restore to a terminal state, so the condition code is not set.
+                final JobConditionCode cond = null;
+            	_jobsDao.setStatus(blockedJob.getJobUuid(), blockedJob.getSuccessStatus(), message, cond);
+            }
             catch (Exception e) {
                 String msg = MsgUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB_ERROR", jobRecovery.getId(), 
                                              blockedJob.getJobUuid(), e.getMessage());
@@ -667,7 +676,8 @@ public final class RecoveryManager
                 
                 // Fail the job.
                 String name = getClass().getSimpleName();
-                failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), msg);
+                var cond = JobConditionCode.JOB_RECOVERY_FAILURE;
+                failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), msg, cond);
                 continue;
             } 
             
@@ -689,8 +699,9 @@ public final class RecoveryManager
 
                 // Fail the job as long as it might exist.
                 if (!(e instanceof TapisNotFoundException)) {
+                	var cond = JobConditionCode.JOB_RECOVERY_FAILURE;
                     String name = getClass().getSimpleName();
-                    failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), msg);
+                    failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), msg, cond);
                 }
                 continue;
             }
@@ -703,8 +714,9 @@ public final class RecoveryManager
                 _log.error(msg, e);
     
                 // Fail the job.
+                var cond = JobConditionCode.JOB_RECOVERY_FAILURE;
                 String name = getClass().getSimpleName();
-                failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), msg);
+                failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), msg, cond);
             }
         }
         
@@ -727,7 +739,8 @@ public final class RecoveryManager
      * @param jobRecovery the recovery record that is being discarded
      * @param message the failure message to be persisted
      */
-    private void failAllBlockedJobs(JobRecovery jobRecovery, String message)
+    private void failAllBlockedJobs(JobRecovery jobRecovery, String message,
+    		                        JobConditionCode cond)
     {
         // Tracing.
         if (_log.isDebugEnabled()) {
@@ -739,7 +752,7 @@ public final class RecoveryManager
         // Change the status of each job to failed.
         String name = getClass().getSimpleName();
         for (JobBlocked blockedJob : jobRecovery.getBlockedJobs())
-            failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), message);
+            failJobStatus(name, blockedJob.getJobUuid(), jobRecovery.getTenantId(), message, cond);
         
         // Delete the recovery record.
         deleteJobRecovery(jobRecovery);
@@ -749,13 +762,14 @@ public final class RecoveryManager
     /* failJobStatus:                                                         */
     /* ---------------------------------------------------------------------- */
     /** Fail a single user job without throwing any exceptions by updating
-     * the job record in the aloe_jobs table.
+     * the job record in the jobs table.
      * 
      * @param name the component issueing this call
      * @param jobUuid the job to fail
      * @param message message the failure message to be persisted
      */
-    private void failJobStatus(String name, String jobUuid, String tenantId, String message)
+    private void failJobStatus(String name, String jobUuid, String tenantId, String message,
+    		                   JobConditionCode cond)
     {
         // Tracing.
         if (_log.isDebugEnabled()) {
@@ -775,7 +789,7 @@ public final class RecoveryManager
         }
         
         // Fail each job.
-        try {_jobsDao.failJob(name, jobUuid, tenantId, message);} 
+        try {_jobsDao.failJob(name, jobUuid, tenantId, message, cond);} 
             catch (Exception e) {
                 // Swallow exception.
                 String msg = MsgUtils.getMsg("JOBS_STATUS_CHANGE_ERROR", 

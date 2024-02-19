@@ -7,7 +7,7 @@ Schema updates
 Whenever the DB schema is updated it will be necessary to regenerate the jooq java code.
 To update the schema and re-create the jooq code:
 
-1. Create the sql migration script  in tapis-jobsmigrate/src/resources/edu/utexas/tacc/tapis/jobsmigrate/sql
+1. Create the sql migration script in tapis-jobsmigrate/src/resources/edu/utexas/tacc/tapis/jobsmigrate/sql
 2. Make necessary changes to the data model and DAO reflecting the schema changes. e.g, Job and JobsDao
 3. Generate/update the jooq source code and schema: 
    a. mvn clean install
@@ -23,3 +23,7 @@ To update the schema and re-create the jooq code:
 5. If there is still some compilation error, try to look in JobsDao and jooq-pom.xml
 6. Using "git status" you should be able to see the updates to the jooq source code.
 7. Commit the updates.
+
+NOTE: If you are adding a new JSON column to an existing Jobs table, then that column has
+      to be explicitly registered in jooq-pom.xml.  See how notes, parameterSet and other
+      JSON fields are registered for the jobs table for examples.

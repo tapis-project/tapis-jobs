@@ -401,6 +401,11 @@ public class Jobs extends TableImpl<JobsRecord> {
      */
     public final TableField<JobsRecord, String> DTN_OUT_CORRELATION_ID = createField(DSL.name("dtn_out_correlation_id"), SQLDataType.VARCHAR(64), this, "");
 
+    /**
+     * The column <code>public.jobs.condition</code>.
+     */
+    public final TableField<JobsRecord, String> CONDITION = createField(DSL.name("condition"), SQLDataType.VARCHAR(40), this, "");
+
     private Jobs(Name alias, Table<JobsRecord> aliased) {
         this(alias, aliased, null);
     }

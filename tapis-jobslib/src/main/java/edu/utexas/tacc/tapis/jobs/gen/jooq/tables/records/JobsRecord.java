@@ -978,6 +978,20 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         return (String) get(67);
     }
 
+    /**
+     * Setter for <code>public.jobs.condition</code>.
+     */
+    public void setCondition(String value) {
+        set(68, value);
+    }
+
+    /**
+     * Getter for <code>public.jobs.condition</code>.
+     */
+    public String getCondition() {
+        return (String) get(68);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -1001,7 +1015,7 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
     /**
      * Create a detached, initialised JobsRecord
      */
-    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnSystemInputDir, String dtnSystemOutputDir, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags, String jobType, Boolean isMpi, String mpiCmd, String cmdPrefix, String sharedAppCtx, String[] sharedAppCtxAttribs, JsonElement notes, String stageappTransactionId, String stageappCorrelationId, String dtnInTransactionId, String dtnInCorrelationId, String dtnOutTransactionId, String dtnOutCorrelationId) {
+    public JobsRecord(Integer id, String name, String owner, String tenant, String description, JobStatusType status, String lastMessage, LocalDateTime created, LocalDateTime ended, LocalDateTime lastUpdated, String uuid, String appId, String appVersion, Boolean archiveOnAppError, Boolean dynamicExecSystem, String execSystemId, String execSystemExecDir, String execSystemInputDir, String execSystemOutputDir, String execSystemLogicalQueue, String archiveSystemId, String archiveSystemDir, String dtnSystemId, String dtnSystemInputDir, String dtnSystemOutputDir, Integer nodeCount, Integer coresPerNode, Integer memoryMb, Integer maxMinutes, JSONB fileInputs, JsonElement parameterSet, String execSystemConstraints, JsonElement subscriptions, Integer blockedCount, String remoteJobId, String remoteJobId2, JobRemoteOutcome remoteOutcome, String remoteResultInfo, String remoteQueue, LocalDateTime remoteSubmitted, LocalDateTime remoteStarted, LocalDateTime remoteEnded, Integer remoteSubmitRetries, Integer remoteChecksSuccess, Integer remoteChecksFailed, LocalDateTime remoteLastStatusCheck, String inputTransactionId, String inputCorrelationId, String archiveTransactionId, String archiveCorrelationId, String tapisQueue, Boolean visible, String createdby, String createdbyTenant, TreeSet tags, String jobType, Boolean isMpi, String mpiCmd, String cmdPrefix, String sharedAppCtx, String[] sharedAppCtxAttribs, JsonElement notes, String stageappTransactionId, String stageappCorrelationId, String dtnInTransactionId, String dtnInCorrelationId, String dtnOutTransactionId, String dtnOutCorrelationId, String condition) {
         super(Jobs.JOBS);
 
         setId(id);
@@ -1072,5 +1086,6 @@ public class JobsRecord extends UpdatableRecordImpl<JobsRecord> {
         setDtnInCorrelationId(dtnInCorrelationId);
         setDtnOutTransactionId(dtnOutTransactionId);
         setDtnOutCorrelationId(dtnOutCorrelationId);
+        setCondition(condition);
     }
 }

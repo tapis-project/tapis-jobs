@@ -3197,7 +3197,9 @@ public final class JobsDao
 	        obj.setDtnOutputCorrelationId(rs.getString(68));
 	        
 	        // Condition code is null until job reaches a terminal state.
-	        obj.setCondition(JobConditionCode.valueOf(rs.getString(69)));
+	        String cond = rs.getString(69);
+	        if (cond != null)
+	           obj.setCondition(JobConditionCode.valueOf(cond));
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

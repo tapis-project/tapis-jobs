@@ -28,6 +28,10 @@ public enum JobConditionCode
 	JOB_TRANSFER_FAILED_OR_CANCELLED("A file transfer failed or was cancelled"),
 	JOB_TRANSFER_MONITORING_TIMEOUT("Jobs transfer monitoring expired"),
 	NORMAL_COMPLETION("Job completed normally"),
+	SCHEDULER_CANCELLED("Batch scheduler cancelled job"),
+	SCHEDULER_DEADLINE("Batch scheduler deadline exceeded"),
+	SCHEDULER_OUT_OF_MEMORY("Batch scheduler out of memory error"),
+	SCHEDULER_STOPPED("Batch scheduler stopped job"),
 	SCHEDULER_TIMEOUT("Batch scheduler timed out job"),
 	SCHEDULER_TERMINATED("Batch scheduler terminated job");
 	

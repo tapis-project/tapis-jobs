@@ -184,6 +184,7 @@ public final class SlurmMonitor
         if (statusType.isPaused()) return JobRemoteStatus.ACTIVE;
         
         // If the job is in an unrecoverable state, throw the exception so the job is cleaned up.
+        // The job condition is also set if the status is unrecoverable.
         if (statusType.isUnrecoverable()) {
             String msg = MsgUtils.getMsg("JOBS_MONITOR_UNRECOVERABLE_RESPONSE", 
                                          getClass().getSimpleName(), _parsedStatusResponse.getJobId(), 
@@ -191,12 +192,13 @@ public final class SlurmMonitor
                                          _job.getUuid());
             _log.warn(msg);
             
-            // Update the finalMessage field in the jobCtx to reflect this status. 
+            // Update the finalMessage field in the jobCtx to reflect this status.
+            _job.setCondition(statusType.getJobCondition()); // reflect slurm error code
             updateFinalMessage(_parsedStatusResponse);
             return JobRemoteStatus.FAILED;
         }
         
-        // Failures.
+        // Failures.  The job condition is also set if the status is failed.
         if (statusType.isFailed()) {
             String msg = MsgUtils.getMsg("JOBS_MONITOR_FAILURE_RESPONSE", 
                                          getClass().getSimpleName(), _parsedStatusResponse.getJobId(), 
@@ -205,6 +207,7 @@ public final class SlurmMonitor
             _log.warn(msg);
             
             // Update the finalMessage field in the jobCtx to reflect this status. 
+            _job.setCondition(statusType.getJobCondition()); // reflect slurm error code
             updateFinalMessage(_parsedStatusResponse);
             return JobRemoteStatus.FAILED;
         }

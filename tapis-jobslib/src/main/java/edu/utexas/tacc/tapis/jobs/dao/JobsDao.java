@@ -2620,7 +2620,7 @@ public final class JobsDao
             // or the job ended time if we have transitioned to a terminal state. The called
             // methods also update the in-memory job object.
             if (newStatus == JobStatusType.RUNNING) updateRemoteStarted(conn, job, ts);
-            else if (newStatus.isTerminal()) updateEnded(conn, job, ts);
+            else if (newStatus.isTerminal()) updateEnded(conn, job, ts, newStatus);
             
             // Write the event table and optionally send notifications (asynchronously).
             var eventMgr = JobEventManager.getInstance();
@@ -2714,19 +2714,20 @@ public final class JobsDao
      * @param conn the connection with the in-progress transaction
      * @param uuid the job uuid
      * @param ts the job termination time
+     * @param newStatus the job's new, terminal status
      * @throws SQLException
      */
-    private void updateEnded(Connection conn, Job job, Timestamp ts) 
+    private void updateEnded(Connection conn, Job job, Timestamp ts, JobStatusType newStatus) 
      throws SQLException
     {
     	// Set the condition code if not set.  Only failures incidents set
     	// the condition, so the other two terminal states will have a null
     	// condition when processing gets here.
         if (job.getCondition() == null)
-        	if (job.getStatus() == JobStatusType.FINISHED) {
+        	if (newStatus == JobStatusType.FINISHED) {
         		job.setCondition(JobConditionCode.NORMAL_COMPLETION);
         	}
-        	else if (job.getStatus() == JobStatusType.CANCELLED) {
+        	else if (newStatus == JobStatusType.CANCELLED) {
         		job.setCondition(JobConditionCode.CANCELLED_BY_USER);
         	}
         	else {
@@ -2734,7 +2735,7 @@ public final class JobsDao
         		// branch also acts as a catch all, which should never happen.
         		job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
                 String msg = MsgUtils.getMsg("JOBS_MISSING_CONDITION_CODE", 
-                		                     job.getUuid(), job.getStatus().name());
+                		                     job.getUuid(), newStatus.name());
                 _log.error(msg);
         	}
         

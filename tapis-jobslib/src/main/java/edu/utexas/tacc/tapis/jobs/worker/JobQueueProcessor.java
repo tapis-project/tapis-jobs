@@ -39,6 +39,26 @@ import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
+/** Main processing class for job worker.  Each instance of this class runs on
+ * its own thread and pulls jobs off of the job submission queue.  The thread
+ * that starts processing a job will see the job through to termination unless
+ * a recoverable error occurs.  In that case, the job is put into a BLOCKED 
+ * state, queued on the recovery queue, and control relinquished by the thread.
+ * Once a thread relinquishes control of a job it no longer has any connection 
+ * to or affinity for that job; its ready to accept new work from the submission
+ * queue.
+ * 
+ * A job's lifecycle consists of managing its progress through the various 
+ * states (i.e., statuses) of the state machine that defines job execution. 
+ * Ultimately, each job reaches a terminal state.  Each terminated job is
+ * assigned a condition code to indicate in more detail how job execution
+ * terminated.  This code is most informative on jobs that failed with some
+ * type of error.  Condition codes are set in the job object or, when the job 
+ * is not already loaded in memory, explicitly passed into JobDao methods to 
+ * permanently save as part of the job record.
+ * 
+ * @author rcardone
+ */
 final class JobQueueProcessor 
   extends AbstractProcessor
 {

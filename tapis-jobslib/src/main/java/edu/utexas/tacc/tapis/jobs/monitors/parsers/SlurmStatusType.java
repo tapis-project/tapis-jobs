@@ -1,5 +1,14 @@
 package edu.utexas.tacc.tapis.jobs.monitors.parsers;
 
+import static edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode.SCHEDULER_CANCELLED;
+import static edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode.SCHEDULER_DEADLINE;
+import static edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode.SCHEDULER_OUT_OF_MEMORY;
+import static edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode.SCHEDULER_STOPPED;
+import static edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode.SCHEDULER_TERMINATED;
+import static edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode.SCHEDULER_TIMEOUT;
+
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
+
 public enum SlurmStatusType 
 {
    // These are the possible states returned by squeue and sacct.  squeue can return any of
@@ -73,6 +82,10 @@ public enum SlurmStatusType
    private String description;
    private String code; 
    
+   // Set only when fatal errors are detected,
+   // otherwise value is null.
+   private JobConditionCode jobCondition;
+   
    // Constructor.
    private SlurmStatusType(String code, String description) {
        this.setCode(code);
@@ -83,6 +96,7 @@ public enum SlurmStatusType
    public  String getDescription() {return description;}
    private void setDescription(String description) {this.description = description;}
    public  String getCode() {return code;}
+   public JobConditionCode getJobCondition() {return jobCondition;} // can be null
    private void setCode(String code) {this.code = code;}
    
    @Override
@@ -115,24 +129,22 @@ public enum SlurmStatusType
    }
    
    public boolean isFailed() {
-       boolean hasfailedStatus = false;
+       boolean failed = false;
        switch (this) {
-           case BOOT_FAIL:     case BF:
-           case CANCELLED:     case CA:
-           case DEADLINE:      case DL:
-           case FAILED:        case F:
-           case NODE_FAIL:     case NF:
-           case OUT_OF_MEMORY: case OOM:
-           case TIMEOUT:       case TO:
-           case PREEMPTED:     case PR:
-           case REVOKED:       case RV:
-           case STOPPED:       case ST:
-               hasfailedStatus = true;
-           break;
+           case BOOT_FAIL:     case BF:  {jobCondition = SCHEDULER_TERMINATED;    failed = true; break;}
+           case CANCELLED:     case CA:  {jobCondition = SCHEDULER_CANCELLED;     failed = true; break;}
+           case DEADLINE:      case DL:  {jobCondition = SCHEDULER_DEADLINE;      failed = true; break;}
+           case FAILED:        case F:   {jobCondition = SCHEDULER_TERMINATED;    failed = true; break;}
+           case NODE_FAIL:     case NF:  {jobCondition = SCHEDULER_TERMINATED;    failed = true; break;}
+           case OUT_OF_MEMORY: case OOM: {jobCondition = SCHEDULER_OUT_OF_MEMORY; failed = true; break;}
+           case TIMEOUT:       case TO:  {jobCondition = SCHEDULER_TIMEOUT;       failed = true; break;}
+           case PREEMPTED:     case PR:  {jobCondition = SCHEDULER_TERMINATED;    failed = true; break;}
+           case REVOKED:       case RV:  {jobCondition = SCHEDULER_TERMINATED;    failed = true; break;}
+           case STOPPED:       case ST:  {jobCondition = SCHEDULER_STOPPED;       failed = true; break;}
        default:
            // anything else we assume it's not failed.
        }
-       return hasfailedStatus;
+       return failed;
    }
    
    public boolean isPaused() {
@@ -146,6 +158,10 @@ public enum SlurmStatusType
    }
    
    public boolean isUnrecoverable() {
-       return this == EQW;
+       if (this == EQW) {
+    	   jobCondition = SCHEDULER_TERMINATED;
+    	   return true;
+       }
+       return false;
    }
 }

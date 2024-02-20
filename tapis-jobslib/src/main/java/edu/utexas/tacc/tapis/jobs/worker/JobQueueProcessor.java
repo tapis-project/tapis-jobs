@@ -408,14 +408,17 @@ final class JobQueueProcessor
               case FINISHED          -> false;
               
               // States that should never be encountered here.
-              case BLOCKED           -> throw new JobException(MsgUtils.getMsg(
-                                            "JOBS_UNEXPECTED_STATUS", job.getUuid(), JobStatusType.BLOCKED));
-              case PAUSED            -> throw new JobException(MsgUtils.getMsg(
-                                            "JOBS_UNEXPECTED_STATUS", job.getUuid(), JobStatusType.PAUSED));
+              case BLOCKED           -> {job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
+            	  						 throw new JobException(MsgUtils.getMsg(
+                                            "JOBS_UNEXPECTED_STATUS", job.getUuid(), JobStatusType.BLOCKED));}
+              case PAUSED            -> {job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
+            	                         throw new JobException(MsgUtils.getMsg(
+                                            "JOBS_UNEXPECTED_STATUS", job.getUuid(), JobStatusType.PAUSED));}
               
               // Unaccounted for state!
-              default                -> throw new JobException(MsgUtils.getMsg(
-                                            "JOBS_UNKNOWN_STATUS", job.getUuid(), job.getStatus()));
+              default                -> {job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
+            	                         throw new JobException(MsgUtils.getMsg(
+                                            "JOBS_UNKNOWN_STATUS", job.getUuid(), job.getStatus()));}
           };
       }
       
@@ -525,7 +528,11 @@ final class JobQueueProcessor
       
       // Stage inputs.
       try {jobCtx.stageInputs();}
-      catch (Exception e) {handleException(job, e, BlockedJobActivity.STAGING_INPUTS);}
+      catch (Exception e) {
+    	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
+    		  job.setCondition(JobConditionCode.JOB_UNABLE_TO_STAGE_INPUTS);
+    	  handleException(job, e, BlockedJobActivity.STAGING_INPUTS);
+      }
 
       // Advance job to next state.
       setState(job, JobStatusType.STAGING_JOB);
@@ -640,7 +647,7 @@ final class JobQueueProcessor
       try {jobCtx.monitorQueuedJob();}
       catch (Exception e) {
     	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
-    		  job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_ERROR);
+    		  job.setCondition(JobConditionCode.JOB_QUEUE_MONITORING_ERROR);
     	  handleException(job, e, BlockedJobActivity.QUEUED);
       }
 
@@ -722,12 +729,19 @@ final class JobQueueProcessor
     
       // Stage inputs.
       try {jobCtx.archiveOutputs();}
-      catch (Exception e) {handleException(job, e, BlockedJobActivity.ARCHIVING);}
+      catch (Exception e) {
+    	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
+    		  job.setCondition(JobConditionCode.JOB_ARCHIVING_FAILED); 
+    	  handleException(job, e, BlockedJobActivity.ARCHIVING);
+      }
 
       // Advance job to next state depending on what the remote outcome is.
       if (job.getRemoteOutcome() == JobRemoteOutcome.FINISHED)
           setState(job, JobStatusType.FINISHED);
-      else setState(job, JobStatusType.FAILED);
+      else {
+    	  job.setCondition(JobConditionCode.JOB_REMOTE_OUTCOME_ERROR);
+    	  setState(job, JobStatusType.FAILED);
+      }
       
       // True means continue processing the job.
       return true;

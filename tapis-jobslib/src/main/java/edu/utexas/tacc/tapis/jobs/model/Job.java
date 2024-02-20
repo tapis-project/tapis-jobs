@@ -570,6 +570,7 @@ public final class Job
 	}
 
 	public void setCondition(JobConditionCode condition) {
+		if (this.condition != null) return;  // 1 time set
 		this.condition = condition;
 	}
 

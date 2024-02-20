@@ -1652,11 +1652,14 @@ public final class JobsDao
     /* ---------------------------------------------------------------------- */
     /** Set the status of the specified job after checking that the transition
      * from the current status to the new status is legal.  This method commits
-     * the update and returns the last update time. 
+     * the update and returns the last update time.
+     * 
+     * The job's condition code will be set once the job is retrieved.
      * 
      * @param uuid the job whose status is to change    
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record
+     * @param cond the condition code to be assigned to the job
      * @return the last update time saved in the job record
      * @throws JobException if the status could not be updated
      */
@@ -1693,7 +1696,11 @@ public final class JobsDao
      * 
      * Note that a new job event for this status change is persisted and can
      * trigger notifications to be sent.  Failures in event processing are not
-     * exposed as errors to callers, they are performed on a best-effort basis.   
+     * exposed as errors to callers, they are performed on a best-effort basis.
+     * 
+     * In cases where the job has failed it's expected that the job's condition
+     * code will already be set.  If not, the condition is set to an internal 
+     * error and logged in updateEnded().
      * 
      * @param uuid the job whose status is to change    
      * @param newStatus the job's new status
@@ -2510,6 +2517,10 @@ public final class JobsDao
      * chain to create and process job events.  This method only affects the 
      * jobs table and in-memory job object.
      * 
+     * In cases where the job has failed it's expected that the job's condition
+     * code will already be set.  If not, the condition is set to an internal 
+     * error and logged in updateEnded().
+     * 
      * @param uuid the job whose status is to change    
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record
@@ -2722,7 +2733,8 @@ public final class JobsDao
         		// Failed jobs should already have a condition code set. This
         		// branch also acts as a catch all, which should never happen.
         		job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
-                String msg = MsgUtils.getMsg("JOBS_MISSING_CONDITION_CODE", job.getUuid(), job.getStatus().name());
+                String msg = MsgUtils.getMsg("JOBS_MISSING_CONDITION_CODE", 
+                		                     job.getUuid(), job.getStatus().name());
                 _log.error(msg);
         	}
         

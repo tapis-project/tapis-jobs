@@ -189,6 +189,7 @@ public final class JobEventData
      extends JobBaseData
     {
         public int    blockedCount;
+        public String condition;
         public String remoteJobId;
         public String remoteJobId2;
         public String remoteOutcome;
@@ -202,6 +203,7 @@ public final class JobEventData
         {
             setBaseFields(job, msg);
             blockedCount = job.getBlockedCount();
+            if (job.getCondition() != null) condition = job.getCondition().name();
             remoteJobId  = job.getRemoteJobId();
             remoteJobId2 = job.getRemoteJobId2();
             if (job.getRemoteOutcome() != null) remoteOutcome = job.getRemoteOutcome().name();

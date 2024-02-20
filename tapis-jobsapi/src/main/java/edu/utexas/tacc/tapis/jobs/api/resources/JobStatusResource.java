@@ -197,6 +197,8 @@ public class JobStatusResource
        // Success.
        JobStatusDisplay resultStatus = new JobStatusDisplay ();
        resultStatus.setStatus(jobstatus.getStatus().toString());
+       if (jobstatus.getCondition() != null) 
+    	   resultStatus.setCondition(jobstatus.getCondition().name());
        RespGetJobStatus r = new RespGetJobStatus(resultStatus);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("JOBS_STATUS_RETRIEVED", jobUuid), prettyPrint, r)).build();

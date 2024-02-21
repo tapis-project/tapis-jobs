@@ -22,7 +22,7 @@ public enum JobConditionCode
 	JOB_RECOVERY_FAILURE("Tapis unable to recover job"),
 	JOB_RECOVERY_TIMEOUT("Tapis recovery time expired"),
 	JOB_REMOTE_ACCESS_ERROR("Jobs could not access a resource on a remote system"),
-	JOB_REMOTE_OUTCOME_ERROR("Unable to confirm successfull application execution"),
+	JOB_REMOTE_OUTCOME_ERROR("User application returned a non-zero exit code"),
 	JOB_UNABLE_TO_STAGE_INPUTS("Unable to stage application input files"),
 	JOB_UNABLE_TO_STAGE_JOB("Unable to stage application assets"),
 	JOB_TRANSFER_FAILED_OR_CANCELLED("A file transfer failed or was cancelled"),

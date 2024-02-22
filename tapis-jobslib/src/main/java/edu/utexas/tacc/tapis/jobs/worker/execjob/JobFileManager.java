@@ -987,7 +987,7 @@ public final class JobFileManager
         var task = new ReqTransferElement().
                        sourceURI(dtnInputDir).
                        destinationURI(execInputDir);
-        task.setTransferType(TransferTypeEnum.LOCAL_MOVE);
+        task.setTransferType(TransferTypeEnum.SERVICE_MOVE_DIRECTORY_CONTENTS);
         task.setOptional(false);
         task.setSrcSharedCtx(_shareExecSystemInputDirAppOwner);
         task.setDestSharedCtx(_shareExecSystemInputDirAppOwner);
@@ -1051,7 +1051,7 @@ public final class JobFileManager
     		moveTask.setSourceURI(srcUrl);
     		moveTask.setDestinationURI(tgtUrl);
     		moveTask.setOptional(false);
-    		moveTask.setTransferType(TransferTypeEnum.LOCAL_MOVE);
+    		moveTask.setTransferType(TransferTypeEnum.SERVICE_MOVE_FILE_OR_DIRECTORY);
     		moveTask.setSrcSharedCtx(_shareExecSystemOutputDirAppOwner);
     		moveTask.setDestSharedCtx(_shareExecSystemOutputDirAppOwner);
     		

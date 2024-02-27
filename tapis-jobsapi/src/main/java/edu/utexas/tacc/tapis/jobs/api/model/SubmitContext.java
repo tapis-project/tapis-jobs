@@ -481,7 +481,7 @@ public final class SubmitContext
     	if (StringUtils.isBlank(_submitReq.getDtnSystemInputDir())) 
     		_submitReq.setDtnSystemInputDir(_app.getJobAttributes().getDtnSystemInputDir());
     	if (StringUtils.isBlank(_submitReq.getDtnSystemOutputDir())) 
-    		_submitReq.setDtnSystemInputDir(_app.getJobAttributes().getDtnSystemOutputDir());
+    		_submitReq.setDtnSystemOutputDir(_app.getJobAttributes().getDtnSystemOutputDir());
     	
     	// Validate the non-null input path.
     	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemInputDir()))
@@ -2262,11 +2262,8 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.StderrFilename.name(), _submitReq.getParameterSet().getLogConfig().getStderrFilename());
         
         // ---------- Ground, optional
-        if (dtnSystemIsLoaded()) {
+        if (dtnSystemIsLoaded()) 
             _macros.put(JobTemplateVariables.DtnSystemId.name(),        _execSystem.getDtnSystemId());
-            _macros.put(JobTemplateVariables.DtnSystemInputDir.name(),  _submitReq.getDtnSystemInputDir());
-            _macros.put(JobTemplateVariables.DtnSystemOutputDir.name(), _submitReq.getDtnSystemOutputDir());
-        }
         
         if (!StringUtils.isBlank(_execSystem.getBucketName()))
             _macros.put(JobTemplateVariables.SysBucketName.name(), _execSystem.getBucketName());
@@ -2306,6 +2303,12 @@ public final class SubmitContext
                 _macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
             if (!MacroResolver.needsResolution(_submitReq.getArchiveSystemDir()))
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
+            if (dtnSystemIsLoaded()) {
+            	if (!MacroResolver.needsResolution(_submitReq.getDtnSystemInputDir()))
+            		_macros.put(JobTemplateVariables.DtnSystemInputDir.name(), _submitReq.getDtnSystemInputDir());
+            	if (!MacroResolver.needsResolution(_submitReq.getDtnSystemOutputDir()))
+            		_macros.put(JobTemplateVariables.DtnSystemOutputDir.name(), _submitReq.getDtnSystemOutputDir());
+            }
             
             // Assign derived values that require resolution.  Note that we assign the execution system's working 
             // directory first since other macros can depend on it but not vice versa
@@ -2330,6 +2333,16 @@ public final class SubmitContext
                 var archiveMacroResolver = new MacroResolver(_archiveSystem, _macros);
                 _submitReq.setArchiveSystemDir(archiveMacroResolver.resolve(_submitReq.getArchiveSystemDir()));
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
+            }
+            if (dtnSystemIsLoaded()) {
+                if (!_macros.containsKey(JobTemplateVariables.DtnSystemInputDir.name())) {
+                    _submitReq.setDtnSystemInputDir(resolveMacros(_submitReq.getDtnSystemInputDir()));
+                    _macros.put(JobTemplateVariables.DtnSystemInputDir.name(), _submitReq.getDtnSystemInputDir());    
+                }
+                if (!_macros.containsKey(JobTemplateVariables.DtnSystemOutputDir.name())) {
+                    _submitReq.setDtnSystemOutputDir(resolveMacros(_submitReq.getDtnSystemOutputDir()));
+                    _macros.put(JobTemplateVariables.DtnSystemOutputDir.name(), _submitReq.getDtnSystemOutputDir());
+                }
             }
         } 
         catch (TapisException e) {

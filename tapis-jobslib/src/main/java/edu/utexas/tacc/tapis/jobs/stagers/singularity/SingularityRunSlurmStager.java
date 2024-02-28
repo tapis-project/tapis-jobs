@@ -170,7 +170,7 @@ public class SingularityRunSlurmStager
      * @param option the singularity argument
      * @param value the argument's non-null value
      */
-    protected void assignCmd(SingularityRunCmd singularityCmd, String option, String value)
+    protected void assignCmd(SingularityRunSlurmCmd singularityCmd, String option, String value)
      throws JobException
     {
         switch (option) {

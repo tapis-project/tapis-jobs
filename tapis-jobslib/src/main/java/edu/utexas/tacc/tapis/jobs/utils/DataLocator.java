@@ -92,7 +92,7 @@ public class DataLocator {
 		        
          try {
         	 final String pattern = null;
-        	 outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), pattern, jobOutputInfo.getSystemUrl(), 
+        	 outputList = filesClient.listFiles(jobOutputInfo.getSystemId(), jobOutputInfo.getSystemUrl(), pattern,  
         	                                    limit, skip, recursiveFlag, impersonationId, sharedAppCtx);
          } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_FILESLIST_ERROR", 

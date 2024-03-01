@@ -943,8 +943,8 @@ public final class JobFileManager
                 
                 // Apply the excludes list first since it has precedence, then
                 // the includes list.  The fileList can be modified in both calls.
-                applyArchiveFilters(excludes, fileList, FilterType.EXCLUDES, useDtn);
-                applyArchiveFilters(includes, fileList, FilterType.INCLUDES, useDtn);
+                applyArchiveFilters(excludes, fileList, FilterType.EXCLUDES);
+                applyArchiveFilters(includes, fileList, FilterType.INCLUDES);
                 
                 // Create a task entry for each of the filtered output files.
                 addOutputFiles(tasks, fileList, useDtn, shareSrc);
@@ -1235,7 +1235,7 @@ public final class JobFileManager
     {
         // Add each output file as a task element.
         for (var f : fileList) {
-            var relativePath = getOutputRelativePath(f.getPath(), useDtn);
+            var relativePath = getOutputRelativePath(f.getPath());
             var task = new ReqTransferElement().
                            sourceURI(makeArchivingSrcUrl(relativePath, useDtn)).
                            destinationURI(makeArchiveSysUrl(relativePath));
@@ -1285,7 +1285,7 @@ public final class JobFileManager
      * @param filterType filter indicator
      */
     private void applyArchiveFilters(List<String> filterList, List<FileInfo> fileList, 
-                                     FilterType filterType, boolean useDtn)
+                                     FilterType filterType)
     {
         // Is there any work to do?
         if (filterType == FilterType.EXCLUDES) {
@@ -1304,7 +1304,7 @@ public final class JobFileManager
         var fileIt = fileList.listIterator();
         while (fileIt.hasNext()) {
             var fileInfo = fileIt.next();
-            var path = getOutputRelativePath(fileInfo.getPath(), useDtn);
+            var path = getOutputRelativePath(fileInfo.getPath());
             for (int i = 0; i < filterList.size(); i++) {
                 // Get the current filter.
                 String filter = filterList.get(i);
@@ -1334,9 +1334,9 @@ public final class JobFileManager
      * @param absPath the absolute path name of a file rooted in the job output directory 
      * @return the path name relative to the job output directory
      */
-    private String getOutputRelativePath(String absPath, boolean useDtn)
+    private String getOutputRelativePath(String absPath)
     {
-        var prefix = useDtn ? getDtnOutputPathPrefix() : getOutputPathPrefix();
+        var prefix = getOutputPathPrefix();
         if (absPath.startsWith(prefix))
             return absPath.substring(prefix.length());
         // Special case if Files strips leading slash from output.
@@ -1362,27 +1362,6 @@ public final class JobFileManager
         // a trailing slash.
         if (_filterIgnorePrefix == null) {
             _filterIgnorePrefix = _job.getExecSystemOutputDir();
-            if (!_filterIgnorePrefix.endsWith("/")) _filterIgnorePrefix += "/";
-        }
-        return _filterIgnorePrefix;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* getOutputPathPrefix:                                                   */
-    /* ---------------------------------------------------------------------- */
-    /** Assign the filter ignore prefix value for this job.  This value is the
-     * path prefix (with trailing slash) that will be removed from all output
-     * file path before filtering is carried out.  Users provide glob or regex
-     * pattern that are applied to file paths relative to the job output directory. 
-     * 
-     * @return the prefix to be removed from all path before filter matching
-     */
-    private String getDtnOutputPathPrefix()
-    {
-        // Assign the filter ignore prefix the job output directory including 
-        // a trailing slash.
-        if (_filterIgnorePrefix == null) {
-            _filterIgnorePrefix = _job.getDtnSystemOutputDir();
             if (!_filterIgnorePrefix.endsWith("/")) _filterIgnorePrefix += "/";
         }
         return _filterIgnorePrefix;
@@ -1736,7 +1715,7 @@ public final class JobFileManager
             buf.append(", dst: ");
             buf.append(element.getDestinationURI());
             buf.append(", transferType=");
-            buf.append(element.getTransferType() == null ? "null" : element.getTransferType());
+            buf.append(element.getTransferType().name());
             buf.append(", optional=");
             buf.append(element.getOptional());
             buf.append(", srcSharedCtx=");

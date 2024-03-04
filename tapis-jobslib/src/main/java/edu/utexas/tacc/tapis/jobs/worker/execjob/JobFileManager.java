@@ -1629,7 +1629,7 @@ public final class JobFileManager
     			
     			var dstUri = task.getDestinationURI().replace(SYSTEM_PLACEHOLER, dstSysId);
     			dstUri = dstUri.replace(PATH_PLACEHOLER, dstPath);
-    			task.setDestinationURI(dstShareCtx);
+    			task.setDestinationURI(dstUri);
     			task.setDestSharedCtx(dstShareCtx);
     		}
     	}
@@ -1665,7 +1665,7 @@ public final class JobFileManager
 			
     			var dstUri = task.getDestinationURI().replace(SYSTEM_PLACEHOLER, dstSysId);
     			dstUri = dstUri.replace(PATH_PLACEHOLER, dstPath);
-    			task.setDestinationURI(dstShareCtx);
+    			task.setDestinationURI(dstUri);
     			task.setDestSharedCtx(dstShareCtx);
     		}
     	}

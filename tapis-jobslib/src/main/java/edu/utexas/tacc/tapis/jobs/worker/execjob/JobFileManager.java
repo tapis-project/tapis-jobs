@@ -1745,7 +1745,7 @@ public final class JobFileManager
             buf.append(", dst: ");
             buf.append(element.getDestinationURI());
             buf.append(", transferType=");
-            buf.append(element.getTransferType().name());
+            buf.append(element.getTransferType() == null ? "null" : element.getTransferType().name());
             buf.append(", optional=");
             buf.append(element.getOptional());
             buf.append(", srcSharedCtx=");

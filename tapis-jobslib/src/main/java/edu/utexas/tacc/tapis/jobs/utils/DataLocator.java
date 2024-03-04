@@ -83,7 +83,7 @@ public class DataLocator {
       throws TapisImplException
      {
     	 List<FileInfo> outputList = null;
-    	 boolean recursiveFlag = true;
+    	 final boolean recursiveFlag = false; // can not set recursive flag and limit together
     	 
     	 // Get the File Service client 
          FilesClient filesClient = null;

@@ -225,10 +225,10 @@ public class JobOutputDownloadResource extends AbstractResource{
       // --------------------------- Check if the the path is a file or Directory ---------------
        // Do a files listing and check FileInfo
        List<FileInfo> filesList = null;
-       
+       boolean recursiveFlag = true;
        try {
 		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath,
-				DEFAULT_LIMIT,DEFAULT_SKIP, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
+				DEFAULT_LIMIT,DEFAULT_SKIP, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name(), recursiveFlag);
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).

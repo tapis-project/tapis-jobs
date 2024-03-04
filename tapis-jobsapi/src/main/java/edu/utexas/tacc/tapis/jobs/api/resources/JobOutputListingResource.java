@@ -219,14 +219,18 @@ public class JobOutputListingResource extends AbstractResource{
        
        // Set default parameters
        SearchParameters srchParms = threadContext.getSearchParameters();
-       
-       if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
+       boolean recursiveFlag = true;
+       if(srchParms.getLimit() == null) {
+    	   srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);
+       } else {
+    	   recursiveFlag = false;
+       }
        
        List<FileInfo> filesList = null;
        
        try {
 		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, 
-				srchParms.getLimit(),skip, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
+				srchParms.getLimit(),skip, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name(),recursiveFlag);
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).

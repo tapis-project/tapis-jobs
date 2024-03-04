@@ -694,7 +694,8 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     public List<FileInfo> getJobOutputList(Job job, String tenant, String user, 
                                            String pathName, int limit, int skip, 
-    		                               String jobResourceShareType, String privilege) 
+    		                               String jobResourceShareType, String privilege,
+    		                               boolean recursiveFlag) 
      throws TapisImplException
     {
         // ----- Get the job output files list.
@@ -715,7 +716,8 @@ public final class JobsImpl
         	impersonationId = job.getOwner();
         }
         List<FileInfo> outputList = dataLocator.getJobOutputListings(
-                jobOutputFilesinfo, tenant, user, limit, skip, impersonationId, sharedAppCtx);
+                jobOutputFilesinfo, tenant, user, limit, skip, impersonationId,
+                sharedAppCtx, recursiveFlag);
                
         return outputList;
     }

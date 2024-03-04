@@ -79,12 +79,12 @@ public class DataLocator {
      /* ---------------------------------------------------------------------- */
      public List<FileInfo> getJobOutputListings(JobOutputInfo jobOutputInfo, String tenant, 
                                                 String user, int limit, int skip,
-    		                                    String impersonationId, String sharedAppCtx) 
+    		                                    String impersonationId, String sharedAppCtx,
+    		                                    boolean recursiveFlag) 
       throws TapisImplException
      {
     	 List<FileInfo> outputList = null;
-    	 boolean recursiveFlag = false; // can not set recursive flag and limit together
-    	 
+    	    	 
     	 // Get the File Service client 
          FilesClient filesClient = null;
 		

@@ -99,7 +99,7 @@ public final class JobFileManager
     private final String              _shareDtnSystemOutputDirAppOwner;
     
     // Derived path prefix value removed before filtering.
-    private String                    _filterIgnorePrefix;
+    private String                    _filterIgnoreOutputPrefix;
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -916,42 +916,26 @@ public final class JobFileManager
         // the same or if we have to exclude all output files.  Note that 
         // the sourceURI and source share context are a function of whether
         // or not a dtn is being used.
+        //
+        // This block schedules the filtered contents of the execSystemOutputDir
+        // to be transfered.  
         if (!archiveSameAsOutput && !matchesAll(excludes)) {
-            // Will any filtering be necessary at all?
-            if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes))) 
-            {
-                // We only need to specify the whole output directory subtree 
-            	// to archive all files.  The element contains placeholders.
-                var task = new ReqTransferElement().
-                               sourceURI(makePlaceholderUrl("")).
-                               destinationURI(makePlaceholderUrl(""));
-                tasks.addElementsItem(task);
+        	// We need to filter each and every file, so we need to retrieve 
+            // the output directory file listing.  Get the client from the 
+            // context now to catch errors early.  We initialize the unfiltered list.
+            FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
+            var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
+                                                   _job.getExecSystemOutputDir());
+            listSubtree.setSharedAppCtx(_shareExecSystemOutputDirAppOwner);
+            outputFileList = listSubtree.list(); // Replace empty r/o list
                 
-                // Create a file list for the move operation.
-                var fileInfo = new FileInfo(); // Only path field is necessary
-                fileInfo.setPath("");          // Empty string moves all content
-                outputFileList = new ArrayList<>(1); // Replace empty r/o list
-                outputFileList.add(fileInfo);        
-            } 
-            else 
-            {
-                // We need to filter each and every file, so we need to retrieve 
-                // the output directory file listing.  Get the client from the 
-                // context now to catch errors early.  We initialize the unfiltered list.
-                FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
-                var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
-                                                       _job.getExecSystemOutputDir());
-                listSubtree.setSharedAppCtx(_shareExecSystemOutputDirAppOwner);
-                outputFileList = listSubtree.list(); // Replace empty r/o list
-                
-                // Apply the excludes list first since it has precedence, then
-                // the includes list.  The fileList can be modified in both calls.
-                applyArchiveFilters(excludes, outputFileList, FilterType.EXCLUDES);
-                applyArchiveFilters(includes, outputFileList, FilterType.INCLUDES);
-                
-                // Create a task entry for each of the filtered output files.
-                addOutputFiles(tasks, outputFileList);
-            }
+            // Apply the excludes list first since it has precedence, then
+            // the includes list.  The fileList can be modified in both calls.
+            applyArchiveFilters(excludes, outputFileList, FilterType.EXCLUDES);
+            applyArchiveFilters(includes, outputFileList, FilterType.INCLUDES);
+             
+            // Create a task entry for each of the filtered output files.
+            addOutputFiles(tasks, outputFileList);
         }
         
         // DTN pre-processing first issues a local move transfer for
@@ -1062,14 +1046,14 @@ public final class JobFileManager
     	for (var fileInfo : fileList) {
     		// Create a url for the file in the execSystemOutputDir.
     		var srcUrl = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemOutputDir(), 
-    				                   fileInfo.getPath());
+    				                   getOutputRelativePath(fileInfo.getPath()));
     		
     		// Create a url for the file in the mounted dtn directory.  Note that the dtn
     		// and exec systems have the same root directory.  The exec system mounts the
     		// dtn's output directory under its root.  The result is that the dtn output
     		// directory has the SAME absolute path on both systems. 
     		var tgtUrl = makeSystemUrl(_job.getExecSystemId(), _job.getDtnSystemOutputDir(),
-    				                   fileInfo.getPath());
+    								   getOutputRelativePath(fileInfo.getPath()));
      		
     		// Accumulate task elements.
     		tasks.addElementsItem(getMoveDtnOutputElement(srcUrl, tgtUrl, isLaunchFile));
@@ -1351,17 +1335,17 @@ public final class JobFileManager
      * file path before filtering is carried out.  Users provide glob or regex
      * pattern that are applied to file paths relative to the job output directory. 
      * 
-     * @return the prefix to be removed from all path before filter matching
+     * @return the prefix to be removed from all paths before filter matching
      */
     private String getOutputPathPrefix()
     {
         // Assign the filter ignore prefix the job output directory including 
         // a trailing slash.
-        if (_filterIgnorePrefix == null) {
-            _filterIgnorePrefix = _job.getExecSystemOutputDir();
-            if (!_filterIgnorePrefix.endsWith("/")) _filterIgnorePrefix += "/";
+        if (_filterIgnoreOutputPrefix == null) {
+            _filterIgnoreOutputPrefix = _job.getExecSystemOutputDir();
+            if (!_filterIgnoreOutputPrefix.endsWith("/")) _filterIgnoreOutputPrefix += "/";
         }
-        return _filterIgnorePrefix;
+        return _filterIgnoreOutputPrefix;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -1592,8 +1576,11 @@ public final class JobFileManager
     	// -------------- Assign source/destination values -------------- 
     	// The final destination is always the archive system on the second
     	// transfer (i.e., the transfer after the local move transfer).
+    	//
+    	// NOTE: Paths are relative to the root directory, so they don't need 
+    	// a leading slash. The same stripping of leading slash happens below.
 	    final String dstSysId    = _job.getArchiveSystemId();
-		final String dstPath     = _job.getArchiveSystemDir();
+		final String dstPath     = StringUtils.stripStart(_job.getArchiveSystemDir(), "/");
 		final String dstShareCtx = _shareArchiveSystemDirAppOwner;
 		
 		// -------------- Complete each transfer task -------------------
@@ -1607,14 +1594,14 @@ public final class JobFileManager
     		final String srcShareCtx;
 
     		// Values are assigned based on whether this is a remote
-    		// transfer that uses a DTN or not.
+    		// transfer that uses a DTN or not. 
     		if (useDtn ) {
     			srcSysId    = _job.getDtnSystemId();
-    			srcPath     = _job.getDtnSystemOutputDir();
+    			srcPath     = StringUtils.stripStart(_job.getDtnSystemOutputDir(), "/");
     			srcShareCtx = _shareDtnSystemOutputDirAppOwner;
     		} else {
     			srcSysId    = _job.getExecSystemId();
-    			srcPath     = _job.getExecSystemExecDir();
+    			srcPath     = StringUtils.stripStart(_job.getExecSystemExecDir(), "/");
     			srcShareCtx = _shareExecSystemExecDirAppOwner;
     		}
     		
@@ -1646,11 +1633,11 @@ public final class JobFileManager
     		// transfer that uses a DTN or not.
     		if (useDtn ) {
     			srcSysId    = _job.getDtnSystemId();
-    			srcPath     = _job.getDtnSystemOutputDir();
+    			srcPath     = StringUtils.stripStart(_job.getDtnSystemOutputDir(), "/");
     			srcShareCtx = _shareDtnSystemOutputDirAppOwner;
     		} else {
     			srcSysId    = _job.getExecSystemId();
-    			srcPath     = _job.getExecSystemOutputDir();
+    			srcPath     = StringUtils.stripStart(_job.getExecSystemOutputDir(), "/");
     			srcShareCtx = _shareExecSystemOutputDirAppOwner;
     		}
     		

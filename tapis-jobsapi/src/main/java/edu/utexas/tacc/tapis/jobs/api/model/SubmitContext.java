@@ -963,9 +963,6 @@ public final class SubmitContext
      */
     private void resolveDirectoryPathNames() throws TapisImplException
     {
-        // Are we using a DTN?
-        final boolean useDTN = dtnSystemIsLoaded();
-        
         // --------------------- Exec System ---------------------
         // The input directory is used as the basis for other exec system path names
         // if those path names are not explicitly assigned, so it must be assigned first.

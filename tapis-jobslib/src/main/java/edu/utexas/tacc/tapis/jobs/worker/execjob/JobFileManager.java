@@ -918,7 +918,11 @@ public final class JobFileManager
         // or not a dtn is being used.
         //
         // This block schedules the filtered contents of the execSystemOutputDir
-        // to be transfered.  
+        // to be transfered.  For future reference, this condition can be used to
+        // determines whether no filters will be applied:
+        //
+        //    if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes)))
+        //
         if (!archiveSameAsOutput && !matchesAll(excludes)) {
         	// We need to filter each and every file, so we need to retrieve 
             // the output directory file listing.  Get the client from the 

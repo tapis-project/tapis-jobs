@@ -9,6 +9,20 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.6.1 - 2024-05-19
+
+### New Features:
+1. Data Transfer Node (DTN) support.
+2. Introduced a condition code set when a job terminates to impart more information about job disposition.
+3. Introduced the envKey field in FileInputs and FileInputArrays to allow users to easily pass input file 
+   pathnames into their applications via environment variables.
+4. Support for application enable/disable at the application version level.  
+
+### Bug fixes:
+1. Fixed job output listing when limit/skip are used.
+2. Fixed unrecognized parameter problem on Slurm apptainer (singularity) jobs.
+
+-----------------------
 ## 1.6.0 - 2024-01-24
 
 ### New Features:

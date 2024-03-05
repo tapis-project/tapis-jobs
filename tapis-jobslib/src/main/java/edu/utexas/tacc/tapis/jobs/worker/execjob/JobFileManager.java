@@ -902,15 +902,15 @@ public final class JobFileManager
         
         // Add the tapis generated files to the task. 
         // This list will never be null.
-        List<String> launchFileList = Collections.emptyList(); // r/o
-        if (archiveFilter.getIncludeLaunchFiles()) launchFileList = addLaunchFiles(tasks, useDtn);
+        List<String> mvLaunchFileList = Collections.emptyList(); // r/o
+        if (archiveFilter.getIncludeLaunchFiles()) mvLaunchFileList = addLaunchFiles(tasks, useDtn);
         final int launchTaskCount = tasks.getElements().size();
         
         // DTN local move transfers need a file list derived from File info
         // objects.  This list only contains files from the execSystemOutputDir; 
         // it complements the launchFileList and will always be non-null by the 
         // time the local move method is called.
-        List<String> outputFileList = null;
+        List<String> mvOutputFileList = null;
         
         // There's nothing to do if the archive and output directories are 
         // the same or if we have to exclude all output files.  Note that 
@@ -918,48 +918,65 @@ public final class JobFileManager
         // or not a dtn is being used.
         //
         // This block schedules the filtered contents of the execSystemOutputDir
-        // to be transfered.  For future reference, this condition can be used to
-        // determines whether no filters will be applied:
-        //
-        //    if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes)))
-        //
+        // to be transfered.
         if (!archiveSameAsOutput && !matchesAll(excludes)) {
-        	// We need to filter each and every file, so we need to retrieve 
-            // the output directory file listing.  Get the client from the 
-            // context now to catch errors early.  We initialize the unfiltered list.
-            FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
-            var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
-                                                   _job.getExecSystemOutputDir());
-            listSubtree.setSharedAppCtx(_shareExecSystemOutputDirAppOwner);
-            var fileInfoList = listSubtree.list(); // Replace empty r/o list
+            // Will any filtering be necessary at all?
+            if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes))) 
+            {
+                // We only need to specify the whole output directory subtree 
+            	// to archive all files.  The element contains placeholders.
+                var task = new ReqTransferElement().
+                               sourceURI(makePlaceholderUrl("")).
+                               destinationURI(makePlaceholderUrl(""));
+                tasks.addElementsItem(task);
                 
-            // Apply the excludes list first since it has precedence, then
-            // the includes list.  The fileList can be modified in both calls.
-            applyArchiveFilters(excludes, fileInfoList, FilterType.EXCLUDES);
-            applyArchiveFilters(includes, fileInfoList, FilterType.INCLUDES);
+                // Create a file list for the move operation.
+                mvOutputFileList = new ArrayList<>(1); 
+                mvOutputFileList.add("");        
+            } 
+            else 
+            {
+            	// We need to filter each and every file, so we need to retrieve 
+            	// the output directory file listing.  Get the client from the 
+            	// context now to catch errors early.  We initialize the unfiltered list.
+            	FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
+            	var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
+            			                               _job.getExecSystemOutputDir());
+            	listSubtree.setSharedAppCtx(_shareExecSystemOutputDirAppOwner);
+            	var fileInfoList = listSubtree.list(); // Replace empty r/o list
+                
+            	// Apply the excludes list first since it has precedence, then
+            	// the includes list.  The fileList can be modified in both calls.
+            	applyArchiveFilters(excludes, fileInfoList, FilterType.EXCLUDES);
+            	applyArchiveFilters(includes, fileInfoList, FilterType.INCLUDES);
             
-            // Size the list of names relative to the execSystemOutputDir
-            // to be what's left after filtering when using a DTN.  Otherwise,
-            // leave it as null so that it won't get populated.
-            if (useDtn && fileInfoList.size() > 0) {
-            	outputFileList = new ArrayList<>(fileInfoList.size());
-            }
+            	// Size the list of names relative to the execSystemOutputDir
+            	// to be what's left after filtering when using a DTN.  Otherwise,
+            	// leave it as null so that it won't get populated.
+            	if (useDtn && fileInfoList.size() > 0) {
+            		mvOutputFileList = new ArrayList<>(fileInfoList.size());
+            	}
              
-            // Create a task entry for each of the filtered output files.
-            addOutputFiles(tasks, fileInfoList, outputFileList);
+            	// Create a task entry for each of the filtered output files.
+            	addOutputFiles(tasks, fileInfoList, mvOutputFileList);
+            }
         }
+        
+        // It's possible to get here and have no files to archive.  
+        if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;  // early exit
         
         // DTN pre-processing first issues a local move transfer for
         // job output and launch files to the dtn.
-        if (outputFileList == null) outputFileList = Collections.emptyList(); // r/o
-        if (useDtn) moveDtnOutputs(outputFileList, launchFileList);
+        if (useDtn) {
+        	if (mvOutputFileList == null) mvOutputFileList = Collections.emptyList(); // r/o
+        	moveDtnOutputs(mvOutputFileList, mvLaunchFileList);
+        }
         
         // Complete all task definitions including substituting for
-        // placeholder values and assigning shared context values.
+        // placeholders and assigning shared context values.
         completeArchiveTransferTasks(tasks, useDtn, launchTaskCount);
         
         // Return a transfer id if tasks is not empty.
-        if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
         return submitTransferTask(tasks, tag, JobTransferPhase.ARCHIVE);
     }
     

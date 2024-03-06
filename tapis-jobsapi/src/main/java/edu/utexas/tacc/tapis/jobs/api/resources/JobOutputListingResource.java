@@ -226,16 +226,14 @@ public class JobOutputListingResource extends AbstractResource{
         * output files listing is returned
         * If limit is specified, again non-recursive output files listing is returned
         */
-       if(srchParms.getLimit() == null && srchParms.getSkip() == 0) {
-    	  srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);
-       } else if(srchParms.getLimit() == null && srchParms.getSkip() != 0) {
-    	  srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);
-    	  recursiveFlag = false;
+       if(srchParms.getLimit() == null) {
+           srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);
+           if (srchParms.getSkip() != SearchParameters.DEFAULT_SKIP) {
+   	          recursiveFlag = false; 
+   	       }
        }
-       else {
-    	   recursiveFlag = false;
-       }
-       
+       else recursiveFlag = false;
+             
        List<FileInfo> filesList = null;
        
        try {

@@ -228,7 +228,11 @@ public class JobOutputListingResource extends AbstractResource{
         */
        if(srchParms.getLimit() == null && srchParms.getSkip() == 0) {
     	  srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);
-       } else {
+       } else if(srchParms.getLimit() == null && srchParms.getSkip() != 0) {
+    	  srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);
+    	  recursiveFlag = false;
+       }
+       else {
     	   recursiveFlag = false;
        }
        

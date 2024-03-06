@@ -99,7 +99,7 @@ public final class JobFileManager
     private final String              _shareDtnSystemOutputDirAppOwner;
     
     // Derived path prefix value removed before filtering.
-    private String                    _filterIgnorePrefix;
+    private String                    _filterIgnoreOutputPrefix;
     
     /* ********************************************************************** */
     /*                              Constructors                              */
@@ -902,20 +902,23 @@ public final class JobFileManager
         
         // Add the tapis generated files to the task. 
         // This list will never be null.
-        List<String> launchFileList = Collections.emptyList(); // r/o
-        if (archiveFilter.getIncludeLaunchFiles()) launchFileList = addLaunchFiles(tasks, useDtn);
+        List<String> mvLaunchFileList = Collections.emptyList(); // r/o
+        if (archiveFilter.getIncludeLaunchFiles()) mvLaunchFileList = addLaunchFiles(tasks, useDtn);
         final int launchTaskCount = tasks.getElements().size();
         
-        // Both the local local move transfers need the raw file list from 
-        // Files when a DTN is used.  This list only contains files from 
-        // the execSystemOutputDir; it complements the launchFileList and 
-        // can also never be null.
-        List<FileInfo> outputFileList = Collections.emptyList(); // r/o
+        // DTN local move transfers need a file list derived from File info
+        // objects.  This list only contains files from the execSystemOutputDir; 
+        // it complements the launchFileList and will always be non-null by the 
+        // time the local move method is called.
+        List<String> mvOutputFileList = null;
         
         // There's nothing to do if the archive and output directories are 
         // the same or if we have to exclude all output files.  Note that 
         // the sourceURI and source share context are a function of whether
         // or not a dtn is being used.
+        //
+        // This block schedules the filtered contents of the execSystemOutputDir
+        // to be transfered.
         if (!archiveSameAsOutput && !matchesAll(excludes)) {
             // Will any filtering be necessary at all?
             if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes))) 
@@ -928,42 +931,52 @@ public final class JobFileManager
                 tasks.addElementsItem(task);
                 
                 // Create a file list for the move operation.
-                var fileInfo = new FileInfo(); // Only path field is necessary
-                fileInfo.setPath("");          // Empty string moves all content
-                outputFileList = new ArrayList<>(1); // Replace empty r/o list
-                outputFileList.add(fileInfo);        
+                mvOutputFileList = new ArrayList<>(1); 
+                mvOutputFileList.add("");        
             } 
             else 
             {
-                // We need to filter each and every file, so we need to retrieve 
-                // the output directory file listing.  Get the client from the 
-                // context now to catch errors early.  We initialize the unfiltered list.
-                FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
-                var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
-                                                       _job.getExecSystemOutputDir());
-                listSubtree.setSharedAppCtx(_shareExecSystemOutputDirAppOwner);
-                outputFileList = listSubtree.list(); // Replace empty r/o list
+            	// We need to filter each and every file, so we need to retrieve 
+            	// the output directory file listing.  Get the client from the 
+            	// context now to catch errors early.  We initialize the unfiltered list.
+            	FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
+            	var listSubtree = new FilesListSubtree(filesClient, _job.getExecSystemId(), 
+            			                               _job.getExecSystemOutputDir());
+            	listSubtree.setSharedAppCtx(_shareExecSystemOutputDirAppOwner);
+            	var fileInfoList = listSubtree.list(); // Replace empty r/o list
                 
-                // Apply the excludes list first since it has precedence, then
-                // the includes list.  The fileList can be modified in both calls.
-                applyArchiveFilters(excludes, outputFileList, FilterType.EXCLUDES);
-                applyArchiveFilters(includes, outputFileList, FilterType.INCLUDES);
-                
-                // Create a task entry for each of the filtered output files.
-                addOutputFiles(tasks, outputFileList);
+            	// Apply the excludes list first since it has precedence, then
+            	// the includes list.  The fileList can be modified in both calls.
+            	applyArchiveFilters(excludes, fileInfoList, FilterType.EXCLUDES);
+            	applyArchiveFilters(includes, fileInfoList, FilterType.INCLUDES);
+            
+            	// Size the list of names relative to the execSystemOutputDir
+            	// to be what's left after filtering when using a DTN.  Otherwise,
+            	// leave it as null so that it won't get populated.
+            	if (useDtn && fileInfoList.size() > 0) {
+            		mvOutputFileList = new ArrayList<>(fileInfoList.size());
+            	}
+             
+            	// Create a task entry for each of the filtered output files.
+            	addOutputFiles(tasks, fileInfoList, mvOutputFileList);
             }
         }
         
+        // It's possible to get here and have no files to archive.  
+        if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;  // early exit
+        
         // DTN pre-processing first issues a local move transfer for
         // job output and launch files to the dtn.
-        if (useDtn) moveDtnOutputs(outputFileList, launchFileList);
+        if (useDtn) {
+        	if (mvOutputFileList == null) mvOutputFileList = Collections.emptyList(); // r/o
+        	moveDtnOutputs(mvOutputFileList, mvLaunchFileList);
+        }
         
         // Complete all task definitions including substituting for
-        // placeholder values and assigning shared context values.
+        // placeholders and assigning shared context values.
         completeArchiveTransferTasks(tasks, useDtn, launchTaskCount);
         
         // Return a transfer id if tasks is not empty.
-        if (tasks.getElements().isEmpty()) return NO_FILE_INPUTS;
         return submitTransferTask(tasks, tag, JobTransferPhase.ARCHIVE);
     }
     
@@ -1024,13 +1037,13 @@ public final class JobFileManager
      * This local move transfer sets up for a second transfer from the DTN 
      * to the actual archive system.
      * 
-     * @param fileList - list of fileInfo objects comprised of execSystemOutputDir paths
+     * @param outputFileList - list of fileInfo objects comprised of execSystemOutputDir paths
      * @param launchFileList - list of launch file names
      * @param tag - the correlation id assigned by Jobs
      * @return the transfer id assigned by Files
      * @throws TapisException
      */    
-    private String moveNewDtnOutputs(List<FileInfo> fileList, List<String> launchFileList, 
+    private String moveNewDtnOutputs(List<String> outputFileList, List<String> launchFileList, 
     		                         String tag)
      throws TapisException
     {
@@ -1059,17 +1072,17 @@ public final class JobFileManager
     	// associated with the execSystemOutputDir to apply to the dtn directory.
     	// Only files from the execSystemOutputDir should be in the list.
     	final boolean isLaunchFile = false;
-    	for (var fileInfo : fileList) {
+    	for (var path : outputFileList) {
     		// Create a url for the file in the execSystemOutputDir.
     		var srcUrl = makeSystemUrl(_job.getExecSystemId(), _job.getExecSystemOutputDir(), 
-    				                   fileInfo.getPath());
+    				                   path);
     		
     		// Create a url for the file in the mounted dtn directory.  Note that the dtn
     		// and exec systems have the same root directory.  The exec system mounts the
     		// dtn's output directory under its root.  The result is that the dtn output
     		// directory has the SAME absolute path on both systems. 
     		var tgtUrl = makeSystemUrl(_job.getExecSystemId(), _job.getDtnSystemOutputDir(),
-    				                   fileInfo.getPath());
+    								   path);
      		
     		// Accumulate task elements.
     		tasks.addElementsItem(getMoveDtnOutputElement(srcUrl, tgtUrl, isLaunchFile));
@@ -1223,22 +1236,26 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* addOutputFiles:                                                        */
     /* ---------------------------------------------------------------------- */
-    /** Add each output file in list to the archive tasks. 
+    /** Add each output file in the fileInfoList to the archive tasks.  This
+     * method also adds the relative path names to the outputFileList when that
+     * list is non-null.  The outputFileList is only used during dtn move operations.
      * 
-     * @param tasks the archive tasks
-     * @param fileList the filtered list of files in the job's output directory
-     * @param useDtn whether archiving is using a dtn
+     * @param tasks (i/o) the archive tasks
+     * @param fileInfoList (input) the filtered list of files from the job output directory
+     * @param outputFileList (i/o) the list of relative file names, can be null
      */
-    private void addOutputFiles(ReqTransfer tasks, List<FileInfo> fileList) 
+    private void addOutputFiles(ReqTransfer tasks, List<FileInfo> fileInfoList,
+    		                    List<String> outputFileList) 
      throws TapisException
     {
         // Add each output file as a placeholder task element.
-        for (var f : fileList) {
+        for (var f : fileInfoList) {
             var relativePath = getOutputRelativePath(f.getPath());
             var task = new ReqTransferElement().
                            sourceURI(makePlaceholderUrl(relativePath)).
                            destinationURI(makePlaceholderUrl(relativePath));
             tasks.addElementsItem(task);
+            if (outputFileList != null) outputFileList.add(relativePath);
         }
     }
     
@@ -1351,17 +1368,17 @@ public final class JobFileManager
      * file path before filtering is carried out.  Users provide glob or regex
      * pattern that are applied to file paths relative to the job output directory. 
      * 
-     * @return the prefix to be removed from all path before filter matching
+     * @return the prefix to be removed from all paths before filter matching
      */
     private String getOutputPathPrefix()
     {
         // Assign the filter ignore prefix the job output directory including 
         // a trailing slash.
-        if (_filterIgnorePrefix == null) {
-            _filterIgnorePrefix = _job.getExecSystemOutputDir();
-            if (!_filterIgnorePrefix.endsWith("/")) _filterIgnorePrefix += "/";
+        if (_filterIgnoreOutputPrefix == null) {
+            _filterIgnoreOutputPrefix = _job.getExecSystemOutputDir();
+            if (!_filterIgnoreOutputPrefix.endsWith("/")) _filterIgnoreOutputPrefix += "/";
         }
-        return _filterIgnorePrefix;
+        return _filterIgnoreOutputPrefix;
     }
     
     /* ---------------------------------------------------------------------- */
@@ -1526,7 +1543,7 @@ public final class JobFileManager
      * @param launchFileList non-null list of launch files to be moved
      * @throws TapisException 
      */
-    private void moveDtnOutputs(List<FileInfo> outputFileList, List<String> launchFileList) 
+    private void moveDtnOutputs(List<String> outputFileList, List<String> launchFileList) 
      throws TapisException
     {
     	// This should never happen, but just to be sure.
@@ -1592,8 +1609,11 @@ public final class JobFileManager
     	// -------------- Assign source/destination values -------------- 
     	// The final destination is always the archive system on the second
     	// transfer (i.e., the transfer after the local move transfer).
+    	//
+    	// NOTE: Paths are relative to the root directory, so they don't need 
+    	// a leading slash. The same stripping of leading slash happens below.
 	    final String dstSysId    = _job.getArchiveSystemId();
-		final String dstPath     = _job.getArchiveSystemDir();
+		final String dstPath     = StringUtils.stripStart(_job.getArchiveSystemDir(), "/");
 		final String dstShareCtx = _shareArchiveSystemDirAppOwner;
 		
 		// -------------- Complete each transfer task -------------------
@@ -1607,14 +1627,14 @@ public final class JobFileManager
     		final String srcShareCtx;
 
     		// Values are assigned based on whether this is a remote
-    		// transfer that uses a DTN or not.
+    		// transfer that uses a DTN or not. 
     		if (useDtn ) {
     			srcSysId    = _job.getDtnSystemId();
-    			srcPath     = _job.getDtnSystemOutputDir();
+    			srcPath     = StringUtils.stripStart(_job.getDtnSystemOutputDir(), "/");
     			srcShareCtx = _shareDtnSystemOutputDirAppOwner;
     		} else {
     			srcSysId    = _job.getExecSystemId();
-    			srcPath     = _job.getExecSystemExecDir();
+    			srcPath     = StringUtils.stripStart(_job.getExecSystemExecDir(), "/");
     			srcShareCtx = _shareExecSystemExecDirAppOwner;
     		}
     		
@@ -1629,7 +1649,7 @@ public final class JobFileManager
     			
     			var dstUri = task.getDestinationURI().replace(SYSTEM_PLACEHOLER, dstSysId);
     			dstUri = dstUri.replace(PATH_PLACEHOLER, dstPath);
-    			task.setDestinationURI(dstShareCtx);
+    			task.setDestinationURI(dstUri);
     			task.setDestSharedCtx(dstShareCtx);
     		}
     	}
@@ -1646,11 +1666,11 @@ public final class JobFileManager
     		// transfer that uses a DTN or not.
     		if (useDtn ) {
     			srcSysId    = _job.getDtnSystemId();
-    			srcPath     = _job.getDtnSystemOutputDir();
+    			srcPath     = StringUtils.stripStart(_job.getDtnSystemOutputDir(), "/");
     			srcShareCtx = _shareDtnSystemOutputDirAppOwner;
     		} else {
     			srcSysId    = _job.getExecSystemId();
-    			srcPath     = _job.getExecSystemOutputDir();
+    			srcPath     = StringUtils.stripStart(_job.getExecSystemOutputDir(), "/");
     			srcShareCtx = _shareExecSystemOutputDirAppOwner;
     		}
     		
@@ -1665,7 +1685,7 @@ public final class JobFileManager
 			
     			var dstUri = task.getDestinationURI().replace(SYSTEM_PLACEHOLER, dstSysId);
     			dstUri = dstUri.replace(PATH_PLACEHOLER, dstPath);
-    			task.setDestinationURI(dstShareCtx);
+    			task.setDestinationURI(dstUri);
     			task.setDestSharedCtx(dstShareCtx);
     		}
     	}

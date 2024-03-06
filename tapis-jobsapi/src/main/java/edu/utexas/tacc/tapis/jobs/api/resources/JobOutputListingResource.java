@@ -220,8 +220,14 @@ public class JobOutputListingResource extends AbstractResource{
        // Set default parameters
        SearchParameters srchParms = threadContext.getSearchParameters();
        boolean recursiveFlag = true;
-       if(srchParms.getLimit() == null) {
-    	   srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);
+       /* If limit is not specified and (either skip=0 is provided or skip is not specified), 
+        * then recursive listing of output files is returned by default.
+        * If limit is not specified and skip is specified and set to non-zero value, non-recursive 
+        * output files listing is returned
+        * If limit is specified, again non-recursive output files listing is returned
+        */
+       if(srchParms.getLimit() == null && srchParms.getSkip() == 0) {
+    	  srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);
        } else {
     	   recursiveFlag = false;
        }

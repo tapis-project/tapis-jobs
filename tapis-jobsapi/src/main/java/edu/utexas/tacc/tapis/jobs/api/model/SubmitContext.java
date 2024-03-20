@@ -2254,10 +2254,6 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.JobCreateDate.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
         _macros.put(JobTemplateVariables.JobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
 
-        // The stdout and stderr file names, _tapisStdoutFilename, _tapisStderrFilename
-        _macros.put(JobTemplateVariables.StdoutFilename.name(), _submitReq.getParameterSet().getLogConfig().getStdoutFilename());
-        _macros.put(JobTemplateVariables.StderrFilename.name(), _submitReq.getParameterSet().getLogConfig().getStderrFilename());
-        
         // ---------- Ground, optional
         if (dtnSystemIsLoaded()) 
             _macros.put(JobTemplateVariables.DtnSystemId.name(),        _execSystem.getDtnSystemId());
@@ -2300,6 +2296,16 @@ public final class SubmitContext
                 _macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
             if (!MacroResolver.needsResolution(_submitReq.getArchiveSystemDir()))
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
+
+            // ConfigLog values.
+            if (!MacroResolver.needsResolution(_submitReq.getParameterSet().getLogConfig().getStdoutFilename()))
+                _macros.put(JobTemplateVariables.StdoutFilename.name(), 
+                		    _submitReq.getParameterSet().getLogConfig().getStdoutFilename());
+            if (!MacroResolver.needsResolution(_submitReq.getParameterSet().getLogConfig().getStderrFilename()))
+                _macros.put(JobTemplateVariables.StderrFilename.name(), 
+                		    _submitReq.getParameterSet().getLogConfig().getStderrFilename());
+            
+            // Options DTN values.
             if (dtnSystemIsLoaded()) {
             	if (!MacroResolver.needsResolution(_submitReq.getDtnSystemInputDir()))
             		_macros.put(JobTemplateVariables.DtnSystemInputDir.name(), _submitReq.getDtnSystemInputDir());
@@ -2331,6 +2337,22 @@ public final class SubmitContext
                 _submitReq.setArchiveSystemDir(archiveMacroResolver.resolve(_submitReq.getArchiveSystemDir()));
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
             }
+            
+            // LogConfig values.
+            if (!_macros.containsKey(JobTemplateVariables.StdoutFilename.name())) {
+                _submitReq.getParameterSet().getLogConfig().setStdoutFilename(resolveMacros(
+                	_submitReq.getParameterSet().getLogConfig().getStdoutFilename()));
+                _macros.put(JobTemplateVariables.StdoutFilename.name(), 
+                	_submitReq.getParameterSet().getLogConfig().getStdoutFilename());
+                }
+            if (!_macros.containsKey(JobTemplateVariables.StderrFilename.name())) {
+                _submitReq.getParameterSet().getLogConfig().setStderrFilename(resolveMacros(
+                	_submitReq.getParameterSet().getLogConfig().getStderrFilename()));
+                _macros.put(JobTemplateVariables.StderrFilename.name(), 
+                	_submitReq.getParameterSet().getLogConfig().getStderrFilename());
+                }
+            
+            // Optional DTN values.
             if (dtnSystemIsLoaded()) {
                 if (!_macros.containsKey(JobTemplateVariables.DtnSystemInputDir.name())) {
                     _submitReq.setDtnSystemInputDir(resolveMacros(_submitReq.getDtnSystemInputDir()));

@@ -664,16 +664,29 @@ public class SlurmOptions
         if (StringUtils.isBlank(getJobName())) {
             setJobName(JobExecutionUtils.JOB_WRAPPER_SCRIPT);
         }
-
         // Assign the standard tapis output file name if one is not
         // assigned and we are not running an array job.  We let slurm
         // use its default naming scheme for array job output files.
         // Unless the user explicitly specifies an error file, both
         // stdout and stderr will go the designated output file.
-        if (StringUtils.isBlank(getOutput()) &&
-                StringUtils.isBlank(getArray())) {
-            var fm = _jobCtx.getJobFileManager();
-            setOutput(fm.makeAbsExecSysOutputPath(JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE));
+        if (StringUtils.isBlank(getOutput()) && StringUtils.isBlank(getArray())) {
+        	// The log configuration should never be null after getting the parameter set model.
+        	// Unset output files use the default file, though they should always be set by now.
+        	var logConfig = _job.getParameterSetModel().getLogConfig();
+        	
+        	// Get the output and error file names.
+        	var fout = logConfig.getStdoutFilename();
+        	if (StringUtils.isBlank(fout)) fout = JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE;
+        	var ferr = logConfig.getStderrFilename();
+        	if (StringUtils.isBlank(ferr)) ferr = JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE;
+        	
+        	// Set the error file only if (1) the user didn't explicitly set it  
+        	// and it differs them the output file.  By default, Slurm sets the
+        	// error file to the output file.
+        	var fm = _jobCtx.getJobFileManager();
+            setOutput(fm.makeAbsExecSysOutputPath(fout));
+            if (StringUtils.isBlank(getError()) && !fout.equals(ferr) ) 
+            	setError(fm.makeAbsExecSysOutputPath(ferr));
         }
     }
 

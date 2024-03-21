@@ -681,7 +681,9 @@ public class SlurmOptions
         	if (StringUtils.isBlank(ferr)) ferr = JobExecutionUtils.JOB_OUTPUT_REDIRECT_FILE;
         	
         	// Set the error file only if the user explicitly set it  
-        	// and it differs them the output file.  By default, Slurm 
+        	// and it differs them the output file.  This effectively
+        	// gives precedence to the slurm error file option over 
+        	// LogConfig setting if both are set.  By default, Slurm 
         	// sets the error file to the output file.
         	var fm = _jobCtx.getJobFileManager();
             setOutput(fm.makeAbsExecSysOutputPath(fout));

@@ -1,7 +1,7 @@
 #!/bin/bash
 # source ~/.bash_profile
 JobsPublish=true
-DCKR_TAG1="staging"
+#DCKR_TAG1="staging"
 DCKR_TAG2="prod"
 DCKR_TAG3="1.6.0"
 DCKR_TAG4="latest"
@@ -39,36 +39,36 @@ if [ "$JobsPublish" == "true" ]; then
 	docker login -u $DCKR_USER -p $DCKR_PW
 	echo '************************ Building & Publishing Jobs Image'
 	deployment/build-jobsapi.sh
-	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG1
+#	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG1
 	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG2
 	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG3
 	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG4
 	docker push tapis/jobsapi:${TAPIS_VERSION}
-	docker push tapis/jobsapi:$DCKR_TAG1
+#	docker push tapis/jobsapi:$DCKR_TAG1
 	docker push tapis/jobsapi:$DCKR_TAG2
 	docker push tapis/jobsapi:$DCKR_TAG3
 	docker push tapis/jobsapi:$DCKR_TAG4
     
     echo '************************ Building & Publishing Jobs Migrate Image'
 	deployment/build-jobsmigrate.sh
-	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG1
+#	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG1
 	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG2
 	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG3
 	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG4
 	docker push tapis/jobsmigrate:${TAPIS_VERSION}
-	docker push tapis/jobsmigrate:$DCKR_TAG1
+#	docker push tapis/jobsmigrate:$DCKR_TAG1
 	docker push tapis/jobsmigrate:$DCKR_TAG2
 	docker push tapis/jobsmigrate:$DCKR_TAG3
 	docker push tapis/jobsmigrate:$DCKR_TAG4
     
     echo '************************ Building & Publishing Jobs Worker Image'
 	deployment/build-jobsworker.sh
-	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG1
+#	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG1
 	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG2
 	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG3
 	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG4
 	docker push tapis/jobsworker:${TAPIS_VERSION}
-	docker push tapis/jobsworker:$DCKR_TAG1
+#	docker push tapis/jobsworker:$DCKR_TAG1
 	docker push tapis/jobsworker:$DCKR_TAG2
 	docker push tapis/jobsworker:$DCKR_TAG3
 	docker push tapis/jobsworker:$DCKR_TAG4

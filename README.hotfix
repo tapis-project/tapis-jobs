@@ -1,0 +1,44 @@
+Preparing for a hotfix after a major release, e.g. release 1.6.0
+
+1. Create hotfix branches for all java code repositories, for example branch name 1.6.0-hotfix
+   - tapis-bom
+   - tapis-client-java
+   - tapis-shared-java
+   - openapi-systems
+   - openapi-files
+   - openapi-apps
+   - openapi-notifications
+   - tapis-systems
+   - tapis-files
+   - tapis-apps
+   - tapis-jobs
+   - tapis-meta
+
+2. Update pom files in repo tapis-client-java for clients that have a specPath.
+   - apps-client/pom.xml
+   - files-client/pom.xml
+   - notifications-client/pom.xml
+   - systems-client/pom.xml
+
+  Change specPath to point at hotfix branches. For example, for apps-client/pom.xml:
+    <specPath>https://raw.githubusercontent.com/tapis-project/openapi-apps/1.6.0-hotfix/AppsAPI.yaml</specPath>
+
+Creating a hotfix deployment:
+1. Check out hotfix branches for shared code: tapis-bom, tapis-client-java, tapis-shared-java.
+2. Build shared code locally.
+3. Check out the hotfix branch for the service that requires a change.
+4. Make changes to the hotfix branch for the service. Commit updates.
+5. Build the service locally.
+6. Edit and run the special script to create the new docker images.
+   - For example, for jobs hotfix branch 1.6.0-hotfix the script is tapis-jobs/jobs_manual_build_deploy.sh
+   - The script is based on the jenkins job TapisJava -> 3_ManualBuildDeploy -> jobs
+   - To run this script, the docker user and password must be set, e.g.
+     - export DCKR_USER=scblack, export DCKR_PW=*********
+   - The docker user must have permission to push to the appropriate docker hub repo, e.g. tapis/jobsapi
+   - The script creates new docker images and tags them
+     - DCKR_TAG1="staging"
+     - DCKR_TAG2="prod"
+     - DCKR_TAG3="1.6.0"
+     - DCKR_TAG4="latest"
+   NOTE: The tags above may include "staging". To build images for "prod" only, edit the script to
+         comment out all references to DCKR_TAG1.

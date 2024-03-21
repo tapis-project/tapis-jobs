@@ -2099,10 +2099,6 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.JobCreateDate.name(),      DateTimeFormatter.ISO_OFFSET_DATE.format(offDateTime));
         _macros.put(JobTemplateVariables.JobCreateTime.name(),      DateTimeFormatter.ISO_OFFSET_TIME.format(offDateTime));
 
-        // The stdout and stderr file names, _tapisStdoutFilename, _tapisStderrFilename
-        _macros.put(JobTemplateVariables.StdoutFilename.name(), _submitReq.getParameterSet().getLogConfig().getStdoutFilename());
-        _macros.put(JobTemplateVariables.StderrFilename.name(), _submitReq.getParameterSet().getLogConfig().getStderrFilename());
-        
         // ---------- Ground, optional
         if (_dtnSystem != null) {
             _macros.put(JobTemplateVariables.DtnSystemId.name(),        _execSystem.getDtnSystemId());
@@ -2148,7 +2144,15 @@ public final class SubmitContext
                 _macros.put(JobTemplateVariables.ExecSystemOutputDir.name(), _submitReq.getExecSystemOutputDir());
             if (!MacroResolver.needsResolution(_submitReq.getArchiveSystemDir()))
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
-            
+
+            // ConfigLog values.
+            if (!MacroResolver.needsResolution(_submitReq.getParameterSet().getLogConfig().getStdoutFilename()))
+                _macros.put(JobTemplateVariables.StdoutFilename.name(), 
+                		    _submitReq.getParameterSet().getLogConfig().getStdoutFilename());
+            if (!MacroResolver.needsResolution(_submitReq.getParameterSet().getLogConfig().getStderrFilename()))
+                _macros.put(JobTemplateVariables.StderrFilename.name(), 
+                		    _submitReq.getParameterSet().getLogConfig().getStderrFilename());
+
             // Assign derived values that require resolution.  Note that we assign the execution system's working 
             // directory first since other macros can depend on it but not vice versa
             if (!_macros.containsKey(JobTemplateVariables.JobWorkingDir.name())) 
@@ -2173,6 +2177,20 @@ public final class SubmitContext
                 _submitReq.setArchiveSystemDir(archiveMacroResolver.resolve(_submitReq.getArchiveSystemDir()));
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
             }
+
+            // LogConfig values.
+            if (!_macros.containsKey(JobTemplateVariables.StdoutFilename.name())) {
+                _submitReq.getParameterSet().getLogConfig().setStdoutFilename(resolveMacros(
+                	_submitReq.getParameterSet().getLogConfig().getStdoutFilename()));
+                _macros.put(JobTemplateVariables.StdoutFilename.name(), 
+                	_submitReq.getParameterSet().getLogConfig().getStdoutFilename());
+                }
+            if (!_macros.containsKey(JobTemplateVariables.StderrFilename.name())) {
+                _submitReq.getParameterSet().getLogConfig().setStderrFilename(resolveMacros(
+                	_submitReq.getParameterSet().getLogConfig().getStderrFilename()));
+                _macros.put(JobTemplateVariables.StderrFilename.name(), 
+                	_submitReq.getParameterSet().getLogConfig().getStderrFilename());
+                }
         } 
         catch (TapisException e) {
             throw new TapisImplException(e.getMessage(), e, Status.BAD_REQUEST.getStatusCode());

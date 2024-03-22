@@ -686,7 +686,7 @@ public class SlurmOptions
         	// sets the error file to the output file.
         	var fm = _jobCtx.getJobFileManager();
             setOutput(fm.makeAbsExecSysOutputPath(fout));
-            if (!StringUtils.isBlank(getError()) && !fout.equals(ferr) ) 
+            if (StringUtils.isBlank(getError()) && !fout.equals(ferr) ) 
             	setError(fm.makeAbsExecSysOutputPath(ferr));
         }
     }

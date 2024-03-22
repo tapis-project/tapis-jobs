@@ -8,13 +8,14 @@ Preparing for a hotfix after a major release, e.g. release 1.6.0
    - openapi-files
    - openapi-apps
    - openapi-notifications
+   - tapis-security
    - tapis-systems
    - tapis-files
    - tapis-apps
    - tapis-jobs
    - tapis-meta
 
-2. Update pom files in repo tapis-client-java for clients that have a specPath.
+2. In the hotfix branch of repo tapis-client-java, update pom files in for clients that have a specPath.
    - apps-client/pom.xml
    - files-client/pom.xml
    - notifications-client/pom.xml

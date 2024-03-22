@@ -1,10 +1,20 @@
 #!/bin/bash
 # source ~/.bash_profile
 JobsPublish=true
+
+# ============================================================================
+# DOCKER TAG images. Update for each hotfix release and iteration.
+# See README.hotfix concerning why the staging tag is not always done.
+# If removing staging make sure to also comment out all lines below that reference DCKR_TAG1
 #DCKR_TAG1="staging"
 DCKR_TAG2="prod"
 DCKR_TAG3="1.6.0"
 DCKR_TAG4="latest"
+
+# Latest hotfix suffix. Should be unique for the hotfix series, e.g. 1.6.0-hotfix1, 1.6.0-hotfix2, ...
+# This is for the unique docker tag for each hotfix iteration. The repo hotfix branches remain same, e.g. 1.6.0-hotfix
+HOTFIX_SUFFIX="hotfix3"
+# ============================================================================
 
 if [ -z "$DCKR_USER" -o -z "$DCKR_PW" ]; then
   echo "Please set DCKR_USER and DCKR_PW"
@@ -19,7 +29,7 @@ mvn  -version
 
 echo "*******************"
 export TAPIS_VER=$(mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -DforceStdout)
-export TAPIS_VERSION=${TAPIS_VER}-hotfix2
+export TAPIS_VERSION=${TAPIS_VER}-${HOTFIX_SUFFIX}
 echo "tapis-jobs TAPIS_VERSION = ${TAPIS_VERSION}"
 export GIT_COMMIT=$(git log -1 --pretty=format:"%h")
 export GIT_BRANCH=$GIT_BRANCH
@@ -39,6 +49,7 @@ if [ "$JobsPublish" == "true" ]; then
 	docker login -u $DCKR_USER -p $DCKR_PW
 	echo '************************ Building & Publishing Jobs Image'
 	deployment/build-jobsapi.sh
+
 #	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG1
 	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG2
 	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG3
@@ -51,6 +62,7 @@ if [ "$JobsPublish" == "true" ]; then
     
     echo '************************ Building & Publishing Jobs Migrate Image'
 	deployment/build-jobsmigrate.sh
+
 #	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG1
 	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG2
 	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:$DCKR_TAG3
@@ -63,6 +75,7 @@ if [ "$JobsPublish" == "true" ]; then
     
     echo '************************ Building & Publishing Jobs Worker Image'
 	deployment/build-jobsworker.sh
+
 #	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG1
 	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG2
 	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:$DCKR_TAG3

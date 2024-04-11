@@ -21,7 +21,9 @@ https://tapis-project.github.io/live-docs
 ### Bug fixes:
 1. Fixed job output listing when limit/skip are used.
 2. Fixed unrecognized parameter problem on Slurm apptainer (singularity) jobs.
-3. Fix LogConfig for Slurm/Singularity jobs.
+3. Fixed LogConfig for Slurm/Singularity jobs.
+4. Fixed archiveFilter excludes processing.
+5. Fixed error when loading certain exception classes reflectively.
 
 -----------------------
 ## 1.6.0 - 2024-01-24

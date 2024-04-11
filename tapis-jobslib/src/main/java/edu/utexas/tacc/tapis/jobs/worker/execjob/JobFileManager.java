@@ -1205,13 +1205,13 @@ public final class JobFileManager
     {
         // There's nothing to do if the exec and archive 
         // directories are same and on the same system.
-        if (_job.isArchiveSameAsExec()) Collections.emptyList() ;
+        if (_job.isArchiveSameAsExec()) Collections.emptyList();
         
-    	// Create a list with maximum needed capacity for use only in
-        // the dtn case.  ALWAYS use guard before referencing list since
+    	// Create a list for use only in the dtn case.  
+        // ALWAYS use guard before referencing list since
         // in non-dtn cases the list will be read-only.
         List<String> launchFileList;
-        if (useDtn) launchFileList = new ArrayList<String>(2);
+        if (useDtn) launchFileList = new ArrayList<String>();
           else launchFileList = Collections.emptyList(); // r/o
     	        
         // Assign the placeholder tasks for the generated files.
@@ -1240,6 +1240,14 @@ public final class JobFileManager
      * method also adds the relative path names to the outputFileList when that
      * list is non-null.  The outputFileList is only used during dtn move operations.
      * 
+     * The tasks object may already be populated with launch files that have
+     * placeholders embedded in their paths.  The fileInfoList contains all the
+     * files other than launch files that have been includes/excludes filtered.
+     * It's possible when the execSystemOutputDir and execSystemExecDir are the
+     * same to end up with duplicate launch file entries in tasks.  Though generally
+     * not harmful, if Files concurrently copies sets of files it's possible that
+     * launch files could get corrupted.  
+     * 
      * @param tasks (i/o) the archive tasks
      * @param fileInfoList (input) the filtered list of files from the job output directory
      * @param outputFileList (i/o) the list of relative file names, can be null
@@ -1248,15 +1256,26 @@ public final class JobFileManager
     		                    List<String> outputFileList) 
      throws TapisException
     {
-        // Add each output file as a placeholder task element.
-        for (var f : fileInfoList) {
-            var relativePath = getOutputRelativePath(f.getPath());
-            var task = new ReqTransferElement().
-                           sourceURI(makePlaceholderUrl(relativePath)).
-                           destinationURI(makePlaceholderUrl(relativePath));
-            tasks.addElementsItem(task);
-            if (outputFileList != null) outputFileList.add(relativePath);
-        }
+    	// Use a set to detect duplicates. Populate the dupSet with 
+    	// any launch files that might already be in tasks.
+    	var dupSet = new HashSet<String>(2*fileInfoList.size()+1);
+    	for (var task : tasks.getElements()) dupSet.add(task.getSourceURI());
+    	    	
+        // Add each output file as a placeholder task element,
+    	// skipping those we detect as duplicates.
+    	for (var f : fileInfoList) {
+    		// Avoid placing duplicate source files in tasks.
+    		var relativePath = getOutputRelativePath(f.getPath());
+    		var srcURI = makePlaceholderUrl(relativePath);
+    		if (!dupSet.add(srcURI)) continue;
+    	  
+    		// Create and record the task.
+    		var task = new ReqTransferElement().
+    			  			sourceURI(srcURI).
+    			  			destinationURI(makePlaceholderUrl(relativePath));
+    		tasks.addElementsItem(task);
+    		if (outputFileList != null) outputFileList.add(relativePath);
+      }
     }
     
     /* ---------------------------------------------------------------------- */
@@ -1328,8 +1347,7 @@ public final class JobFileManager
                 
                 // Removal depends on matches and the filter type.
                 if (filterType == FilterType.EXCLUDES) {
-                    if (matches) fileIt.remove();
-                    break;
+                    if (matches) {fileIt.remove(); break;}
                 } else {
                     // Remove item only after all include filters have failed to match.
                     if (matches) break; // keep in list 

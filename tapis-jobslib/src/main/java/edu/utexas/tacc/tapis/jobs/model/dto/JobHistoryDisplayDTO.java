@@ -22,6 +22,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 public class JobHistoryDisplayDTO {
 	// Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobHistoryDisplayDTO.class);
+	private static final boolean includeSummaryTrue = true;
     public static final int HTTP_INTERNAL_SERVER_ERROR = 500;
     
     private String        event;
@@ -48,7 +49,7 @@ public class JobHistoryDisplayDTO {
     		TransferTask transferTask = null;
     		
     		try {
-    			transferTask= filesClient.getTransferTaskHistory(jobEvent.getOthUuid(), impersonationId);
+    			transferTask= filesClient.getTransferTask(jobEvent.getOthUuid(), includeSummaryTrue, impersonationId);
     			
 			} catch (TapisClientException e) {
 				String msg = MsgUtils.getMsg("FILES_TRANSFER_HISTORY_RETRIEVE_ERROR", 

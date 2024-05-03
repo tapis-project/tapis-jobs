@@ -21,6 +21,9 @@ ARG BUILD_TIME
 
 MAINTAINER CIC Support <cicsupport@tacc.utexas.edu>
 
+# Install less. Add user tapis
+RUN apt update && apt install -y less vim-tiny && useradd -m tapis
+
 # Set commit info
 LABEL "GIT_COMMIT"=$GIT_COMMIT
 LABEL "VERSION"=$VER
@@ -28,6 +31,11 @@ LABEL "BUILD_TIME"=$BUILD_TIME
 
 # add
 COPY $SRVC_JAR /usr/local/bin/jobsmigrate.jar
+
+# Change to non-root user after installation is complete.
+# Create a private work directory subsequent commands.
+USER tapis
+WORKDIR /home/tapis/work
 
 # Launch the migration script
 CMD java -jar /usr/local/bin/jobsmigrate.jar -h $HOST -p $PORT -u $USER -pw $PW -tpw $TPW $FLAGS 

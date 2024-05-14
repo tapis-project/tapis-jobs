@@ -51,6 +51,7 @@ import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SystemTypeEnum;
 
 public final class JobFileManager 
 {
@@ -254,9 +255,12 @@ public final class JobFileManager
         
         // ---------------------- Archive System Dir ---------------------
         // See if the archive dir is the same as any previously created dir.
+        // There is no mkdir command on S3 systems, so we skip those systems. 
         var archiveSysDirKey = getDirectoryKey(_job.getArchiveSystemId(), 
                                                _job.getArchiveSystemDir());
-        if (!createdSet.contains(archiveSysDirKey)) {
+        if (!createdSet.contains(archiveSysDirKey) && 
+        	_jobCtx.getArchiveSystem().getSystemType() != SystemTypeEnum.S3) 
+        {
             // Create the directory on the system.
             try {
                 var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingArchiveSystemDirAppOwner();

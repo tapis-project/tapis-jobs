@@ -9,7 +9,17 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.6.1 - 2024-05-19
+## 1.6.2 - 2024-05-19
+
+### New Features:
+1. Update maven repository reference.
+2. Define non-root image in Dockerfile.
+
+### Bug fixes:
+1. Avoid calling mkdir on S3 systems.
+
+-----------------------
+## 1.6.1 - 2024-04-11
 
 ### New Features:
 1. Data Transfer Node (DTN) support.

@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis-jobs</artifactId>
-		<version>1.6.2</version>
+		<version>1.6.3</version>
 	</parent>
 	
 	<artifactId>tapis-jobslib</artifactId>

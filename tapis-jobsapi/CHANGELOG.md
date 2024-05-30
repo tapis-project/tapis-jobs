@@ -9,6 +9,15 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.6.3 - 2024-??-??
+
+### New Features:
+1. Support use of spaces in environment variable values for ZIP runtime type.
+
+### Bug fixes:
+1. 
+
+-----------------------
 ## 1.6.2 - 2024-05-19
 
 ### New Features:

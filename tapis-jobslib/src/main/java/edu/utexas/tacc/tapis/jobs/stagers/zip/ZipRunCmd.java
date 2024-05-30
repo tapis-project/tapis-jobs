@@ -74,7 +74,7 @@ public final class ZipRunCmd
 
         // Export environment variables from file
         buf.append("# Export Tapis and user defined environment variables.\n");
-        buf.append("export $(cat ./").append(JOB_ENV_FILE).append(" | xargs)\n\n");
+        buf.append(". ./").append(JOB_ENV_FILE).append("\n\n");
 
         // Run the executable
         buf.append("# Launch app executable.\n");

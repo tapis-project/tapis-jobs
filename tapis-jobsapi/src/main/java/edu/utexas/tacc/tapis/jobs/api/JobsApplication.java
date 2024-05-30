@@ -190,7 +190,7 @@ extends ResourceConfig
        }
        
        // ----- Start the notification liveness thread.
-       startNotificationLiveness();  // Not implemented yet
+       startNotificationLiveness();  
    }
    
    /** Initialize rabbitmq vhost and our standard queues and exchanges.  VHost initialization

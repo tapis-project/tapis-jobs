@@ -50,7 +50,7 @@ public class SingularityRunStager
         // The generated wrapper script will contain a singularity instance
         // start command that conforms to this format:
         //
-        //  singularity instance start [start options...] <container path> <instance name> [startscript args...]
+        //  singularity run [run options...] <container> [args] > tapisjob.out 2>&1 &
         String cmdText = _singularityCmd.generateExecCmd(_job);
 
         // Build the command file content.

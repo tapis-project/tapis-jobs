@@ -2,7 +2,6 @@ package edu.utexas.tacc.tapis.jobs.launchers;
 
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 
-import java.nio.file.Paths;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.slf4j.Logger;

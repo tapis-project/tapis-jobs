@@ -52,6 +52,7 @@ abstract class AbstractSingularityStager
      *
      * @return the wrapper script content
      */
+    @Override
     public String generateWrapperScriptContent()
             throws TapisException
     {
@@ -79,6 +80,7 @@ abstract class AbstractSingularityStager
      *
      * @return the content for a environment variable definition file
      */
+    @Override
     public String generateEnvVarFileContent()
             throws TapisException
     {

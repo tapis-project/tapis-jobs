@@ -15,7 +15,7 @@ https://tapis-project.github.io/live-docs
 1. Support use of spaces in environment variable values for ZIP runtime type.
 
 ### Bug fixes:
-1. 
+1. Allow spaces in execSystemExecDir paths when uploading application assets.
 
 -----------------------
 ## 1.6.2 - 2024-05-19

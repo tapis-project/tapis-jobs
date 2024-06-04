@@ -428,9 +428,9 @@ public final class JobFileManager
                                 List<PosixFilePermission> mod) 
       throws TapisException
     {
-        // Calculate the destination file path.
+        // Calculate the destination file path. Explicitly quote pathnames with spaces.
         String destPath = makePath(JobExecutionUtils.getExecDir(_jobCtx, _job), fileName);
-        destPath = TapisUtils.conditionalQuote(destPath);
+        destPath = TapisUtils.conditionalQuote(destPath); // SCP doesn't treat spaces like SFTP!
         
         // Transfer the wrapper script.
         try {

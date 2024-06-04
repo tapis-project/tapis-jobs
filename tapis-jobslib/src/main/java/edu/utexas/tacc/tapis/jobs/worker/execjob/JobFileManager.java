@@ -430,6 +430,7 @@ public final class JobFileManager
     {
         // Calculate the destination file path.
         String destPath = makePath(JobExecutionUtils.getExecDir(_jobCtx, _job), fileName);
+        destPath = TapisUtils.conditionalQuote(destPath);
         
         // Transfer the wrapper script.
         try {

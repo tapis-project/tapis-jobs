@@ -2617,8 +2617,10 @@ public final class JobsDao
             }
             
             // Set the remote execution start time when the new status transitions to RUNNING
-            // or the job ended time if we have transitioned to a terminal state. The called
+            // or the job ended time if we have transitioned to a terminal state. Update the 
+            // remote submit time when transitioning from submitting status.  The called
             // methods also update the in-memory job object.
+            if (curStatus == JobStatusType.SUBMITTING_JOB) updateRemoteSubmitted(conn, job, ts);
             if (newStatus == JobStatusType.RUNNING) updateRemoteStarted(conn, job, ts);
             else if (newStatus.isTerminal()) updateEnded(conn, job, ts, newStatus);
             
@@ -2668,6 +2670,39 @@ public final class JobsDao
           else return conn;
     }
 
+    /* ---------------------------------------------------------------------- */
+    /* updateRemoteStarted:                                                   */
+    /* ---------------------------------------------------------------------- */
+    /** Set the remote submitted timestamp to be equal to the specified timestamp
+     * only if the remote submitted timestamp is null.  This method is really just 
+     * an extension of the setStatus() method separated for readability.  
+     * 
+     * Once set, the remote submitted timestamp is not updated by this method, so 
+     * calling it more than once for a job will not change the job record.
+     * 
+     * @param conn the connection with the in-progress transaction
+     * @param uuid the job uuid
+     * @param ts the remote execution start time
+     * @throws SQLException
+     */
+    private void updateRemoteSubmitted(Connection conn, Job job, Timestamp ts) 
+     throws SQLException
+    {
+        // Set the sql command.
+        String sql = SqlStatements.UPDATE_REMOTE_SUBMITTED;
+            
+        // Prepare the statement and fill in the placeholders.
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setTimestamp(1, ts);
+        pstmt.setString(2, job.getUuid());
+            
+        // Issue the call.
+        int rows = pstmt.executeUpdate();
+        
+        // Update the in-memory object.
+        job.setRemoteSubmitted(ts.toInstant());
+    }
+    
     /* ---------------------------------------------------------------------- */
     /* updateRemoteStarted:                                                   */
     /* ---------------------------------------------------------------------- */

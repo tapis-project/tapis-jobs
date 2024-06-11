@@ -121,6 +121,9 @@ public class SqlStatements
     public static final String UPDATE_REMOTE_STARTED = 
         "UPDATE jobs SET remote_started = ? WHERE remote_started IS NULL AND uuid = ?";
     
+    public static final String UPDATE_REMOTE_SUBMITTED = 
+            "UPDATE jobs SET remote_submitted = ? WHERE remote_submitted IS NULL AND uuid = ?";
+        
     public static final String UPDATE_JOB_LAST_MESSAGE =
         "UPDATE jobs SET last_message = ?, last_updated = ?"
         + " WHERE tenant = ? AND id = ?";

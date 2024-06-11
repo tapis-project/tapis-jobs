@@ -16,6 +16,7 @@ https://tapis-project.github.io/live-docs
 
 ### Bug fixes:
 1. Allow spaces in execSystemExecDir paths when uploading application assets.
+2. Properly set the remoteSubmitted timestamp.
 
 -----------------------
 ## 1.6.2 - 2024-05-19

@@ -2618,11 +2618,12 @@ public final class JobsDao
             
             // Set the remote execution start time when the new status transitions to RUNNING
             // or the job ended time if we have transitioned to a terminal state. Update the 
-            // remote submit time when transitioning from submitting status.  The called
-            // methods also update the in-memory job object.
-            if (curStatus == JobStatusType.SUBMITTING_JOB) updateRemoteSubmitted(conn, job, ts);
+            // remote submit time when transitioning from submitting status to the queued state.  
+            // The called methods also update the in-memory job object.
             if (newStatus == JobStatusType.RUNNING) updateRemoteStarted(conn, job, ts);
             else if (newStatus.isTerminal()) updateEnded(conn, job, ts, newStatus);
+            else if (curStatus == JobStatusType.SUBMITTING_JOB && newStatus == JobStatusType.QUEUED) 
+            	updateRemoteSubmitted(conn, job, ts);
             
             // Write the event table and optionally send notifications (asynchronously).
             var eventMgr = JobEventManager.getInstance();

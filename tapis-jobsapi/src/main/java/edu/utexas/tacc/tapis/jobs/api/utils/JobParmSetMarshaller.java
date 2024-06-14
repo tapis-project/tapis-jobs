@@ -116,6 +116,10 @@ public final class JobParmSetMarshaller
         // Create a scratch list of the maximum size and maintain proper ordering.
         var scratchList = new ArrayList<ScratchArgSpec>(totalSize);
         
+        // Create the list of arg names rejected during App Args processing so
+        // that they don't get re-introduced during Request Args processing.
+        var rejectedList = new ArrayList<String>();
+        
         // ----------------------- App Args -----------------------
         // Maybe there's nothing to merge.
         if (appListSize > 0) {
@@ -142,11 +146,13 @@ public final class JobParmSetMarshaller
                     case INCLUDE_BY_DEFAULT:
                         if (includeArgByDefault(appArg.getName(), reqList)) 
                             scratchList.add(makeScratchArg(appArg, inputMode));
+                          else rejectedList.add(appArg.getName());
                         break;
                         
                     case INCLUDE_ON_DEMAND:
                         if (includeArgOnDemand(appArg.getName(), reqList))
                             scratchList.add(makeScratchArg(appArg, inputMode));
+                          else rejectedList.add(appArg.getName());
                         break;
                 }
             }
@@ -169,6 +175,11 @@ public final class JobParmSetMarshaller
                     scratchList.add(new ScratchArgSpec(reqArg, null));
                     continue;
                 }
+                
+                // If this argument has already been explicitly excluded during
+                // INCLUDE_BY_DEFAULT or INCLUDE_ON_DEMAND processing, then
+                // skip it.
+                if (rejectedList.contains(reqName)) continue;
                 
                 // Find the named argument in the list. 
                 int scratchIndex = indexOfNamedArg(scratchList, reqName);
@@ -1054,16 +1065,6 @@ public final class JobParmSetMarshaller
         while (it.hasNext()) {
         	// Current element.
         	var elem = it.next();
-        	
-        	// Remove any INCLUDE_BY_DEFAULT or INCLUDE_ON_DEMAND arguments that
-        	// have been explicitly excluded by setting the include value to false
-        	// in the request argument.
-        	if (elem._jobArg.getInclude() != null && !elem._jobArg.getInclude() && 
-        			(elem._inputMode == ArgInputModeEnum.INCLUDE_BY_DEFAULT ||
-        			 elem._inputMode == ArgInputModeEnum.INCLUDE_ON_DEMAND)) {
-                it.remove();
-                continue; // no further processing needed for removed args
-        	}
         	
             // Make sure all arguments are either complete or able to be removed.  
             // Incomplete arguments that originated in the app are removable if their

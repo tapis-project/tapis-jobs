@@ -1052,12 +1052,24 @@ public final class JobParmSetMarshaller
         // Final scrubbing of scratch list and argument values.
         var it = scratchList.listIterator();
         while (it.hasNext()) {
+        	// Current element.
+        	var elem = it.next();
+        	
+        	// Remove any INCLUDE_BY_DEFAULT or INCLUDE_ON_DEMAND arguments that
+        	// have been explicitly excluded by setting the include value to false
+        	// in the request argument.
+        	if (elem._jobArg.getInclude() != null && !elem._jobArg.getInclude() && 
+        			(elem._inputMode == ArgInputModeEnum.INCLUDE_BY_DEFAULT ||
+        			 elem._inputMode == ArgInputModeEnum.INCLUDE_ON_DEMAND)) {
+                it.remove();
+                continue; // no further processing needed for removed args
+        	}
+        	
             // Make sure all arguments are either complete or able to be removed.  
             // Incomplete arguments that originated in the app are removable if their
             // inputMode is INCLUDE_BY_DEFAULT.  All other incomplete arguments cause
             // an error.  A null input mode indicates the argument originated from 
             // the job request.
-            var elem = it.next();
             if (StringUtils.isBlank(elem._jobArg.getArg()))
                 if (elem._inputMode == ArgInputModeEnum.INCLUDE_BY_DEFAULT) {
                     it.remove();

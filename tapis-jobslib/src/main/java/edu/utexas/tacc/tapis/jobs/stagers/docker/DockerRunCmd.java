@@ -182,7 +182,7 @@ public final class DockerRunCmd
         // ------ Assign the volume mounts.
         for (var s : mount) {
             buf.append(" --mount ");
-            buf.append(conditionalQuote(s));
+            buf.append(s);
         }
         if (tmpfs != null) {
             for (var s : tmpfs) {

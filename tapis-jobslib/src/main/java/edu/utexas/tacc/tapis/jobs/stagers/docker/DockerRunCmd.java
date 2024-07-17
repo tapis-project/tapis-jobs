@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.stagers.docker;
 
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.singleQuote;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -94,9 +95,9 @@ public final class DockerRunCmd
         buf.append(" --user ");
         buf.append(user);
         buf.append(" --cidfile ");
-        buf.append(cidFile);
+        buf.append(singleQuote(cidFile));
         buf.append(" --env-file ");
-        buf.append(envFile);
+        buf.append(singleQuote(envFile));
         if (rm) buf.append(" --rm");
         
         // ------ Fill in the options that the user may have set.
@@ -176,7 +177,7 @@ public final class DockerRunCmd
         }
         if (workdir != null) {
             buf.append(" --workdir ");
-            buf.append(conditionalQuote(workdir));
+            buf.append(singleQuote(workdir));
         }
         
         // ------ Assign the volume mounts.
@@ -240,9 +241,9 @@ public final class DockerRunCmd
             buf.append("type=");
             buf.append(type.name());
             buf.append(",source=");
-            buf.append(conditionalQuote(source));
+            buf.append(singleQuote(source));
             buf.append(",target=");
-            buf.append(conditionalQuote(target));
+            buf.append(singleQuote(target));
             if (readOnly) buf.append(",readonly");
             
             return buf.toString();
@@ -290,9 +291,9 @@ public final class DockerRunCmd
             buf.append(" ");
             buf.append(VOLUME_CMD); // Placeholder replaced during command generation
             buf.append(" ");
-            buf.append(conditionalQuote(source));
+            buf.append(singleQuote(source));
             buf.append(":");
-            buf.append(conditionalQuote(target));
+            buf.append(singleQuote(target));
             
             return buf.toString();
         }

@@ -446,12 +446,12 @@ public final class JobFileManager
         // -------------------------------------------------------------------------------------------------------------
         //           Created dir TapisV3smoketestjob
         // -------------------------------------------------------------------------------------------------------------
-        // 0 quote - spaces: FAIL
+        // 0 quote - spaces: FAIL - scp error
         // -------------------------------------------------------------------------------------------------------------
         //           Created dir 'TapisV3 smoke test job'
         // ERROR: edu.utexas.tacc.tapis.jobs.exceptions.JobException: TAPIS_SFTP_CMD_ERROR Job e59071e7-6304-4b93-a71b-bc09df4a84d7-007 is unable to issue sftp command on system tapisv3-smoketest-exec-fork (host=129.114.35.122) as user testuser2 in tenant dev with target file "/home/testuser2/smoketest/exec/workdir/jobs/TapisV3 smoke test job/tapisjob.sh": write(ChannelOutputStream[ChannelExec[id=0, recipient=0]-ClientSessionImpl[testuser2@/129.114.35.122:22]] SSH_MSG_CHANNEL_DATA) len=22 - channel already closed
         // -------------------------------------------------------------------------------------------------------------
-        // 0 quote - parens: FAIL
+        // 0 quote - parens: FAIL - scp error
         // -------------------------------------------------------------------------------------------------------------
         //           Created dir 'TapisV3smoke(test)job'
         // ERROR: edu.utexas.tacc.tapis.jobs.exceptions.JobException: TAPIS_SFTP_CMD_ERROR Job 0df3c7ff-9db9-4c93-9a30-3fdd55860983-007 is unable to issue sftp command on system tapisv3-smoketest-exec-fork (host=129.114.35.122) as user testuser2 in tenant dev with target file "/home/testuser2/smoketest/exec/workdir/jobs/TapisV3smoke(test)job/tapisjob.sh": readAck - EOF before ACK
@@ -530,10 +530,10 @@ public final class JobFileManager
         // *************************************************************************************************************
         //  SUCCESS for Docker native, all cases, with directory names as above
         // *************************************************************************************************************
-        // Added singleQuote() calls to paths as needed, for --cid-file, --env-file, --mount and launch command.
+        // Added alwaysSingleQuote() calls to paths as needed, for --cid-file, --env-file, --mount, and launch command.
         // *************************************************************************************************************
 
-        destPath = TapisUtils.singleQuote(destPath);
+        destPath = TapisUtils.alwaysSingleQuote(destPath);
 
         // Transfer the wrapper script.
         try {

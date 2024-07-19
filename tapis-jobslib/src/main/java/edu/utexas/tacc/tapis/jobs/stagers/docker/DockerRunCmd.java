@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.stagers.docker;
 
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
-import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.singleQuote;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -95,9 +95,9 @@ public final class DockerRunCmd
         buf.append(" --user ");
         buf.append(user);
         buf.append(" --cidfile ");
-        buf.append(singleQuote(cidFile));
+        buf.append(alwaysSingleQuote(cidFile));
         buf.append(" --env-file ");
-        buf.append(singleQuote(envFile));
+        buf.append(alwaysSingleQuote(envFile));
         if (rm) buf.append(" --rm");
         
         // ------ Fill in the options that the user may have set.
@@ -177,7 +177,7 @@ public final class DockerRunCmd
         }
         if (workdir != null) {
             buf.append(" --workdir ");
-            buf.append(singleQuote(workdir));
+            buf.append(alwaysSingleQuote(workdir));
         }
         
         // ------ Assign the volume mounts.
@@ -241,9 +241,9 @@ public final class DockerRunCmd
             buf.append("type=");
             buf.append(type.name());
             buf.append(",source=");
-            buf.append(singleQuote(source));
+            buf.append(alwaysSingleQuote(source));
             buf.append(",target=");
-            buf.append(singleQuote(target));
+            buf.append(alwaysSingleQuote(target));
             if (readOnly) buf.append(",readonly");
             
             return buf.toString();
@@ -291,9 +291,9 @@ public final class DockerRunCmd
             buf.append(" ");
             buf.append(VOLUME_CMD); // Placeholder replaced during command generation
             buf.append(" ");
-            buf.append(singleQuote(source));
+            buf.append(alwaysSingleQuote(source));
             buf.append(":");
-            buf.append(singleQuote(target));
+            buf.append(alwaysSingleQuote(target));
             
             return buf.toString();
         }

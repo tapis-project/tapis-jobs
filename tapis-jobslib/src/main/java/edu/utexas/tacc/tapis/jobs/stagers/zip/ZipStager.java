@@ -9,6 +9,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -104,7 +105,7 @@ public class ZipStager
         String setAppExecutableScript = generateSetAppExecutableScript();
         jobFileManager.installExecFile(setAppExecutableScript, JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT, JobFileManager.RWXRWX);
         String appExecPath = jobFileManager.runZipSetAppExecutable(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT);
-        _zipRunCmd.setAppExecPath(appExecPath);
+        _zipRunCmd.setAppExecPath(TapisUtils.alwaysSingleQuote(appExecPath));
         // Since the set_exec script is an unchanging script, no need to keep it around.
         // Best effort to remove it. Ignore exceptions
         try { jobFileManager.removeFileFromExecDir(JobExecutionUtils.JOB_ZIP_SET_EXEC_SCRIPT); }

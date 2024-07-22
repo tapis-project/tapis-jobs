@@ -4,6 +4,7 @@ import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_FI
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_SETEXEC_CMD_FMT;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_UNTAR_CMD_FMT;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_UNZIP_CMD_FMT;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -533,7 +534,7 @@ public final class JobFileManager
         // Added alwaysSingleQuote() calls to paths as needed, for --cid-file, --env-file, --mount, and launch command.
         // *************************************************************************************************************
 
-        destPath = TapisUtils.alwaysSingleQuote(destPath);
+        destPath = alwaysSingleQuote(destPath);
 
         // Transfer the wrapper script.
         try {
@@ -566,12 +567,13 @@ public final class JobFileManager
     {
         String host = _jobCtx.getExecutionSystem().getHost();
         // Calculate the file path to where archive will be unpacked.
-        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        String execDir = alwaysSingleQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
+        String archivePath = alwaysSingleQuote(archiveAbsolutePath);
 
         // Build the command to extract the archive
         String cmd;
-        if (archiveIsZip) cmd = String.format(ZIP_UNZIP_CMD_FMT, execDir, archiveAbsolutePath);
-        else cmd = String.format(ZIP_UNTAR_CMD_FMT, execDir, archiveAbsolutePath);
+        if (archiveIsZip) cmd = String.format(ZIP_UNZIP_CMD_FMT, execDir, archivePath);
+        else cmd = String.format(ZIP_UNTAR_CMD_FMT, execDir, archivePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), host, cmd));
@@ -687,7 +689,7 @@ public final class JobFileManager
         String host = _jobCtx.getExecutionSystem().getHost();
 
         // Calculate the file path to where the script will be run.
-        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        String execDir = alwaysSingleQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
         // Build the command to run the script.
         String cmd = String.format(ZIP_SETEXEC_CMD_FMT, execDir, setAppExecScript);
         // Log the command we are about to issue.
@@ -725,7 +727,7 @@ public final class JobFileManager
         String host = _jobCtx.getExecutionSystem().getHost();
 
         // Calculate the file path
-        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        String execDir = alwaysSingleQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
         // Build the command to delete the archive file
         String cmd = String.format(ZIP_FILE_RM_FROM_EXECDIR_FMT, execDir, fileName);
         // Log the command we are about to issue.

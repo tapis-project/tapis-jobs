@@ -1015,7 +1015,7 @@ public class SlurmOptions
 
     public void setError(String error) {
         this.error = error;
-        _directives.put("--error", error);
+        _directives.put("--error", conditionalQuote(error));
     }
 
     public String getExclude() {

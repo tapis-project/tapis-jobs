@@ -439,7 +439,7 @@ public final class JobFileManager
     {
         // Calculate the destination file path.
         String destPath = makePath(JobExecutionUtils.getExecDir(_jobCtx, _job), fileName);
-        destPath = alwaysSingleQuote(destPath);
+        destPath = alwaysSingleQuote(destPath); // SCP doesn't treat spaces like SFTP!
 
         // Transfer the wrapper script.
         try {
@@ -473,12 +473,12 @@ public final class JobFileManager
         String host = _jobCtx.getExecutionSystem().getHost();
         // Calculate the file path to where archive will be unpacked.
         String execDir = alwaysSingleQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
-        String archivePath = alwaysSingleQuote(archiveAbsolutePath);
+        String quotedArchiveAbsolutePath = alwaysSingleQuote(archiveAbsolutePath);
 
         // Build the command to extract the archive
         String cmd;
-        if (archiveIsZip) cmd = String.format(ZIP_UNZIP_CMD_FMT, execDir, archivePath);
-        else cmd = String.format(ZIP_UNTAR_CMD_FMT, execDir, archivePath);
+        if (archiveIsZip) cmd = String.format(ZIP_UNZIP_CMD_FMT, execDir, quotedArchiveAbsolutePath);
+        else cmd = String.format(ZIP_UNTAR_CMD_FMT, execDir, quotedArchiveAbsolutePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), host, cmd));

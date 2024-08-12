@@ -38,6 +38,7 @@ testreports
 test-output
 
 # Intellij metadata files
+.smarttomcat
 .idea/*
 *.iml
 *.ids

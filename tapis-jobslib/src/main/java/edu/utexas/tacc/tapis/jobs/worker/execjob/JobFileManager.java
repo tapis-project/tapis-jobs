@@ -605,7 +605,9 @@ public final class JobFileManager
             String msg = MsgUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
-        return result;
+        // We expect the output to be a single line to the app executable to run, but sometimes extraneous text
+        // precedes the output we are looking for. So extract just the final line.
+        return TapisUtils.getLastLine(result);
     }
 
     /* ---------------------------------------------------------------------- */

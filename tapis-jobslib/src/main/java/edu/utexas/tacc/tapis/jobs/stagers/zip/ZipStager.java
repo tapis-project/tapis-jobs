@@ -211,6 +211,9 @@ public class ZipStager
             else
               chmod +x "./${APP_EXEC}"
             fi
+            # Sometimes extraneous output precedes the output we are about to generate.
+            # Echo an empty line so we can be sure our output is the final line before we exit.
+            echo
             echo "${APP_EXEC}"
             exit 0
             """;

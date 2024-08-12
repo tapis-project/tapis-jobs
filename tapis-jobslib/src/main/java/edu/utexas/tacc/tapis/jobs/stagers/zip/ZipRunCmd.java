@@ -88,7 +88,7 @@ public final class ZipRunCmd
         var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
         buf.append(p);
         // The actual app executable.
-        buf.append("./").append(appExecPath);
+        buf.append("./").append(alwaysSingleQuote(appExecPath));
         // ------ Append the application arguments.
         if (!StringUtils.isBlank(appArguments))
             buf.append(appArguments); // begins with space char

@@ -1,8 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.stagers.docker;
 
-import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
-import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +9,10 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
+
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalSingleQuote;
 
 /** This class stores the command line options for the docker run command that executes
  * an application's container.  The general approach is to take the user-specified text
@@ -183,18 +184,18 @@ public final class DockerRunCmd
         // ------ Assign the volume mounts.
         for (var s : mount) {
             buf.append(" --mount ");
-            buf.append(s);
+            buf.append(conditionalSingleQuote(s));
         }
         if (tmpfs != null) {
             for (var s : tmpfs) {
                 buf.append(" --tmpfs ");
-                buf.append(conditionalQuote(s));
+                buf.append(conditionalSingleQuote(s));
             }
         }
         if (volumeMount != null) {
             for (var s : volumeMount) {
                 buf.append(" --volume ");
-                buf.append(conditionalQuote(s));
+                buf.append(conditionalSingleQuote(s));
             }
         }
         
@@ -241,12 +242,12 @@ public final class DockerRunCmd
             buf.append("type=");
             buf.append(type.name());
             buf.append(",source=");
-            buf.append(alwaysSingleQuote(source));
+            buf.append(source);
             buf.append(",target=");
-            buf.append(alwaysSingleQuote(target));
+            buf.append(target);
             if (readOnly) buf.append(",readonly");
-            
-            return buf.toString();
+            // Conditional single quote here matches how user provided --mount arguments are handled
+            return conditionalSingleQuote(buf.toString());
         }
     }
 
@@ -291,11 +292,11 @@ public final class DockerRunCmd
             buf.append(" ");
             buf.append(VOLUME_CMD); // Placeholder replaced during command generation
             buf.append(" ");
-            buf.append(alwaysSingleQuote(source));
+            buf.append(source);
             buf.append(":");
-            buf.append(alwaysSingleQuote(target));
-            
-            return buf.toString();
+            buf.append(target);
+            // Conditional single quote here matches how user provided --volume arguments are handled
+            return conditionalSingleQuote(buf.toString());
         }
     }
 

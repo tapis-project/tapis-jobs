@@ -439,6 +439,7 @@ public final class JobFileManager
     {
         // Calculate the destination file path.
         String destPath = makePath(JobExecutionUtils.getExecDir(_jobCtx, _job), fileName);
+        // Always single quote the path, in case it has spaces, parentheses, etc.
         destPath = alwaysSingleQuote(destPath); // SCP doesn't treat spaces like SFTP!
 
         // Transfer the wrapper script.

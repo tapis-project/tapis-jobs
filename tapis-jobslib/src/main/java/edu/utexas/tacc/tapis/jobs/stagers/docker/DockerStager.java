@@ -326,6 +326,9 @@ public class DockerStager
             case "--cpuset-mems":
                 dockerRunCmd.setCpusetMEMs(value);
                 break;
+            case "--entrypoint":
+                dockerRunCmd.setEntrypoint(value);
+                break;
             case "--gpus":
                 dockerRunCmd.setGpus(value);
                 break;

@@ -43,6 +43,7 @@ public final class DockerRunCmd
     private String                    cpus;
     private String                    cpusetCPUs;
     private String                    cpusetMEMs;
+    private String                    entrypoint;
     private List<Pair<String,String>> env = new ArrayList<Pair<String,String>>();
     private String                    envFile;
     private String                    gpus;
@@ -117,6 +118,10 @@ public final class DockerRunCmd
         if (cpusetMEMs != null) {
             buf.append(" --cpuset-mems ");
             buf.append(conditionalQuote(cpusetMEMs));
+        }
+        if (entrypoint != null) {
+        	buf.append(" --entrypoint ");
+        	buf.append(conditionalSingleQuote(entrypoint));
         }
         if (gpus != null) {
             buf.append(" --gpus ");
@@ -348,6 +353,14 @@ public final class DockerRunCmd
         return env;
     }
 
+	public String getEntrypoint() {
+		return entrypoint;
+	}
+
+	public void setEntrypoint(String entrypoint) {
+		this.entrypoint = entrypoint;
+	}
+	
     public void setEnv(List<Pair<String, String>> env) {
         this.env = env;
     }

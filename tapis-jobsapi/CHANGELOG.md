@@ -9,6 +9,15 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.6.4 - 2024-08-20
+
+### New Features:
+1. Allow docker --entrypoint container parameter.
+
+### Bug fixes:
+1. Fix ZIP bug when staging applications and extraneous text is written to stdout.
+
+-----------------------
 ## 1.6.3 - 2024-06-25
 
 ### New Features:

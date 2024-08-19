@@ -14,6 +14,7 @@ import java.util.List;
 
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.JOB_ZIP_PID_FILE;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.JOB_ENV_FILE;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
 
 /** This class represents the bash compatible shell command used to launch an application
  * defined using runtime type of ZIP.
@@ -87,7 +88,7 @@ public final class ZipRunCmd
         var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
         buf.append(p);
         // The actual app executable.
-        buf.append("./").append(appExecPath);
+        buf.append("./").append(alwaysSingleQuote(appExecPath));
         // ------ Append the application arguments.
         if (!StringUtils.isBlank(appArguments))
             buf.append(appArguments); // begins with space char
@@ -135,13 +136,13 @@ public final class ZipRunCmd
     {
         if (getLogConfig().canMerge()) {
             buf.append(" > ");
-            buf.append(getLogConfig().getStdoutFilename());
+            buf.append(alwaysSingleQuote(getLogConfig().getStdoutFilename()));
             buf.append(" 2>&1");
         } else {
             buf.append(" 2> ");
-            buf.append(getLogConfig().getStderrFilename());
+            buf.append(alwaysSingleQuote(getLogConfig().getStderrFilename()));
             buf.append(" 1> ");
-            buf.append(getLogConfig().getStdoutFilename());
+            buf.append(alwaysSingleQuote(getLogConfig().getStdoutFilename()));
         }
     }
 

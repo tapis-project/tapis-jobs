@@ -12,7 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
 
 import java.util.regex.Pattern;
 
@@ -126,7 +126,7 @@ public final class ZipLauncher
         // Create the command that changes the directory to the execution
         // directory and submits the job script.  The directory is expressed
         // as an absolute path on the system.
-        String execDir = conditionalQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
+        String execDir = alwaysSingleQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
         if (isBatch) {
             return String.format("cd %s;sbatch %s", execDir, JobExecutionUtils.JOB_WRAPPER_SCRIPT);
         }

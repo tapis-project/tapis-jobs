@@ -45,6 +45,7 @@ public class DockerNativeCanceler extends AbstractJobCanceler{
     	// To cancel the job, remove the container from the execution system
     	removeContainer(_jobCtx.getExecutionSystem(), runCmd);
 	}
+    
     /* ---------------------------------------------------------------------- */
     /* removeContainer:                                                       */
     /* ---------------------------------------------------------------------- */

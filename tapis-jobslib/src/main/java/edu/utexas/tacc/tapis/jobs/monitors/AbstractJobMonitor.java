@@ -4,13 +4,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.cancellers.JobCancelerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
+import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
+import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
+import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -235,6 +240,9 @@ abstract class AbstractJobMonitor
                     // We want to update the finalMessage field in the jobCtx, which will be used to update the lastMessage field in the db. 
                     String finalMessage = MsgUtils.getMsg("JOBS_EARLY_TERMINATION", _policy.getReasonCode().name());
                     _jobCtx.setFinalMessage(finalMessage);
+                    
+                    // Cancel jobs that are not automatically killed by their schedulers.
+                    cancelExpiredJob();
                 
                     // Signal that this job is kaput.
                     _job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_TIMEOUT);
@@ -457,6 +465,56 @@ abstract class AbstractJobMonitor
     	
     	// Response will never be null.
     	return resp;
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* cancelExpiredJob:                                                      */
+    /* ---------------------------------------------------------------------- */
+    /** This method will attempt to asynchronously kill jobs whose maxMinutes 
+     * have expired and their scheduler does not automatically kill them.  Any
+     * type of FORK job falls into this category.
+     * 
+     * The actual cancel command is queued to separate threads or processes so
+     * this thread will not experience SSH overhead.  We cover the case where
+     * a job is in recovery, though there are windows of time when a job 
+     * switches between recovery and active where cancel messages will be 
+     * missed.  This is a best effort implementation. 
+     */
+    protected void cancelExpiredJob()
+    {
+    	// Currently, we only need to kill off FORK jobs because our BATCH
+    	// scheduler (Slurm) will kill jobs it considers expired.  When other
+    	// BATCH schedulers are introduced, this may need to be updated.
+    	if (_job.getJobType() == JobType.BATCH) return;
+    	var jobUuid = _job.getUuid();
+    	
+    	// Best effort attempt to kill job.
+        try {
+            // get a JobQueueManager instance and prep a JobCancelMsg
+            JobQueueManager queueManager = JobQueueManager.getInstance();
+            
+            // set correlation id and sender
+            JobCancelMsg jobCancelMsg = new JobCancelMsg();
+            jobCancelMsg.jobuuid = jobUuid;
+            jobCancelMsg.correlationId = jobUuid;
+            jobCancelMsg.senderId = this.getClass().getSimpleName() + "-expiredMaxMinutes";
+          
+            // post a cmd to our job to cancel
+            queueManager.postCmdToJob(jobCancelMsg, jobUuid);
+            
+            // Cover recovery queue too.
+            JobCancelRecoverMsg jobCancelRecoverMsg = new JobCancelRecoverMsg();
+            jobCancelRecoverMsg.jobUuid = jobUuid;
+            jobCancelRecoverMsg.tenantId = _job.getTenant();
+            jobCancelRecoverMsg.setSenderId(this.getClass().getSimpleName() + "-expiredMaxMinutes");
+        
+            // Post a cmd to a job that is in recovery
+            queueManager.postRecoveryQueue(jobCancelRecoverMsg);
+
+          } catch (JobException e) {
+            String msg = MsgUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid);
+            _log.error(msg, e);
+          }
     }
     
     /* ********************************************************************** */

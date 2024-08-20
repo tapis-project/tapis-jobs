@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.TreeMap;
 
 import static edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager._optionPattern;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
 
 /** This class represents slurm scheduler options
  * Currently some processing is specific to HPC systems at TACC
@@ -1014,7 +1016,7 @@ public class SlurmOptions
 
     public void setError(String error) {
         this.error = error;
-        _directives.put("--error", error);
+        _directives.put("--error", alwaysSingleQuote(error));
     }
 
     public String getExclude() {
@@ -1375,7 +1377,7 @@ public class SlurmOptions
 
     public void setOutput(String output) {
         this.output = output;
-        _directives.put("--output", output);
+        _directives.put("--output", alwaysSingleQuote(output));
     }
 
     public String getOpenMode() {

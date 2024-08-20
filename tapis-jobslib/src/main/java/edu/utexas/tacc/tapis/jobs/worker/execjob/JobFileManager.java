@@ -4,6 +4,7 @@ import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_FI
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_SETEXEC_CMD_FMT;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_UNTAR_CMD_FMT;
 import static edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils.ZIP_UNZIP_CMD_FMT;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -424,14 +425,23 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* installExecFile:                                                       */
     /* ---------------------------------------------------------------------- */
-    public void installExecFile(String content, String fileName, 
-                                List<PosixFilePermission> mod) 
+
+    /**
+     * installExecFile
+     * Create a file in ExecSystemExecDir
+     * @param content - file contents
+     * @param fileName - file name
+     * @param mod - list of posix permissions
+     * @throws TapisException - on error
+     */
+    public void installExecFile(String content, String fileName, List<PosixFilePermission> mod)
       throws TapisException
     {
-        // Calculate the destination file path. Explicitly quote pathnames with spaces.
+        // Calculate the destination file path.
         String destPath = makePath(JobExecutionUtils.getExecDir(_jobCtx, _job), fileName);
-        destPath = TapisUtils.conditionalQuote(destPath); // SCP doesn't treat spaces like SFTP!
-        
+        // Always single quote the path, in case it has spaces, parentheses, etc.
+        destPath = alwaysSingleQuote(destPath); // SCP doesn't treat spaces like SFTP!
+
         // Transfer the wrapper script.
         try {
             // Initialize a scp client.
@@ -463,12 +473,13 @@ public final class JobFileManager
     {
         String host = _jobCtx.getExecutionSystem().getHost();
         // Calculate the file path to where archive will be unpacked.
-        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        String execDir = alwaysSingleQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
+        String quotedArchiveAbsolutePath = alwaysSingleQuote(archiveAbsolutePath);
 
         // Build the command to extract the archive
         String cmd;
-        if (archiveIsZip) cmd = String.format(ZIP_UNZIP_CMD_FMT, execDir, archiveAbsolutePath);
-        else cmd = String.format(ZIP_UNTAR_CMD_FMT, execDir, archiveAbsolutePath);
+        if (archiveIsZip) cmd = String.format(ZIP_UNZIP_CMD_FMT, execDir, quotedArchiveAbsolutePath);
+        else cmd = String.format(ZIP_UNTAR_CMD_FMT, execDir, quotedArchiveAbsolutePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
             _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), host, cmd));
@@ -584,7 +595,7 @@ public final class JobFileManager
         String host = _jobCtx.getExecutionSystem().getHost();
 
         // Calculate the file path to where the script will be run.
-        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        String execDir = alwaysSingleQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
         // Build the command to run the script.
         String cmd = String.format(ZIP_SETEXEC_CMD_FMT, execDir, setAppExecScript);
         // Log the command we are about to issue.
@@ -624,7 +635,7 @@ public final class JobFileManager
         String host = _jobCtx.getExecutionSystem().getHost();
 
         // Calculate the file path
-        String execDir = JobExecutionUtils.getExecDir(_jobCtx, _job);
+        String execDir = alwaysSingleQuote(JobExecutionUtils.getExecDir(_jobCtx, _job));
         // Build the command to delete the archive file
         String cmd = String.format(ZIP_FILE_RM_FROM_EXECDIR_FMT, execDir, fileName);
         // Log the command we are about to issue.

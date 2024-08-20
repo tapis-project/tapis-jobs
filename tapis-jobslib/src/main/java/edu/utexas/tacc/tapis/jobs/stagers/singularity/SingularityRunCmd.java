@@ -1,6 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
 import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.conditionalQuote;
+import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -44,7 +45,7 @@ public final class SingularityRunCmd
         
         buf.append("nohup singularity run");
         buf.append(" --env-file ");
-        buf.append(getEnvFile());
+        buf.append(alwaysSingleQuote(getEnvFile()));
         
         // ------ Fill in the common user-specified arguments.
         addCommonExecArgs(buf);

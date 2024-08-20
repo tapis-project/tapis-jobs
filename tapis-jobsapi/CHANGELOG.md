@@ -12,7 +12,8 @@ https://tapis-project.github.io/live-docs
 ## 1.6.4 - 2024-08-20
 
 ### New Features:
-1. Allow docker --entrypoint container parameter.
+1. Allow docker --entrypoint container parameter to be specified.
+2. Kill FORK jobs whose maxMinutes have expired.
 
 ### Bug fixes:
 1. Fix ZIP bug when staging applications and extraneous text is written to stdout.

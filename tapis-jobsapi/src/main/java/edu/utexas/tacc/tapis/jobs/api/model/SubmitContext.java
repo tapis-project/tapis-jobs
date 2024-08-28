@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -2472,6 +2473,22 @@ public final class SubmitContext
     			JobsApiUtils.detectControlCharacters("containerArgs", argName, argSpec.getArg());
         	}
         
+        // ---- archiveFilter
+        // Iterate through the includes and excludes lists looking for macros.
+        // Note curly braces can be delimiters in REGEXs, so conflicts though
+        // unlikely might arise.
+        var archiveFilter = parmset.getArchiveFilter();
+        if (archiveFilter != null) {
+        	if (archiveFilter.getIncludes() != null) {
+        		var result = resolveListOfText(archiveFilter.getIncludes());
+        		if (result.modified) archiveFilter.setIncludes(result.newList);
+        	}
+        	if (archiveFilter.getExcludes() != null) {
+        		var result = resolveListOfText(archiveFilter.getExcludes());
+        		if (result.modified) archiveFilter.setExcludes(result.newList);
+        	}
+        }
+        
         // ---- logConfig
         // Get the log configuration which must be non-null by now. We call the
         // simple non-recursive macro substitution method because all macros values
@@ -2480,6 +2497,29 @@ public final class SubmitContext
         logConfig.setStdoutFilename(replaceMacros(logConfig.getStdoutFilename()));
         logConfig.setStderrFilename(replaceMacros(logConfig.getStderrFilename()));
         validateLogConfig(logConfig);
+    }
+
+    /* ---------------------------------------------------------------------------- */
+    /* resolveListOfText:                                                           */
+    /* ---------------------------------------------------------------------------- */
+    /** Perform macro expansion on a list of strings.  Return a new list of string and
+     * indicate whether any macro substitution occurred.
+     * 
+     * @param list non-null list of paths
+     * @return the result that indicates whether the new list differs from the original
+     */
+    private ResolveListOfTextResult resolveListOfText(List<String> list) 
+    {
+    	// Initialize result.
+    	var result = new ResolveListOfTextResult(list.size());
+    	
+		// Place each path whether or not it's modified into the new list.
+		for (var path : list) {
+			var newPath = replaceMacros(path);
+			result.newList.add(newPath);
+			if (!path.equals(newPath)) result.modified = true;
+		}
+    	return result;
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -3059,5 +3099,18 @@ public final class SubmitContext
         @Override
         public int compare(KeyValuePair o1, KeyValuePair o2) 
         {return o1.getKey().compareToIgnoreCase(o2.getKey());}
+    }
+    
+    /* **************************************************************************** */
+    /*                         ResolveListOfTextResult class                        */
+    /* **************************************************************************** */
+    // Result class used for macro replacement in any list of strings such as the
+    // archiveFilter lists.
+    private static final class ResolveListOfTextResult
+    {
+    	private boolean modified = false;
+    	private ArrayList<String> newList;
+    	
+    	private ResolveListOfTextResult(int size) {newList = new ArrayList<String>(size);}
     }
 }

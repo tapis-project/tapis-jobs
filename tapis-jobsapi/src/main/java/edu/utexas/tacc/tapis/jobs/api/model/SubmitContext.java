@@ -2513,11 +2513,11 @@ public final class SubmitContext
     	// Initialize result.
     	var result = new ResolveListOfTextResult(list.size());
     	
-		// Place each path whether or not it's modified into the new list.
-		for (var path : list) {
-			var newPath = replaceMacros(path);
-			result.newList.add(newPath);
-			if (!path.equals(newPath)) result.modified = true;
+		// Place each string into the new list whether or not it's modified.
+		for (var text : list) {
+			var newText = replaceMacros(text);
+			result.newList.add(newText);
+			if (!text.equals(newText)) result.modified = true;
 		}
     	return result;
     }

@@ -9,6 +9,12 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.7.0 - 2024-09-17
+
+### Bug fixes:
+1. Error message fix.
+
+-----------------------
 ## 1.6.4 - 2024-08-20
 
 ### New Features:

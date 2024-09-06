@@ -518,7 +518,7 @@ public final class NotificationLiveness
             Tenant adminTenant;
             try {adminTenant = TenantManager.getInstance().getTenant(_siteAdminTenant);}
             catch (Exception e) {
-            	var msg = MsgUtils.getMsg("TAPIS_SITE_NO_ADMIN_TENANT", _site, _siteAdminTenant);
+            	var msg = MsgUtils.getMsg("TAPIS_SITE_UNKNOWN_ADMIN_TENANT", _site, _siteAdminTenant);
             	_log.error(msg, e);
             	throw new TapisException(msg, e);
             }

@@ -33,6 +33,7 @@ import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransfer;
 import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransferElement;
 import edu.utexas.tacc.tapis.files.client.gen.model.ReqTransferElement.TransferTypeEnum;
 import edu.utexas.tacc.tapis.files.client.gen.model.TransferTask;
+import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao.TransferValueType;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.filesmonitor.TransferMonitorFactory;
@@ -50,6 +51,8 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.ssh.apache.SSHScpClient;
 import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
+import edu.utexas.tacc.tapis.shared.utils.AuditUtils;
+import edu.utexas.tacc.tapis.shared.utils.AuditUtils.AuditData;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SystemTypeEnum;
@@ -61,6 +64,7 @@ public final class JobFileManager
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobFileManager.class);
+    private static final Logger _audit = LoggerFactory.getLogger("audit");
     
     // Special transfer id value indicating no files to stage.
     private static final String NO_FILE_INPUTS = "no inputs";
@@ -130,7 +134,9 @@ public final class JobFileManager
     /* createDirectories:                                                     */
     /* ---------------------------------------------------------------------- */
     /** Create the directories used for I/O on this job.  The directories may
-     * already exist.
+     * already exist.  This method is not expected to be called from the front-end,
+     * so the JWT information is not available (there's no threadlocal variable).
+     * 
      * 
      * @throws TapisImplException
      * @throws TapisServiceConnectionException
@@ -147,11 +153,32 @@ public final class JobFileManager
         // Create a set to that records the directories already created.
         var createdSet = new HashSet<String>();
         
+        // Initialize an audit object if auditing is enabled. Set the fields
+        // that are the same for all directories.  The target* fields will
+        // change for each mkdir call and the source*, parentTrackingId, 
+        // and data field will never be assigned.  The jwt field will also
+        // never be assigned because this never call from the front-end.
+        AuditData auditData = null;
+        if (RuntimeParameters.getInstance().isAuditingEnabled()) {
+        	auditData = new AuditData();
+        	auditData.component = AuditUtils.AUDIT_JOBSWORKER;
+        	auditData.action = AuditUtils.AUDIT_ACTIONS.FILES_MKDIR.toString();
+        	auditData.trackingId = _job.getUuid();
+        }
+        
         // ---------------------- Exec System Exec Dir ----------------------
         // Create the directory on the system.
         try {
             filesClient.mkdir(ioTargets.getExecTarget().systemId, 
                               ioTargets.getExecTarget().dir, _shareExecSystemExecDirAppOwner);
+            // Optional auditing.
+            if (auditData != null) {
+            	auditData.targetSystemId = ioTargets.getExecTarget().systemId;
+            	auditData.targetPath = ioTargets.getExecTarget().dir;
+            	auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
+            	auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
+            	_audit.info(AuditUtils.auditMsg(auditData));
+            }
         } catch (TapisClientException e) {
             String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                          ioTargets.getExecTarget().host,
@@ -173,6 +200,14 @@ public final class JobFileManager
             try {
                 filesClient.mkdir(ioTargets.getOutputTarget().systemId, 
                                   _job.getExecSystemOutputDir(), _shareExecSystemOutputDirAppOwner);
+                // Optional auditing.
+                if (auditData != null) {
+                	auditData.targetSystemId = ioTargets.getOutputTarget().systemId;
+                	auditData.targetPath = _job.getExecSystemOutputDir();
+                	auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
+                	auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
+                	_audit.info(AuditUtils.auditMsg(auditData));
+                }
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getOutputTarget().host,
@@ -194,6 +229,14 @@ public final class JobFileManager
             try {
                 filesClient.mkdir(ioTargets.getInputTarget().systemId, 
                                   ioTargets.getInputTarget().dir, _shareExecSystemInputDirAppOwner);
+                // Optional auditing.
+                if (auditData != null) {
+                	auditData.targetSystemId = ioTargets.getInputTarget().systemId;
+                	auditData.targetPath = ioTargets.getInputTarget().dir;
+                	auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
+                	auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
+                	_audit.info(AuditUtils.auditMsg(auditData));
+                }
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              ioTargets.getInputTarget().host,
@@ -217,6 +260,14 @@ public final class JobFileManager
         		try {
         			filesClient.mkdir(ioTargets.getDtnInputTarget().systemId, 
                                  	  ioTargets.getDtnInputTarget().dir, _shareDtnSystemInputDirAppOwner);
+                    // Optional auditing.
+                    if (auditData != null) {
+                    	auditData.targetSystemId = ioTargets.getDtnInputTarget().systemId;
+                    	auditData.targetPath = ioTargets.getDtnInputTarget().dir;
+                    	auditData.targetHost = _jobCtx.getDtnSystem().getHost();
+                    	auditData.targetSystemType = _jobCtx.getDtnSystem().getSystemType().name();
+                    	_audit.info(AuditUtils.auditMsg(auditData));
+                    }
         		} catch (TapisClientException e) {
         			String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              	 ioTargets.getDtnInputTarget().host,
@@ -241,6 +292,14 @@ public final class JobFileManager
         		try {
         			filesClient.mkdir(ioTargets.getDtnOutputTarget().systemId, 
                                  	  ioTargets.getDtnOutputTarget().dir, _shareDtnSystemOutputDirAppOwner);
+                    // Optional auditing.
+                    if (auditData != null) {
+                    	auditData.targetSystemId = ioTargets.getDtnOutputTarget().systemId;
+                    	auditData.targetPath = ioTargets.getDtnOutputTarget().dir;
+                    	auditData.targetHost = _jobCtx.getDtnSystem().getHost();
+                    	auditData.targetSystemType = _jobCtx.getDtnSystem().getSystemType().name();
+                    	_audit.info(AuditUtils.auditMsg(auditData));
+                    }
         		} catch (TapisClientException e) {
         			String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              	 ioTargets.getDtnOutputTarget().host,
@@ -267,6 +326,14 @@ public final class JobFileManager
                 var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingArchiveSystemDirAppOwner();
                 filesClient.mkdir(_job.getArchiveSystemId(), 
                                   _job.getArchiveSystemDir(), sharedAppCtx);
+                // Optional auditing.
+                if (auditData != null) {
+                	auditData.targetSystemId = _job.getArchiveSystemId();
+                	auditData.targetPath = _job.getArchiveSystemDir();
+                	auditData.targetHost = _jobCtx.getArchiveSystem().getHost();
+                	auditData.targetSystemType = _jobCtx.getArchiveSystem().getSystemType().name();
+                	_audit.info(AuditUtils.auditMsg(auditData));
+                }
             } catch (TapisClientException e) {
                 String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
                                              _jobCtx.getArchiveSystem().getHost(),

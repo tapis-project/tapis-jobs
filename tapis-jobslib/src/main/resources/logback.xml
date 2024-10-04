@@ -15,10 +15,11 @@
         </encoder>
     </appender>
 
-    <!-- Rollover to a new log file on a monthly basis, set a limits to manage sizes, 
+    <!-- Rollover to a new log file on a monthly basis, set a limit to manage sizes, 
          default output to the user's home directory. Each job JVM is expected to have
-         its own dedicated logfile.  This removes the need to run in prudent mode
-         and deal with attendant scalability issues. -->
+         its own dedicated logfile (Multiple processes cannot write the same log).  
+         This constraint removes the need to run in prudent mode and deal with attendant 
+         scalability issues. -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${tapis.log.directory:-${user.home}}/${tapis.log.file:-tapis-jobs}.log</file>
         <rollingPolicy
@@ -38,7 +39,35 @@
         </encoder>
     </appender>
   
-    <!-- Root logger's appenders are inherited by other loggers by default -->
+    <!-- Rollover to a new log file on a monthly basis, set a limit to manage sizes, 
+         default output to the user's home directory. Each job JVM is expected to have
+         its own dedicated logfile (Multiple processes cannot write to the same log).  
+         This constraint removes the need to run in prudent mode and deal with attendant 
+         scalability issues. -->
+    <appender name="AUDIT-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${tapis.log.directory:-${user.home}}/tapis-jobswkr-audit.log</file>
+        <rollingPolicy
+            class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- Rollover monthly, incorporate size-triggered sequence number. -->
+            <fileNamePattern>${tapis.log.directory:-${user.home}}/tapis-jobswkr-audit.%d{yyyy-MM}.%i.log</fileNamePattern>
+            <!-- Each file should be at most 500MB, keep 2 months worth of history, 
+                 but at most a total of 1GB across all log files. -->
+            <maxFileSize>500MB</maxFileSize>
+            <maxHistory>2</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <!-- See console pattern for description. -->
+            <Pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} AUDIT %-5level [%X{UNIQUE_ID}] %class{0}:%line - %msg%n</Pattern>
+        </encoder>
+    </appender>
+    
+    <!-- additivity=false ensures audit data only goes to the audit log -->
+    <logger name="audit" level="INFO" additivity="false">
+        <appender-ref ref="AUDIT-FILE"/>
+    </logger>
+    
+      <!-- Root logger's appenders are inherited by other loggers by default -->
     <root level="DEBUG">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />

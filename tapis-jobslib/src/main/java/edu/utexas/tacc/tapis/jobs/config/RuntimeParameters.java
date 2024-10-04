@@ -133,6 +133,7 @@ public final class RuntimeParameters
 	// The slf4j/logback target directory and file.
 	private String  logDirectory;
 	private String  logFile;
+	private boolean auditingEnabled;
 	
 	//Allow run db migration
 	private boolean runDBMigration = DEFAULT_RUN_DB_MIGRATION;
@@ -223,6 +224,20 @@ public final class RuntimeParameters
     // Logging level of the Maverick libary code
     parm = inputProperties.getProperty(EnvVar.TAPIS_LOG_FILE.getEnvName());
     if (!StringUtils.isBlank(parm)) setLogFile(parm);
+    
+    // Set audit logging on or off (off by default).
+    parm = inputProperties.getProperty(EnvVar.TAPIS_AUDITING_ENABLED.getEnvName());
+    if (!StringUtils.isBlank(parm))
+        try {setAuditingEnabled(Boolean.valueOf(parm));}
+          catch (Exception e) {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "auditingEnabled",
+                                         e.getMessage());
+            _log.error(msg, e);
+            throw new TapisRuntimeException(msg, e);
+          }
     
     // Get the local name of the node that we are running on as set
     // by the deploying framework, such as Kubernetes.  If this set
@@ -1049,6 +1064,14 @@ public final class RuntimeParameters
         this.logFile = logFile;
     }
 
+	public boolean isAuditingEnabled() {
+		return auditingEnabled;
+	}
+
+	public void setAuditingEnabled(boolean auditingEnabled) {
+		this.auditingEnabled = auditingEnabled;
+	}
+
     public String getTenantBaseUrl() {
         return tenantBaseUrl;
     }
@@ -1070,6 +1093,5 @@ public final class RuntimeParameters
 	}
 	public void setJobsRunDBMigration(boolean runDBMigration ) {
 		this.runDBMigration = runDBMigration ;
-	}
-	
+	}	
 }

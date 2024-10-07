@@ -2,13 +2,18 @@ package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventCategoryFilter;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
@@ -31,7 +36,12 @@ public final class JobUtils
     
     // Job subscription category wildcard character.
     public static final String EVENT_CATEGORY_WILDCARD = "*";
-
+    
+    // Initialize the regex pattern that extracts the ID slurm assigned to the job.
+    // The regex ignores leading and trailing whitespace and groups the numeric ID.
+    private static final Pattern SLURM_RESULT_PATTERN = Pattern.compile("\\s*Submitted batch job (\\d+)\\s*");
+    private static final Pattern LINE_PATTERN = Pattern.compile("\n");
+    
     /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */
@@ -138,6 +148,71 @@ public final class JobUtils
     /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* getSlurmId:                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Extract the slurm id from the output of an sbatch command.  If unable to find
+     * the id, this method throws an exception.  The slurm id is usually the last line
+     * of output, but to accommodate installations the write other information after 
+     * the sbatch ouput, we do a reverse search on the output lines.  The first line
+     * that matches sbatch output text is the one we run with.  
+     * 
+     * @param job the job issuing the sbatch command
+     * @param output the sbatch stdout text
+     * @param cmd the actual sbatch command
+     * @return the id slurm assigned to this job
+     * @throws JobException if the slurm id cannot be recovered
+     */
+    public static String getSlurmId(Job job, String output, String cmd) 
+     throws JobException
+    {
+        // We have a problem if the result is not the slurm id.
+        if (StringUtils.isBlank(output)) {
+            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_NO_RESULT",  
+                                         job.getUuid(), cmd);
+            throw new JobException(msg);
+        }
+        
+        // There may be banner information in the remote result, which we'll
+        // harmlessly inspect in only error cases.  We strip whitespace 
+        // from the output and break it up into individual lines.
+        output = output.strip();
+        String[] lines = LINE_PATTERN.split(output);
+        
+        // Iterate in reverse order through the lines of output
+        // looking for the first slurm result match.
+        String slurmId = null;
+        for (int i = lines.length - 1; i >= 0; i--) {
+        	// Get the current candidate.
+        	var line = lines[i];
+        	
+        	// Look for the success message
+        	Matcher m = SLURM_RESULT_PATTERN.matcher(line);
+        	if (!m.matches()) continue; // not found
+        
+        	// Grab the slurm id.
+        	int groupCount = m.groupCount();
+        	if (groupCount < 1) {
+        		String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",  
+                                         	 job.getUuid(), output);
+        		throw new JobException(msg);
+        	} 
+        	
+        	// Group 1 contains the slurm ID.
+       		slurmId = m.group(1);
+       		break;
+        }
+        
+        // Did we find the result line?
+    	if (slurmId == null) {
+    		String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",  
+                                     	 job.getUuid(), output);
+    		throw new JobException(msg);
+    	}
+    	
+        return slurmId;
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* getLastLine:                                                                 */
     /* ---------------------------------------------------------------------------- */

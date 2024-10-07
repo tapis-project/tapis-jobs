@@ -1,8 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.schedulers;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +9,6 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
 /*
  * Class to support scheduling a BATCH type job via slurm.
@@ -25,10 +21,6 @@ public final class SlurmScheduler
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(SlurmScheduler.class);
-
-    // Initialize the regex pattern that extracts the ID slurm assigned to the job.
-    // The regex ignores leading and trailing whitespace and groups the numeric ID.
-    private static final Pattern RESULT_PATTERN = Pattern.compile("\\s*Submitted batch job (\\d+)\\s*");
 
     /* ********************************************************************** */
     /*                                Fields                                  */
@@ -114,34 +106,7 @@ public final class SlurmScheduler
     @Override
     public String getBatchJobIdFromOutput(String output, String cmd) throws JobException
     {
-        // We have a problem if the result has no content.
-        if (StringUtils.isBlank(output)) {
-            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_NO_RESULT",
-                    _job.getUuid(), cmd);
-            throw new JobException(msg);
-        }
-
-        // Strip any banner information from the remote result.
-        output = JobUtils.getLastLine(output.strip());
-
-        // Look for the success message
-        Matcher m = RESULT_PATTERN.matcher(output);
-        var found = m.matches();
-        if (!found) {
-            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",
-                    _job.getUuid(), output);
-            throw new JobException(msg);
-        }
-
-        int groupCount = m.groupCount();
-        if (groupCount < 1) {
-            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",
-                    _job.getUuid(), output);
-            throw new JobException(msg);
-        }
-
-        // Group 1 contains the slurm ID.
-        return m.group(1);
+    	return JobUtils.getSlurmId(_job, output, cmd);
     }
 
     /* ********************************************************************** */

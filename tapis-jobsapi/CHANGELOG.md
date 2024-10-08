@@ -9,6 +9,12 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.7.1 - 2024-10-08
+
+### New Features:
+1. Improved Slurm response parsing.
+
+-----------------------
 ## 1.7.0 - 2024-09-17
 
 ### Bug fixes:

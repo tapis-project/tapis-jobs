@@ -81,8 +81,9 @@ public class ZipNativeCanceler
 
         // Stop the app process
         String result;
+        int rc = -1;
         try {
-            int rc = runCmd.execute(cmd);
+            rc = runCmd.execute(cmd);
             result = runCmd.getOutAsTrimmedString();
             // If process has finished this will return an error, but that is OK.
             // Message returned by kill command might look something like this:
@@ -102,6 +103,6 @@ public class ZipNativeCanceler
 
         // Record the successful cancel of the process.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_KILLED",_job.getUuid()));
+            _log.debug(MsgUtils.getMsg("JOBS_ZIP_KILLED",_job.getUuid(), host, cmd, rc, result));
     }
 }

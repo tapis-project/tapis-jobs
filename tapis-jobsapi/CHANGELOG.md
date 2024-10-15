@@ -9,10 +9,11 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.7.1 - 2024-10-10
+## 1.7.1 - 2024-10-15
 
 ### New Features:
 1. Improved Slurm response parsing.
+2. For cancel of a FORK type job, use pkill -P to include sub-processes. Use kill as backup command.
 
 ### Bug fixes:
 1. Debug message fix for ZIP cancel command.

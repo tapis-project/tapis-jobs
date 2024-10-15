@@ -17,6 +17,8 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventCategoryFilter;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -24,6 +26,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobUtils 
@@ -428,5 +431,72 @@ public final class JobUtils
             buf.append(TapisUtils.safelyDoubleQuoteString(v.getRight()));
         }
         return buf.toString();
-    } 
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* killJob:                                                               */
+    /* ---------------------------------------------------------------------- */
+    /**
+     * Cancel a job using pkill command. Use kill command as a fallback.
+     * Future enhancements to consider
+     *   1. First check to see if job has completed. If completed set status to FINISHED or ERROR state.
+     *   2. Execute gentle kill, kill -15 (15 = SIGTERM, the default if no signal given)
+     *         - give process some time to shut down
+     *         - check status, if still running, then use kill -9
+     *         - either way, set status to CANCELLED
+     */
+    public static void killJob(TapisRunCommand runCmd, String jobUUID, String jobRemoteJobId,
+                               JobExecutionContext jobCtx)
+    {
+        String msg;
+        // Info for log messages.
+        // Since these are only for logging, ignore any exceptions. We still want to cancel the job.
+        String host = null, execSysId = null;
+        try {
+            host = jobCtx.getExecutionSystem().getHost();
+            execSysId = jobCtx.getExecutionSystem().getId();
+        }
+        catch (Exception e) { /* Ignoring exceptions */}
+
+        // If job not yet launched then no pid so nothing to do. Log message.
+        if (StringUtils.isBlank(jobRemoteJobId)) {
+            msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_NO_PID", jobUUID, execSysId, host);
+            _log.debug(msg);
+            return;
+        }
+
+        // Get the initial command to terminate the process
+        String cmd = String.format(JobExecutionUtils.PKILL_9_CMD_FMT, jobRemoteJobId);
+        // Attempt to stop the process and it's sub-processes
+        String result;
+        int rc;
+        try {
+            rc = runCmd.execute(cmd);
+            result = runCmd.getOutAsTrimmedString();
+            if (rc != 0) {
+                // Initial pkill may not have worked. Log a message and try the backup kill command
+                msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR1", jobUUID, execSysId, host, cmd, rc, result);
+                _log.debug(msg);
+                cmd = String.format(JobExecutionUtils.KILL_9_CMD_FMT, jobRemoteJobId);
+                rc = runCmd.execute(cmd);
+                result = runCmd.getOutAsTrimmedString();
+                // If process has finished then kill will return an error, but that is OK.
+                // Message returned by kill command might look something like this:
+                //  "bash: line 0: kill: (2264066) - No such process"
+                if (rc != 0) {
+                    msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR1", jobUUID, execSysId, host, cmd, rc, result);
+                    _log.debug(msg);
+                    return;
+                }
+            }
+        }
+        catch (Exception e) {
+            msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR2", jobUUID, execSysId, host);
+            _log.error(msg, e);
+            return;
+        }
+        // Record the successful cancel of the process.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_CANCEL_KILLED",jobUUID, host, cmd, rc, result));
+    }
 }

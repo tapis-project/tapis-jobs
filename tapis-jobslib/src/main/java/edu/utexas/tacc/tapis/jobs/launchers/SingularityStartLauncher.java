@@ -81,7 +81,7 @@ public final class SingularityStartLauncher
             if (!StringUtils.isBlank(result)) result = result.trim();
               else result = NO_RESULT;
             if (exitStatus != 0) {
-                String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
+                String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                                              _job.getUuid(), cmd, result, exitStatus);
                 throw new JobException(msg);
             }

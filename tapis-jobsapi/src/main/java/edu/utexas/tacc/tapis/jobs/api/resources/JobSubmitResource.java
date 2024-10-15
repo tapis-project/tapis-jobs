@@ -634,7 +634,7 @@ public class JobSubmitResource
          try {JobQueueManager.getInstance().queueJob(job);}
            catch (Exception e) {
                // Log the error.
-               String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", job.getName(), job.getAppId(), e.getMessage());
+               String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR1", job.getName(), job.getAppId(), e.getMessage());
                _log.error(msg, e);
                
                // Fail the job.  

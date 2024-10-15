@@ -75,7 +75,7 @@ public final class ZipLauncher
         int exitStatus = runCmd.execute(cmd);
         String result  = runCmd.getOutAsTrimmedString();
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(),
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                                           _job.getUuid(), cmd, result, exitStatus);
             throw new JobException(msg);
         }
@@ -103,7 +103,7 @@ public final class ZipLauncher
             }
             // If PID is not a number then it is an error. A pid must be a positive integer.
             if (!DIGITS_ONLY.matcher(pid).matches()) {
-                String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(),
+                String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                         _job.getUuid(), cmd, result, exitStatus);
                 throw new TapisException(msg);
             }

@@ -1193,7 +1193,7 @@ public final class JobsImpl
             queue = queueDao.getJobQueueByName(JobQueueManagerNames.getDefaultQueue());
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QUEUE_FAILED_QUERY", 
+            String msg = MsgUtils.getMsg("JOBS_QUEUE_FAILED_QUERY1",
                                          JobQueueManagerNames.getDefaultQueue(), 
                                          e.getMessage());
             throw new JobException(msg, e);

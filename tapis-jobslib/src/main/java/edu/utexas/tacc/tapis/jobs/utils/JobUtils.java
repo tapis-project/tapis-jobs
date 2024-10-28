@@ -2,16 +2,23 @@ package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventCategoryFilter;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -19,6 +26,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
+import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobUtils 
@@ -31,7 +39,12 @@ public final class JobUtils
     
     // Job subscription category wildcard character.
     public static final String EVENT_CATEGORY_WILDCARD = "*";
-
+    
+    // Initialize the regex pattern that extracts the ID slurm assigned to the job.
+    // The regex ignores leading and trailing whitespace and groups the numeric ID.
+    private static final Pattern SLURM_RESULT_PATTERN = Pattern.compile("\\s*Submitted batch job (\\d+)\\s*");
+    private static final Pattern LINE_PATTERN = Pattern.compile("\n");
+    
     /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */
@@ -138,6 +151,71 @@ public final class JobUtils
     /* **************************************************************************** */
     /*                               Public Methods                                 */
     /* **************************************************************************** */
+    /* ---------------------------------------------------------------------------- */
+    /* getSlurmId:                                                                  */
+    /* ---------------------------------------------------------------------------- */
+    /** Extract the slurm id from the output of an sbatch command.  If unable to find
+     * the id, this method throws an exception.  The slurm id is usually the last line
+     * of output, but to accommodate installations the write other information after 
+     * the sbatch ouput, we do a reverse search on the output lines.  The first line
+     * that matches sbatch output text is the one we run with.  
+     * 
+     * @param job the job issuing the sbatch command
+     * @param output the sbatch stdout text
+     * @param cmd the actual sbatch command
+     * @return the id slurm assigned to this job
+     * @throws JobException if the slurm id cannot be recovered
+     */
+    public static String getSlurmId(Job job, String output, String cmd) 
+     throws JobException
+    {
+        // We have a problem if the result is not the slurm id.
+        if (StringUtils.isBlank(output)) {
+            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_NO_RESULT",  
+                                         job.getUuid(), cmd);
+            throw new JobException(msg);
+        }
+        
+        // There may be banner information in the remote result, which we'll
+        // harmlessly inspect in only error cases.  We strip whitespace 
+        // from the output and break it up into individual lines.
+        output = output.strip();
+        String[] lines = LINE_PATTERN.split(output);
+        
+        // Iterate in reverse order through the lines of output
+        // looking for the first slurm result match.
+        String slurmId = null;
+        for (int i = lines.length - 1; i >= 0; i--) {
+        	// Get the current candidate.
+        	var line = lines[i];
+        	
+        	// Look for the success message
+        	Matcher m = SLURM_RESULT_PATTERN.matcher(line);
+        	if (!m.matches()) continue; // not found
+        
+        	// Grab the slurm id.
+        	int groupCount = m.groupCount();
+        	if (groupCount < 1) {
+        		String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",  
+                                         	 job.getUuid(), output);
+        		throw new JobException(msg);
+        	} 
+        	
+        	// Group 1 contains the slurm ID.
+       		slurmId = m.group(1);
+       		break;
+        }
+        
+        // Did we find the result line?
+    	if (slurmId == null) {
+    		String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",  
+                                     	 job.getUuid(), output);
+    		throw new JobException(msg);
+    	}
+    	
+        return slurmId;
+    }
+    
     /* ---------------------------------------------------------------------------- */
     /* getLastLine:                                                                 */
     /* ---------------------------------------------------------------------------- */
@@ -353,5 +431,72 @@ public final class JobUtils
             buf.append(TapisUtils.safelyDoubleQuoteString(v.getRight()));
         }
         return buf.toString();
-    } 
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* killJob:                                                               */
+    /* ---------------------------------------------------------------------- */
+    /**
+     * Cancel a job using pkill command. Use kill command as a fallback.
+     * Future enhancements to consider
+     *   1. First check to see if job has completed. If completed set status to FINISHED or ERROR state.
+     *   2. Execute gentle kill, kill -15 (15 = SIGTERM, the default if no signal given)
+     *         - give process some time to shut down
+     *         - check status, if still running, then use kill -9
+     *         - either way, set status to CANCELLED
+     */
+    public static void killJob(TapisRunCommand runCmd, String jobUUID, String jobRemoteJobId,
+                               JobExecutionContext jobCtx)
+    {
+        String msg;
+        // Info for log messages.
+        // Since these are only for logging, ignore any exceptions. We still want to cancel the job.
+        String host = null, execSysId = null;
+        try {
+            host = jobCtx.getExecutionSystem().getHost();
+            execSysId = jobCtx.getExecutionSystem().getId();
+        }
+        catch (Exception e) { /* Ignoring exceptions */}
+
+        // If job not yet launched then no pid so nothing to do. Log message.
+        if (StringUtils.isBlank(jobRemoteJobId)) {
+            msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_NO_PID", jobUUID, execSysId, host);
+            _log.debug(msg);
+            return;
+        }
+
+        // Get the initial command to terminate the process
+        String cmd = String.format(JobExecutionUtils.PKILL_9_CMD_FMT, jobRemoteJobId);
+        // Attempt to stop the process and it's sub-processes
+        String result;
+        int rc;
+        try {
+            rc = runCmd.execute(cmd);
+            result = runCmd.getOutAsTrimmedString();
+            if (rc != 0) {
+                // Initial pkill may not have worked. Log a message and try the backup kill command
+                msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR1", jobUUID, execSysId, host, cmd, rc, result);
+                _log.debug(msg);
+                cmd = String.format(JobExecutionUtils.KILL_9_CMD_FMT, jobRemoteJobId);
+                rc = runCmd.execute(cmd);
+                result = runCmd.getOutAsTrimmedString();
+                // If process has finished then kill will return an error, but that is OK.
+                // Message returned by kill command might look something like this:
+                //  "bash: line 0: kill: (2264066) - No such process"
+                if (rc != 0) {
+                    msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR1", jobUUID, execSysId, host, cmd, rc, result);
+                    _log.debug(msg);
+                    return;
+                }
+            }
+        }
+        catch (Exception e) {
+            msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR2", jobUUID, execSysId, host);
+            _log.error(msg, e);
+            return;
+        }
+        // Record the successful cancel of the process.
+        if (_log.isDebugEnabled())
+            _log.debug(MsgUtils.getMsg("JOBS_CANCEL_KILLED",jobUUID, host, cmd, rc, result));
+    }
 }

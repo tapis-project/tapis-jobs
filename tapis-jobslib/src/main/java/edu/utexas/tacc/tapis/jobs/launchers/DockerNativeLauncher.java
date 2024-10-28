@@ -95,7 +95,7 @@ public final class DockerNativeLauncher
         } else {
             // Our one chance at launching the container failed with a non-communication
             // error, which we assume is unrecoverable so we abort the job now.
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                                          _job.getUuid(), cmd, result, exitStatus);
             throw new TapisException(msg);
         }

@@ -66,7 +66,7 @@ public final class SingularityRunLauncher
         
         // Let's see what happened.
         if (exitCode != 0) {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR", getClass().getSimpleName(), 
+            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                                          _job.getUuid(), cmd, result, exitCode);
             throw new JobException(msg);
         }

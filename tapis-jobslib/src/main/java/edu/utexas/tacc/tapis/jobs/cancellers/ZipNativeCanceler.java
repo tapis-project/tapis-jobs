@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.cancellers;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -42,66 +43,7 @@ public class ZipNativeCanceler
     /* ---------------------------------------------------------------------- */
     @Override
 	public void cancel() throws TapisException {
-    	
     	var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
-    	cancelZipJob(runCmd);
+        JobUtils.killJob(runCmd, _job.getUuid(), _job.getRemoteJobId(), _jobCtx );
 	}
-
-    /* ---------------------------------------------------------------------- */
-    /* cancelZipJob:                                                          */
-    /* ---------------------------------------------------------------------- */
-    /*
-     * Future enhancements to consider
-     *   1. First check to see if job has completed. If completed set status to FINISHED or ERROR state.
-     *   2. Execute gentle kill, kill -15 (15 = SIGTERM, the default if no signal given)
-     *         - give process some time to shut down
-     *         - check status, if still running, then use kill -9
-     *         - either way, set status to CANCELLED
-     */
-    private void cancelZipJob(TapisRunCommand runCmd)
-    {
-        // Info for log messages.
-        // Since these are only for logging, ignore any exceptions. We still want to cancel the job.
-        String host = null, execSysId = null;
-        try {
-            host = _jobCtx.getExecutionSystem().getHost();
-            execSysId = _jobCtx.getExecutionSystem().getId();
-        }
-        catch (Exception e) { /* Ignoring exceptions */}
-
-        // If job not yet launched then no pid so nothing to do. Log message.
-        if (StringUtils.isBlank(_job.getRemoteJobId())) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_NO_PID", _job.getUuid(), execSysId, host);
-            _log.debug(msg);
-            return;
-        }
-
-        // Get the command text to terminate the app process launched for a ZIP runtime.
-        String cmd = String.format(JobExecutionUtils.ZIP_KILL_CMD_FMT, _job.getRemoteJobId());
-
-        // Stop the app process
-        String result;
-        try {
-            int rc = runCmd.execute(cmd);
-            result = runCmd.getOutAsTrimmedString();
-            // If process has finished this will return an error, but that is OK.
-            // Message returned by kill command might look something like this:
-            //  "bash: line 0: kill: (2264066) - No such process"
-            // Simply log a message. This is what other runtime types do.
-            if (rc != 0) {
-                String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_ERROR1", _job.getUuid(), execSysId, host, cmd, rc, result);
-                _log.error(msg);
-                return;
-            }
-        }
-        catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_KILL_ERROR2", _job.getUuid(), execSysId, host);
-            _log.error(msg, e);
-            return;
-        }
-
-        // Record the successful cancel of the process.
-        if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_KILLED",_job.getUuid()));
-    }
 }

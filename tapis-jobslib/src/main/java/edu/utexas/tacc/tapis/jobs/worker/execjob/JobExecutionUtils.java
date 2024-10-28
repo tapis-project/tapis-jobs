@@ -62,9 +62,11 @@ public final class JobExecutionUtils
     // Stop the detached singularity instance.
     public static final String SINGULARITY_STOP = "singularity instance stop ";
     
-    // Kill the process started using singularity run
-    public static final String SINGULARITY_RUN_KILL = "kill -n 9 ";
-    
+    // Kill a process using the SIGKILL signal
+    public static final String KILL_9_CMD_FMT = "kill -9 %s";
+    // Use PKILL to kill a process and it's subprocesses using the SIGKILL signal
+    public static final String PKILL_9_CMD_FMT = "pkill -9 -P %s";
+
     // Cancel Slurm Job
     public static final String SLURM_CANCEL = "scancel ";
     
@@ -75,7 +77,6 @@ public final class JobExecutionUtils
     public static final String ZIP_UNZIP_CMD_FMT = "cd %s; unzip %s";
     public static final String ZIP_UNTAR_CMD_FMT = "cd %s; tar -xf %s";
     public static final String ZIP_STATUS_CMD_FMT = "ps -o pid,ppid,stat,euser,cmd -p %s";
-    public static final String ZIP_KILL_CMD_FMT = "kill -n 9 %s";
     public static final String ZIP_SETEXEC_CMD_FMT = "cd %s; ./%s";
     public static final String ZIP_FILE_RM_FROM_EXECDIR_FMT = "cd %s; /bin/rm %s";
 

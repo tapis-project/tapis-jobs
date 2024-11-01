@@ -3012,6 +3012,9 @@ public final class SubmitContext
         _job.setCreatedby(_threadContext.getOboUser());
         _job.setCreatedbyTenant(_threadContext.getOboTenantId());
         
+        // Set the tracking field which can be null.
+        _job.setTrackingId(_threadContext.getTrackingId());
+        
         // Already validated.
         _job.setAppId(_submitReq.getAppId());
         _job.setAppVersion(_submitReq.getAppVersion());

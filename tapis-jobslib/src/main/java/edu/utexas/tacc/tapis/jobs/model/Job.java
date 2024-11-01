@@ -146,6 +146,8 @@ public final class Job
     private String              sharedAppCtx = DEFAULT_SHARED_APP_CTX;
     private List<JobSharedAppCtxEnum> sharedAppCtxAttribs;
     
+    private String              trackingId;
+    
     private String              notes = EMPTY_JSON; // Should never be null.
     
     // ------ Runtime-only fields that do not get saved in the database ------
@@ -1070,6 +1072,13 @@ public final class Job
         this.sharedAppCtxAttribs = sharedAppCtxAttribs;
     }
 
+	public String getTrackingId() {
+		return trackingId;
+	}
+
+	public void setTrackingId(String trackingId) {
+		this.trackingId = trackingId;
+	}
     public String getNotes() {
         return notes;
     }

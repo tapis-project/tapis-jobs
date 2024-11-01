@@ -34,7 +34,7 @@ public class SqlStatements
         	+ "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes, "
         	+ "stageapp_transaction_id, stageapp_correlation_id, "
         	+ "dtn_in_transaction_id, dtn_in_correlation_id, dtn_out_transaction_id, dtn_out_correlation_id, "
-        	+ "condition "
+        	+ "condition, tracking_id "
             + "FROM jobs ORDER BY id";
     
     public static final String SELECT_JOBS_BY_UUID =
@@ -55,7 +55,7 @@ public class SqlStatements
             + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes,"
             + "stageapp_transaction_id, stageapp_correlation_id, "
         	+ "dtn_in_transaction_id, dtn_in_correlation_id, dtn_out_transaction_id, dtn_out_correlation_id,"
-        	+ "condition "
+        	+ "condition, tracking_id "
             + "FROM jobs "
             + "WHERE uuid = ?";
         

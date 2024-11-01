@@ -3263,6 +3263,10 @@ public final class JobsDao
 	        String cond = rs.getString(69);
 	        if (cond != null)
 	           obj.setCondition(JobConditionCode.valueOf(cond));
+	        
+	        // Tracking ID is null unless the X-TAPIS-TRACKING-ID header was set.
+	        String trackingId = rs.getString(70);
+	        if (trackingId != null) obj.setTrackingId(trackingId);
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

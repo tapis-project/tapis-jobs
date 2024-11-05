@@ -26,6 +26,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
@@ -43,6 +45,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.jobs.utils.JobWorkerAudit;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -53,7 +56,10 @@ import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
 import edu.utexas.tacc.tapis.shared.utils.AuditUtils;
 import edu.utexas.tacc.tapis.shared.utils.AuditUtils.AuditData;
+import edu.utexas.tacc.tapis.shared.utils.AuditUtils.AUDIT_ACTIONS;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
+import edu.utexas.tacc.tapis.shared.utils.ServiceUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SystemTypeEnum;
 
@@ -65,6 +71,12 @@ public final class JobFileManager
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobFileManager.class);
     private static final Logger _audit = LoggerFactory.getLogger("audit");
+    
+	// Reuse the gson object for converting strings to json.
+	private static final Gson _gson = TapisGsonUtils.getGson();
+	
+	// Get the local IP address for auditing.
+	private static final String _localAddr = getLocalAddress();
     
     // Special transfer id value indicating no files to stage.
     private static final String NO_FILE_INPUTS = "no inputs";
@@ -155,15 +167,10 @@ public final class JobFileManager
         
         // Initialize an audit object if auditing is enabled. Set the fields
         // that are the same for all directories.  The target* fields will
-        // change for each mkdir call and the source*, parentTrackingId, 
-        // and data field will never be assigned.  The jwt field will also
-        // never be assigned because this never call from the front-end.
+        // change for each mkdir call.
         AuditData auditData = null;
         if (RuntimeParameters.getInstance().isAuditingEnabled()) {
-        	auditData = new AuditData();
-        	auditData.component = AuditUtils.AUDIT_JOBSWORKER;
-        	auditData.action = AuditUtils.AUDIT_ACTIONS.FILES_MKDIR.toString();
-        	auditData.trackingId = _job.getUuid();
+        	auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTIONS.FILES_MKDIR);
         }
         
         // ---------------------- Exec System Exec Dir ----------------------
@@ -524,7 +531,27 @@ public final class JobFileManager
                                          _job.getUuid(),
                                          destPath, e.getMessage());
             throw new JobException(msg, e);
-        } 
+        }
+        
+        // Are we auditing?
+        if (RuntimeParameters.getInstance().isAuditingEnabled()) {
+        	// Initialize audit object.
+        	var auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTIONS.SCP_WRITE);
+        	auditData.sourceHost = _localAddr;
+            auditData.sourceSystemType = SystemTypeEnum.LINUX.name();	
+        	auditData.targetSystemId = _job.getExecSystemId();
+        	auditData.targetPath = destPath;
+        	auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
+        	auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
+        	
+        	// Add permission info to the audit record.
+        	if (mod != null && !mod.isEmpty()) {
+        		var info = new FilePermsAuditInfo(mod);
+        		auditData.data = _gson.toJson(info);
+        	}
+        	
+        	_audit.info(AuditUtils.auditMsg(auditData));
+        }
     }
 
     /* ---------------------------------------------------------------------- */
@@ -1270,6 +1297,24 @@ public final class JobFileManager
         // Save the transfer id and update the in-memory job with the transfer id.
         _jobCtx.getJobsDao().updateTransferValue(_job, transferId, tid);
         
+        // Are we auditing?
+        if (RuntimeParameters.getInstance().isAuditingEnabled()) {
+        	// Initialize audit object.
+        	var auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTIONS.FILES_TRANSFER);
+        	
+        	// Stage json content.
+        	var info = new TransferAuditInfo();
+        	info.phase = phase.name();
+        	info.transferIdType = tid.name();
+        	info.transferId = transferId;
+        	info.CorrelationIdType = corrId.name();
+        	info.CorrelationId = tag;
+        	auditData.data = _gson.toJson(info);
+        	
+        	// Write the record.
+        	_audit.info(AuditUtils.auditMsg(auditData));
+        }
+        
         // Return the transfer id.
         return transferId;
     }
@@ -1877,5 +1922,46 @@ public final class JobFileManager
             buf.append(element.getDestSharedCtx());
         }
         return buf.toString();
+    }
+    
+    /* ---------------------------------------------------------------------- */
+    /* getLocalAddress:                                                       */
+    /* ---------------------------------------------------------------------- */
+    /** Best effort to get local ip address.  If unable to acquire address,
+     * return "TapisJobs".  This method never throws an exception.
+     * 
+     * @return an address or string that identifies Jobs
+     */
+    private static String getLocalAddress()
+    {
+    	var localIP = "TapisJobs";
+    	try {localIP = ServiceUtils.getLocalIP();} catch (Exception e) {}
+    	return localIP;
+    }
+    
+    /* ********************************************************************** */
+    /*                        TransferAuditInfo Class                         */
+    /* ********************************************************************** */
+    // Wrapper class used to organize content for the audit data json field.
+    private static final class TransferAuditInfo {
+    	String phase;
+    	String transferIdType;
+    	String transferId;
+    	String CorrelationIdType;
+    	String CorrelationId;
+    }
+    
+    /* ********************************************************************** */
+    /*                        FilePermsAuditInfo Class                        */
+    /* ********************************************************************** */
+    // Generate an object that lists file permission that we'll transform into json.
+    private static final class FilePermsAuditInfo {
+    	String[] permissions;
+    	
+    	// Constructor only called with non-empty permissions.
+    	private FilePermsAuditInfo(List<PosixFilePermission> perms) {
+    		permissions = new String[perms.size()];
+    		for (int i = 0; i < perms.size(); i++) permissions[i] = perms.get(i).name();
+    	}
     }
 }

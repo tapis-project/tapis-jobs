@@ -166,8 +166,9 @@ public final class JobFileManager
         var createdSet = new HashSet<String>();
         
         // Initialize an audit object if auditing is enabled. Set the fields
-        // that are the same for all directories.  The target* fields will
-        // change for each mkdir call.
+        // that are the same for all directories.  Only the target* fields will
+        // change for each mkdir call, so as long as they are all assigned on
+        // each mkdir call, we can safely reuse the same auditData object.
         AuditData auditData = null;
         if (RuntimeParameters.getInstance().isAuditingEnabled()) {
         	auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTIONS.FILES_MKDIR);

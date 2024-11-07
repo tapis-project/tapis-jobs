@@ -19,8 +19,7 @@ public final class JobWorkerAudit
 	{
 		var auditData = new AuditData();
     	auditData.component  = AuditUtils.AUDIT_JOBSWORKER;
-    	auditData.action     = action != null ? action.toString() : AuditUtils.AUDIT_NULL;
-    	auditData.trackingId = job.getUuid();
+    	auditData.action     = action != null ? action.toString() : AuditUtils.AUDIT_EMPTY;
     	
     	// Auditing must not occur before the worker is fully initialized.
     	// If this invariant is upheld, then the following 2 call won't fail.
@@ -32,7 +31,7 @@ public final class JobWorkerAudit
 
     	// Tracking ids.
 		auditData.trackingId = makeJobUuidTrackingId(job.getUuid());
-		auditData.parentTrackingId = job.getTrackingId() != null ? job.getTrackingId() : AuditUtils.AUDIT_NULL;
+		auditData.parentTrackingId = job.getTrackingId() != null ? job.getTrackingId() : AuditUtils.AUDIT_EMPTY;
 		
     	// The data field must be json and is initialized to be empty 
     	// but the caller can replace its value.

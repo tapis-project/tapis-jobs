@@ -31,7 +31,7 @@ public final class JobWorkerAudit
     	auditData.oboUser    = job.getOwner();
 
     	// Tracking ids.
-		auditData.trackingId = AuditUtils.TRACKING_PREFIX_JOB_UUID + job.getUuid();
+		auditData.trackingId = makeJobUuidTrackingId(job.getUuid());
 		auditData.parentTrackingId = job.getTrackingId() != null ? job.getTrackingId() : AuditUtils.AUDIT_NULL;
 		
     	// The data field must be json and is initialized to be empty 
@@ -40,4 +40,12 @@ public final class JobWorkerAudit
 		
 		return auditData;
 	}
+	
+	/** Make the job specific tracking ID.
+	 * 
+	 * @param jobUuid the job being tracked
+	 * @return the job's tracking ID
+	 */
+	public static String makeJobUuidTrackingId(String jobUuid)
+	{return AuditUtils.TRACKING_PREFIX_JOB_UUID + jobUuid;}
 }

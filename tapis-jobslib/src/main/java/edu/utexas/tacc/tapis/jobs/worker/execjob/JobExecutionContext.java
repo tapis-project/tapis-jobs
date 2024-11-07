@@ -12,6 +12,7 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.files.client.FilesClient;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoveryDefinitions;
@@ -26,6 +27,7 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.CmdMsg.CmdType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobStatusMsg;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecStageFactory;
+import edu.utexas.tacc.tapis.jobs.utils.JobWorkerAudit;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -35,6 +37,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisSSH;
+import edu.utexas.tacc.tapis.shared.utils.AuditUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
@@ -312,11 +315,18 @@ public final class JobExecutionContext
      */
     public <T> T getServiceClient(Class<T> cls) throws TapisImplException
     {
+    	// Assign tracking id only on calls to services that support tracking.
+    	// A tracking ID is assigned for all tenants and whether or not the
+    	// job's caller specified a tracking ID.
+    	String trackingId = ServiceClients.NOT_TRACKING;
+    	if (cls == FilesClient.class)
+    		trackingId = JobWorkerAudit.makeJobUuidTrackingId(_job.getUuid());
+    	
         // Get the application client for this user@tenant.
         T client = null;
         try {
             client = ServiceClients.getInstance().getClient(
-                    _job.getOwner(), _job.getTenant(), cls);
+                    _job.getOwner(), _job.getTenant(), trackingId, cls);
         }
         catch (Exception e) {
             var serviceName = StringUtils.removeEnd(cls.getSimpleName(), "Client");

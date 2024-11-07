@@ -29,6 +29,7 @@ extends AbsTester
    // Source identity.
    private static final String USER   = "jobs-recovery";
    private static final String TENANT = "none";
+   private static final String TRACKING_ID = ServiceClients.NOT_TRACKING;
    
    // Health check success state.
    private static final String SUCCESS = "success";
@@ -70,7 +71,7 @@ extends AbsTester
        
        // Get the client class
        Object client;
-       try {client = ServiceClients.getInstance().getClient(USER, TENANT, _serviceName);}
+       try {client = ServiceClients.getInstance().getClient(USER, TENANT, TRACKING_ID, _serviceName);}
        catch (Exception e) {
            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, TENANT, USER);
            throw new JobRecoveryAbortException(msg, e);

@@ -56,7 +56,7 @@ import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
 import edu.utexas.tacc.tapis.shared.uri.TapisUrl;
 import edu.utexas.tacc.tapis.shared.utils.AuditUtils;
 import edu.utexas.tacc.tapis.shared.utils.AuditUtils.AuditData;
-import edu.utexas.tacc.tapis.shared.utils.AuditUtils.AUDIT_ACTIONS;
+import edu.utexas.tacc.tapis.shared.utils.AuditUtils.AUDIT_ACTION;
 import edu.utexas.tacc.tapis.shared.utils.FilesListSubtree;
 import edu.utexas.tacc.tapis.shared.utils.ServiceUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -171,7 +171,7 @@ public final class JobFileManager
         // each mkdir call, we can safely reuse the same auditData object.
         AuditData auditData = null;
         if (RuntimeParameters.getInstance().isAuditingEnabled()) {
-        	auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTIONS.FILES_MKDIR);
+        	auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTION.ACTION_MKDIR);
         }
         
         // ---------------------- Exec System Exec Dir ----------------------
@@ -537,7 +537,7 @@ public final class JobFileManager
         // Are we auditing?
         if (RuntimeParameters.getInstance().isAuditingEnabled()) {
         	// Initialize audit object.
-        	var auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTIONS.SCP_WRITE);
+        	var auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTION.ACTION_SCP_COPY);
         	auditData.sourceHost = _localAddr;
             auditData.sourceSystemType = SystemTypeEnum.LINUX.name();	
         	auditData.targetSystemId = _job.getExecSystemId();
@@ -1301,7 +1301,7 @@ public final class JobFileManager
         // Are we auditing?
         if (RuntimeParameters.getInstance().isAuditingEnabled()) {
         	// Initialize audit object.
-        	var auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTIONS.FILES_TRANSFER);
+        	var auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTION.ACTION_TRANSFER);
         	
         	// Stage json content.
         	var info = new TransferAuditInfo();

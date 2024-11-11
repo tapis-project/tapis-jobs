@@ -15,7 +15,7 @@ public final class JobWorkerAudit
 	 * @param action the action that the job is requesting, should always be specified
 	 * @return a partially complete audit data object
 	 */
-	public static AuditData getAuditData(Job job, AuditUtils.AUDIT_ACTIONS action)
+	public static AuditData getAuditData(Job job, AuditUtils.AUDIT_ACTION action)
 	{
 		var auditData = new AuditData();
     	auditData.component  = AuditUtils.AUDIT_JOBSWORKER;

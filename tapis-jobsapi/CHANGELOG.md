@@ -9,6 +9,13 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.8.0 - 2024-12-04
+
+### New Features:
+1. Optional audit logging file operations controlled by 
+   TAPIS_AUDITING_ENABLED/tapis.auditing.enabled runtime parameter. 
+
+-----------------------
 ## 1.7.1 - 2024-10-15
 
 ### New Features:

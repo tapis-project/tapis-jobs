@@ -12,7 +12,7 @@
 #
 #   Tested with Docker version 18.06.0-ce
 ##########################################################################
-FROM eclipse-temurin:17-jdk-jammy
+FROM eclipse-temurin:21-jdk-noble
 
 ARG VER
 ARG SRVC_JAR

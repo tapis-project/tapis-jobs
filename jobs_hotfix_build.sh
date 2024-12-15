@@ -13,7 +13,7 @@ DCKR_TAG4="latest"
 
 # Latest hotfix suffix. Should be unique for the hotfix series, e.g. 1.6.0-hotfix1, 1.6.0-hotfix2, ...
 # This is for the unique docker tag for each hotfix iteration. The repo hotfix branches remain same, e.g. 1.6.0-hotfix
-HOTFIX_SUFFIX="hotfix1"
+#HOTFIX_SUFFIX="hotfix1"
 # ============================================================================
 
 if [ -z "$DCKR_USER" -o -z "$DCKR_PW" ]; then
@@ -29,7 +29,8 @@ mvn  -version
 
 echo "*******************"
 export TAPIS_VER=$(mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -DforceStdout)
-export TAPIS_VERSION=${TAPIS_VER}-${HOTFIX_SUFFIX}
+#export TAPIS_VERSION=${TAPIS_VER}-${HOTFIX_SUFFIX}
+export TAPIS_VERSION=${TAPIS_VER}
 echo "tapis-jobs TAPIS_VERSION = ${TAPIS_VERSION}"
 export GIT_COMMIT=$(git log -1 --pretty=format:"%h")
 export GIT_BRANCH=$GIT_BRANCH
@@ -49,7 +50,7 @@ if [ "$JobsPublish" == "true" ]; then
 	docker login -u $DCKR_USER -p $DCKR_PW
 	echo '************************ Building & Publishing Jobs Image'
 	deployment/build-jobsapi.sh
-
+exit 0
 #	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG1
 	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG2
 	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:$DCKR_TAG3

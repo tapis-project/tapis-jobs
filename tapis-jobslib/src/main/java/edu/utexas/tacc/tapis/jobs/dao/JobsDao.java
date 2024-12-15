@@ -1381,6 +1381,9 @@ public final class JobsDao
           // Notes is non-null json.
           pstmt.setString(42, job.getNotes());
           
+          // Tracking ID from request header can be null.
+          pstmt.setString(43, job.getTrackingId());             // could be null  
+          
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
           if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobs", rows, 1));

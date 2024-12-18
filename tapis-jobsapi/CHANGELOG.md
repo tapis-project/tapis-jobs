@@ -9,6 +9,12 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.8.1 - 2024-12-19
+
+### New Features:
+1. Upgrade to Java 21.
+
+-----------------------
 ## 1.8.0 - 2024-12-04
 
 ### New Features:

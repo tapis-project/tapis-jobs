@@ -131,6 +131,7 @@ extends ResourceConfig
        
        // ----- Service JWT Initialization
        ServiceContext serviceCxt = ServiceContext.getInstance();
+       ServiceContext.setExitOnJWTRefreshError(parms.isExitOnJWTRefreshError()); // true by default
        try {
                 serviceCxt.initServiceJWT(parms.getSiteId(), TapisConstants.SERVICE_NAME_JOBS, 
     	    	                          parms.getServicePassword());

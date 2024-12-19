@@ -135,7 +135,13 @@ public final class RuntimeParameters
 	private String  logFile;
 	private boolean auditingEnabled;
 	
-	//Allow run db migration
+	// Whether to abort on JWT refresh errors. The default value of true will  
+	// cause System.exit() to be called from the shared library code (ServiceJWT). 
+	// This overrides the shared library default set in ServiceContext. 
+	// Override service default at runtime if necessary.
+	private boolean exitOnJWTRefreshError = true;
+	
+	// Allow run db migration
 	private boolean runDBMigration = DEFAULT_RUN_DB_MIGRATION;
 	
 	/* ********************************************************************** */
@@ -234,6 +240,20 @@ public final class RuntimeParameters
             String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
                                          TapisConstants.SERVICE_NAME_JOBS,
                                          "auditingEnabled",
+                                         e.getMessage());
+            _log.error(msg, e);
+            throw new TapisRuntimeException(msg, e);
+          }
+    
+    // Abort program if service JWT cannot be refreshed.
+    parm = inputProperties.getProperty(EnvVar.TAPIS_EXIT_ON_JWT_REFRESH_ERROR.getEnvName());
+    if (!StringUtils.isBlank(parm))
+        try {setExitOnJWTRefreshError(Boolean.valueOf(parm));}
+          catch (Exception e) {
+            // Stop on bad input.
+            String msg = MsgUtils.getMsg("TAPIS_SERVICE_PARM_INITIALIZATION_FAILED",
+                                         TapisConstants.SERVICE_NAME_JOBS,
+                                         "exitOnJWTRefreshError",
                                          e.getMessage());
             _log.error(msg, e);
             throw new TapisRuntimeException(msg, e);
@@ -1074,7 +1094,15 @@ public final class RuntimeParameters
 		this.auditingEnabled = auditingEnabled;
 	}
 
-    public String getTenantBaseUrl() {
+	public boolean isExitOnJWTRefreshError() {
+		return exitOnJWTRefreshError;
+	}
+	
+	public void setExitOnJWTRefreshError(boolean exit) {
+		this.exitOnJWTRefreshError = exit;
+	}	
+
+	public String getTenantBaseUrl() {
         return tenantBaseUrl;
     }
 
@@ -1095,5 +1123,5 @@ public final class RuntimeParameters
 	}
 	public void setJobsRunDBMigration(boolean runDBMigration ) {
 		this.runDBMigration = runDBMigration ;
-	}	
+	}
 }

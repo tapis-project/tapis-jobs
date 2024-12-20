@@ -633,6 +633,8 @@ public final class RuntimeParameters
         buf.append(this.getLogFile());
         buf.append("\ntapis.auditing.enabled: ");
         buf.append(this.isAuditingEnabled());
+        buf.append("\ntapis.exit.on.jwt.refresh.error: ");
+        buf.append(this.isExitOnJWTRefreshError());
         
         buf.append("\n------- Network -----------------------------------");
         buf.append("\nHost Addresses: ");

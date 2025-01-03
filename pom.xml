@@ -66,7 +66,7 @@
   </profiles>
 
   <build>
-     <plugins>
+    <plugins>
       <!--  gitflow-maven-plugin supports various git workflow steps, such as gitflow:release-start-->
       <!--    gitflow:release-finish, gitflow:feature-start, gitflow:feature-finish-->
       <!-- For configuration see parent pom tapis-bom.xml -->

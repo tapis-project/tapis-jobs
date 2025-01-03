@@ -243,20 +243,20 @@ public final class GeneralResource
    * It's intended as the endpoint that monitoring applications can use to check
    * whether the application is ready to accept traffic.  In particular, kubernetes 
    * can use this endpoint as part of its pod readiness check.
-   * 
+   *
    * Note that no JWT is required on this call.
-   * 
+   *
    * A good synopsis of the difference between liveness and readiness checks:
-   * 
+   *
    * ---------
    * The probes have different meaning with different results:
-   * 
+   *
    *    - failing liveness probes  -> restart pod
    *    - failing readiness probes -> do not send traffic to that pod
-   *    
-   * See https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness
+   *
+   * See <a href="https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness">...</a>
    * ---------
-   * 
+   *
    * @return a success response if all is ok
    */
   @GET

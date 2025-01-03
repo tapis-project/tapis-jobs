@@ -6,6 +6,7 @@ import edu.utexas.tacc.tapis.sharedapi.responses.RespAbstract;
 public final class RespProbe 
  extends RespAbstract
 {
+    public RespProbe() {}
     public RespProbe(JobsProbe probe) {result = probe;}
     
     public JobsProbe result;

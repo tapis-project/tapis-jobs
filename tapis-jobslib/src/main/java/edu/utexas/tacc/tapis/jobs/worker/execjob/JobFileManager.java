@@ -70,7 +70,7 @@ public final class JobFileManager
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobFileManager.class);
-    private static final Logger _audit = LoggerFactory.getLogger("audit");
+    private static final Logger _audit = LoggerFactory.getLogger(AuditUtils.LOGGER_NAME);
     
 	// Reuse the gson object for converting strings to json.
 	private static final Gson _gson = TapisGsonUtils.getGson();

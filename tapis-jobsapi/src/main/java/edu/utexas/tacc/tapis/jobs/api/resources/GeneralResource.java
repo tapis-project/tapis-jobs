@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -38,6 +39,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -164,7 +166,7 @@ public final class GeneralResource
   /* ---------------------------------------------------------------------------- */
   /* healthcheck:                                                                 */
   /* ---------------------------------------------------------------------------- */
-  /** This method does no logging and is expected to be as lightwieght as possible.
+  /** This method does no logging and is expected to be as lightweight as possible.
    * It's intended as the endpoint that monitoring applications can use to check
    * the liveness (i.e, no deadlocks) of the application.  In particular, 
    * kubernetes can use this endpoint as part of its pod health check.
@@ -189,7 +191,7 @@ public final class GeneralResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Lightwieght health check for liveness. No authorization required.",
+          description = "Lightweight health check for liveness. No authorization required.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Message received.",
@@ -215,42 +217,46 @@ public final class GeneralResource
       if (queryQueueMananger()) jobsProbe.queueAccess = true;
       
       // Create the response object.
-      RespProbe r = new RespProbe(jobsProbe);
+      RespProbe resp = new RespProbe(jobsProbe);
       
       // Failure case.
       if (jobsProbe.failed()) {
         String msg = MsgUtils.getMsg("TAPIS_NOT_HEALTHY", "Jobs Service");
         return Response.status(Status.SERVICE_UNAVAILABLE).
-            entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+            entity(TapisRestUtils.createErrorResponse(msg, false, resp)).build();
       }
       
       // ---------------------------- Success ------------------------------- 
-      // Create the response payload.
-      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_HEALTHY", "Jobs Service"), false, r)).build();
+      // Manually create a success response with git info included in version
+      resp.status = TapisRestUtils.RESPONSE_STATUS.success.name();
+      resp.message = MsgUtils.getMsg("TAPIS_HEALTHY", "Jobs Service");
+      resp.version = TapisUtils.getTapisFullVersion();
+      resp.commit = TapisUtils.getGitCommit();
+      resp.build = TapisUtils.getBuildTime();
+      return Response.ok(resp).build();
   }
 
   /* ---------------------------------------------------------------------------- */
   /* ready:                                                                       */
   /* ---------------------------------------------------------------------------- */
-  /** This method does no logging and is expected to be as lightwieght as possible.
+  /** This method does no logging and is expected to be as lightweight as possible.
    * It's intended as the endpoint that monitoring applications can use to check
    * whether the application is ready to accept traffic.  In particular, kubernetes 
    * can use this endpoint as part of its pod readiness check.
-   * 
+   *
    * Note that no JWT is required on this call.
-   * 
+   *
    * A good synopsis of the difference between liveness and readiness checks:
-   * 
+   *
    * ---------
    * The probes have different meaning with different results:
-   * 
+   *
    *    - failing liveness probes  -> restart pod
    *    - failing readiness probes -> do not send traffic to that pod
-   *    
-   * See https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness
+   *
+   * See <a href="https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness">...</a>
    * ---------
-   * 
+   *
    * @return a success response if all is ok
    */
   @GET
@@ -258,7 +264,7 @@ public final class GeneralResource
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
-          description = "Lightwieght readiness check. No authorization required.",
+          description = "Lightweight readiness check. No authorization required.",
           tags = "general",
           responses = 
               {@ApiResponse(responseCode = "200", description = "Service ready.",
@@ -284,19 +290,23 @@ public final class GeneralResource
       if (queryQueueMananger()) jobsProbe.queueAccess = true;
       
       // Create the response object.
-      RespProbe r = new RespProbe(jobsProbe);
+      RespProbe resp = new RespProbe(jobsProbe);
       
       // Failure case.
       if (jobsProbe.failed()) {
         String msg = MsgUtils.getMsg("TAPIS_NOT_READY", "Jobs Service");
         return Response.status(Status.SERVICE_UNAVAILABLE).
-            entity(TapisRestUtils.createErrorResponse(msg, false, r)).build();
+            entity(TapisRestUtils.createErrorResponse(msg, false, resp)).build();
       }
       
       // ---------------------------- Success -------------------------------
-      // Create the response payload.
-      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_READY", "Jobs Service"), false, r)).build();
+      // Manually create a success response with git info included in version
+      resp.status = TapisRestUtils.RESPONSE_STATUS.success.name();
+      resp.message = MsgUtils.getMsg("TAPIS_READY", "Jobs Service");
+      resp.version = TapisUtils.getTapisFullVersion();
+      resp.commit = TapisUtils.getGitCommit();
+      resp.build = TapisUtils.getBuildTime();
+      return Response.ok(resp).build();
   }
 
   /* ---------------------------------------------------------------------------- */
@@ -344,7 +354,7 @@ public final class GeneralResource
       // ------------------------- Validate Payload -------------------------
       // Read the payload into a string.
       String json = null;
-      try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+      try {json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8);}
         catch (Exception e) {
           String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "liveness notification", e.getMessage());
           _log.error(msg, e);

@@ -14,6 +14,7 @@ https://tapis-project.github.io/live-docs
 ### New Features:
 1. Upgrade to Java 21.
 2. Add readycheck endpoint that will replace ready endpoint at next major release.
+3. Add support for scheduler profile hidden option PARTITION.
 
 -----------------------
 ## 1.8.0 - 2024-12-04

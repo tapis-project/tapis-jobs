@@ -9,10 +9,11 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.8.1 - 2024-12-19
+## 1.8.1 - 2025-??-??
 
 ### New Features:
 1. Upgrade to Java 21.
+2. Add readycheck endpoint that will replace ready endpoint at next major release.
 
 -----------------------
 ## 1.8.0 - 2024-12-04

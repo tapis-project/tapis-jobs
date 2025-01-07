@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
@@ -62,8 +61,8 @@ public final class GeneralResource
     private static final long DB_READY_TIMEOUT_MS  = 6000;   // 6 seconds.
     private static final long DB_HEALTH_TIMEOUT_MS = 60000;  // 1 minute.
     
-    // Limit the amount of logging on liveness calls.
-    private static final int liveness_modulus = 20;
+    // Limit the amount of logging on eventLiveness calls.
+    private static final int event_liveness_modulus = 20;
     
     // The table we query during readiness checks.
     private static final String QUERY_TABLE = "jobs";
@@ -117,10 +116,10 @@ public final class GeneralResource
      @Context
      private HttpServletRequest _request;
      
-     // Count the number of healthchecks requests received.
+     // Count the number of healthcheck requests received.
      private static final AtomicLong _healthChecks = new AtomicLong();
     
-     // Count the number of healthchecks requests received.
+     // Count the number of readycheck requests received.
      private static final AtomicLong _readyChecks = new AtomicLong();
      
      // Count the number of liveness events received.
@@ -168,7 +167,7 @@ public final class GeneralResource
   /* ---------------------------------------------------------------------------- */
   /** This method does no logging and is expected to be as lightweight as possible.
    * It's intended as the endpoint that monitoring applications can use to check
-   * the liveness (i.e, no deadlocks) of the application.  In particular, 
+   * the liveness (i.e, no deadlocks) of the application. In particular,
    * kubernetes can use this endpoint as part of its pod health check.
    * 
    * Note that no JWT is required on this call.
@@ -237,7 +236,7 @@ public final class GeneralResource
   }
 
   /* ---------------------------------------------------------------------------- */
-  /* ready:                                                                       */
+  /* readycheck:                                                                  */
   /* ---------------------------------------------------------------------------- */
   /** This method does no logging and is expected to be as lightweight as possible.
    * It's intended as the endpoint that monitoring applications can use to check
@@ -260,7 +259,7 @@ public final class GeneralResource
    * @return a success response if all is ok
    */
   @GET
-  @Path("/ready")
+  @Path("/readycheck")
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
   @Operation(
@@ -274,7 +273,7 @@ public final class GeneralResource
                    content = @Content(schema = @Schema(
                        implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class)))}
       )
-  public Response ready()
+  public Response readycheck()
   {
       // Assign the current check count to the probe result object.
       var jobsProbe = new JobsProbe();
@@ -307,6 +306,51 @@ public final class GeneralResource
       resp.commit = TapisUtils.getGitCommit();
       resp.build = TapisUtils.getBuildTime();
       return Response.ok(resp).build();
+  }
+
+  /* ---------------------------------------------------------------------------- */
+  /* ready:                                                                       */
+  /* ---------------------------------------------------------------------------- */
+
+  /**
+   * This method does no logging and is expected to be as lightweight as possible.
+   * It's intended as the endpoint that monitoring applications can use to check
+   * whether the application is ready to accept traffic.  In particular, kubernetes
+   * can use this endpoint as part of its pod readiness check.
+   * <p>
+   * Note that no JWT is required on this call.
+   * <p>
+   * A good synopsis of the difference between liveness and readiness checks:
+   * <p>
+   * ---------
+   * The probes have different meaning with different results:
+   * <p>
+   * - failing liveness probes  -> restart pod
+   * - failing readiness probes -> do not send traffic to that pod
+   * <p>
+   * See <a href="https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness">...</a>
+   * ---------
+   *
+   * @return a success response if all is ok
+   */
+  @GET
+  @Path("/ready")
+  @Produces(MediaType.APPLICATION_JSON)
+  @PermitAll
+  @Operation(
+        description = "Lightweight readiness check. No authorization required.",
+        tags = "general",
+        responses =
+              {@ApiResponse(responseCode = "200", description = "Service ready.",
+                    content = @Content(schema = @Schema(
+                          implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class))),
+                    @ApiResponse(responseCode = "503", description = "Service unavailable.",
+                          content = @Content(schema = @Schema(
+                                implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class)))}
+  )
+  public Response ready()
+  {
+    return readycheck();
   }
 
   /* ---------------------------------------------------------------------------- */
@@ -343,7 +387,7 @@ public final class GeneralResource
   {
       // Print a log message every so often.
 	  long count = _livenessEvents.incrementAndGet();
-	  boolean loggingEnabled = (((count % liveness_modulus) == 0) || count == 1);
+	  boolean loggingEnabled = (((count % event_liveness_modulus) == 0) || count == 1);
       if (loggingEnabled && _log.isInfoEnabled()) {
     	String method = "eventLiveness" + "[count=" + count + "]";
         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), method, 

@@ -9,12 +9,14 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.8.1 - 2025-??-??
+## 1.8.1 - 2025-01-09
 
 ### New Features:
 1. Upgrade to Java 21.
 2. Add readycheck endpoint that will replace ready endpoint at next major release.
 3. Add support for scheduler profile hidden option PARTITION.
+4. Incorporate latest JWT refresh code from tapis-shared-java. Exit on service JWT refresh error.
+
 
 -----------------------
 ## 1.8.0 - 2024-12-04

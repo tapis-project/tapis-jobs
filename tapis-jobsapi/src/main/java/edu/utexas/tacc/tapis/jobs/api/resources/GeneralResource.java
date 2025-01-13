@@ -131,6 +131,10 @@ public final class GeneralResource
   /* ---------------------------------------------------------------------------- */
   /* hello:                                                                       */
   /* ---------------------------------------------------------------------------- */
+  /**
+   * @deprecated Use healthcheck or readycheck instead.
+   */
+  @Deprecated(since="1.8.1", forRemoval = true)
   @GET
   @Path("/hello")
   @Produces(MediaType.APPLICATION_JSON)
@@ -329,10 +333,13 @@ public final class GeneralResource
    * - failing readiness probes -> do not send traffic to that pod
    * <p>
    * See <a href="https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness">...</a>
+   *
+   *  @deprecated Use healthcheck or readycheck instead.
    * ---------
    *
    * @return a success response if all is ok
    */
+  @Deprecated(since="1.8.1", forRemoval = true)
   @GET
   @Path("/ready")
   @Produces(MediaType.APPLICATION_JSON)

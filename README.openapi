@@ -1,0 +1,37 @@
+TapisV3 Jobs
+=======================================
+
+************************************************************************************
+NOTE: As of 14 Jan 2025, there is a tentative plan to replace the java openapi
+   annotations and the below process with manual editing of the JobsAPI.yaml file.
+************************************************************************************
+
+---------------------------------------------------------------------------
+Notes on how to generate OpenAPI specification file from java annotations
+---------------------------------------------------------------------------
+When changes are made to the java annotations describing the openapi interface,
+there is a manual process that must be completed to generate a new yaml file
+and make the results available via https://tapis-project.github.io/live-docs/
+
+Here is the process:
+
+1. Update the endpoint annotations in the code, e.g. in class GeneralResource.java.
+2. Temporarily modify the top level pom file to use an older version of snakeyaml to avoid a bug encountered during generation.
+   Add the dependency:
+       <dependency>
+         <groupId>org.yaml</groupId>
+         <artifactId>snakeyaml</artifactId>
+         <version>1.33</version>
+       </dependency>
+3. Start the Jobs service locally and use a browser to generate the json by visiting the URL:
+        http://localhost:8080/v3/jobs/openapi.json
+4. Copy the raw json data from the browser and paste it in the swagger editor at
+        https://editor.swagger.io/
+   Select YES when asked to convert to YAML.
+5. Copy the resulting YAML content in left-hand panel into the client file in the tapis-client-java repo, completely
+   overwriting the file: jobs-client/src/main/resources/JobsAPI.yaml
+6. Push the changes to the *dev* branch. You can then check the changes in live-docs:
+        https://tapis-project.github.io/live-docs/?branch=dev&service=Jobs
+7. As the code is deployed to STAGING and PROD, the changes should be moved to the corresponding tapis-client-java
+   branches, *staging* and *prod*. These branches are used for live-docs.
+

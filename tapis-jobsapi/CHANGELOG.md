@@ -9,6 +9,15 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.8.2 - 2025-??-??
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+### New Features:
+1. Support for Trusted Management System (TMS) ssh keys, Tapis authentication method TMS_KEYS.
+
+-----------------------
 ## 1.8.1 - 2025-01-09
 
 ### New Features:
@@ -16,7 +25,6 @@ https://tapis-project.github.io/live-docs
 2. Add readycheck endpoint that will replace ready endpoint at next major release.
 3. Add support for scheduler profile hidden option PARTITION.
 4. Incorporate latest JWT refresh code from tapis-shared-java. Exit on service JWT refresh error.
-
 
 -----------------------
 ## 1.8.0 - 2024-12-04

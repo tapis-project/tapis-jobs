@@ -9,7 +9,7 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.8.2 - 2025-02-03
+## 1.8.2 - 2025-02-05
 
 **WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
 in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
@@ -20,6 +20,7 @@ Incremental improvements and new features.
 1. Support for Trusted Management System (TMS) ssh keys, Tapis authentication method TMS_KEYS.
 2. Add GUID to audit log record.
 3. Reject service JWTs from OSP authenticator service.
+4. Allow setting of *--user* option for Docker runtime.
 
 ### Bug fixes:
 - None

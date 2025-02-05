@@ -124,10 +124,7 @@ public class DockerStager
         // ----------------- Tapis Standard Definitions -----------------
         // Containers are named after the job uuid.
         dockerRunCmd.setName(_job.getUuid());
-        
-        // Set the user id under which the container runs.
-        dockerRunCmd.setUser("$(id -u):$(id -g)");
-        
+
         // Write the container id to a host file.
         setCidFile(dockerRunCmd);
         
@@ -385,6 +382,11 @@ public class DockerStager
                 isAssigned("docker", option, value);
                 dockerRunCmd.getTmpfs().add(value);
                 break;
+            case "--user":
+            case "-u":
+                isAssigned("docker", option, value);
+                dockerRunCmd.setUser(value);
+                break;
             case "--volume":
             case "-v":
                 isAssigned("docker", option, value);
@@ -401,7 +403,7 @@ public class DockerStager
                 // the job will abort.  Note that environment variables are 
                 // passed in via their own ParameterSet object.
                 //
-                //   --cidfile, -e, --env, --env-file, --name, --user 
+                //   --cidfile, -e, --env, --env-file, --name
                 //
                 String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", "docker", option);
                 throw new JobException(msg);

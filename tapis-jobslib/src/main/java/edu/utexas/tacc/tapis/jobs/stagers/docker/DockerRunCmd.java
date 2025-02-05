@@ -94,8 +94,6 @@ public final class DockerRunCmd
         var p = job.getMpiOrCmdPrefixPadded(); // empty or string w/trailing space
         buf.append(p + "docker run -d --name ");
         buf.append(name);
-        buf.append(" --user ");
-        buf.append(user);
         buf.append(" --cidfile ");
         buf.append(alwaysSingleQuote(cidFile));
         buf.append(" --env-file ");
@@ -180,6 +178,10 @@ public final class DockerRunCmd
                 buf.append(" -p ");
                 buf.append(conditionalQuote(s));
             }
+        }
+        if (!StringUtils.isBlank(user)) {
+            buf.append(" --user ");
+            buf.append(user);
         }
         if (workdir != null) {
             buf.append(" --workdir ");

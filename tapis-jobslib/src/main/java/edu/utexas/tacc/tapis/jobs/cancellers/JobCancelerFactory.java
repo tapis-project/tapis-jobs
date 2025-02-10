@@ -36,7 +36,7 @@ public class JobCancelerFactory {
        if (jobType == JobType.FORK) {
     	   canceler = switch (runtime) {
                 case DOCKER      -> new DockerNativeCanceler(jobCtx);
-                case SINGULARITY -> getSingularityOption(jobCtx, app);
+                case SINGULARITY -> new SingularityRunCanceler(jobCtx);
                 case ZIP         -> new ZipNativeCanceler(jobCtx);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
@@ -76,23 +76,7 @@ public class JobCancelerFactory {
 		return canceler;
     	
     }
-    /* ---------------------------------------------------------------------- */
-    /* getSingularityOption:                                                  */
-    /* ---------------------------------------------------------------------- */
-    private static JobCanceler getSingularityOption(JobExecutionContext jobCtx,
-                                                    TapisApp app)
-     throws TapisException
-    {
-        // We are only interested in the singularity options.  These have
-        // been validated in JobExecStageFactory, so no need to repeat here.
-        var opts = app.getRuntimeOptions();
-        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
-        
-        // Create the specified canceler.
-        if (start) return new SingularityStartCanceler(jobCtx);
-          else return new SingularityRunCanceler(jobCtx);
-    }
-    
+
     /* ---------------------------------------------------------------------- */
     /* getBatchDockerCanceler:                                                 */
     /* ---------------------------------------------------------------------- */

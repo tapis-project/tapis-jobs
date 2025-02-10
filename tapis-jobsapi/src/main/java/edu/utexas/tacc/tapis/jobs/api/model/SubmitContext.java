@@ -2203,7 +2203,7 @@ public final class SubmitContext
      * 
      * The request source url must be non-null by the time this method is called.
      * 
-     * @param reqInput input request with non-null sourceUrl array
+     * @param reqArray input request with non-null sourceUrl array
      * @param appSources input source urls from app definition, could be null
      */
     private void calculateSrcSharedCtxArray(JobFileInputArray reqArray, List<String> appSources)
@@ -2558,7 +2558,7 @@ public final class SubmitContext
      * @param systemsClient
      * @param systemId
      * @param requireExecPerm
-     * @param systemDesc
+     * @param systemType
      * @param sharedAppCtx
      * @return
      * @throws TapisImplException
@@ -2762,7 +2762,7 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /** Validate that each glob and regex in the filter lists can be compiled.
      * 
-     * @param archiveFilter the final archive filter
+     * @param filters the final archive filter
      * @throws TapisImplException on invalid filter content
      */
     private void validateArchiveFilters(List<String> filters, String filterName)

@@ -56,12 +56,6 @@ public final class JobExecutionUtils
     public static final Pattern DOCKER_RC_PATTERN = Pattern.compile(".*\\((.*)\\).*\\R*");
     
     // -------------------------- Singularity Section ----------------------------
-    // Get the PID of the sinit process.
-    public static final String SINGULARITY_START_PID = "singularity instance list ";
-    
-    // Stop the detached singularity instance.
-    public static final String SINGULARITY_STOP = "singularity instance stop ";
-    
     // Kill a process using the SIGKILL signal
     public static final String KILL_9_CMD_FMT = "kill -9 %s";
     // Use PKILL to kill a process and it's subprocesses using the SIGKILL signal
@@ -71,7 +65,7 @@ public final class JobExecutionUtils
     public static final String SLURM_CANCEL = "scancel ";
     
     // Get select information about all processes running on the system.
-    public static final String SINGULARITY_START_MONITOR = "ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd";
+    public static final String SINGULARITY_MONITOR = "ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd";
 
     // ----------------------------- Zip Section -----------------------------
     public static final String ZIP_UNZIP_CMD_FMT = "cd %s; unzip %s";

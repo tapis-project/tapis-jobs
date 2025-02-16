@@ -9,6 +9,22 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.8.3 - 2025-02-16
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+Bug fix for setting of shared application context when Jobs initiates a transfer for a file input.
+When the job submit request specifies file inputs the shared application context for the destination paths
+was not being correctly set for all cases. 
+
+### New Features:
+- None
+
+### Bug fixes:
+1. Shared application context not correctly set for destination paths of job request file inputs. 
+
+-----------------------
 ## 1.8.2 - 2025-02-05
 
 **WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed

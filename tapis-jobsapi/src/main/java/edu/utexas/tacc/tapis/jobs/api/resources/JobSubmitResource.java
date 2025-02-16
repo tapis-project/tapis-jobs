@@ -161,24 +161,24 @@ public class JobSubmitResource
                  @RequestBody(
                      required = true,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob.class))),
+                         implementation = ReqSubmitJob.class))),
              responses = 
                  {
                   @ApiResponse(responseCode = "200", description = "Job created.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob.class))),
+                         implementation = RespSubmitJob.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "401", description = "Not authorized.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "403", description = "Forbidden.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+                         implementation = RespBasic.class)))}
      )
      public Response submitJob(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                InputStream payloadStream)
@@ -226,19 +226,19 @@ public class JobSubmitResource
                  {
                   @ApiResponse(responseCode = "200", description = "Job created.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob.class))),
+                         implementation = RespSubmitJob.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "401", description = "Not authorized.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "403", description = "Forbidden.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+                         implementation = RespBasic.class)))}
      )
      public Response resubmitJob(@PathParam("jobUuid") String jobUuid,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
@@ -297,19 +297,19 @@ public class JobSubmitResource
                  {
                   @ApiResponse(responseCode = "200", description = "Resumbit request for the job is retrieved sucessfully.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetResubmit.class))),
+                         implementation = RespGetResubmit.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "401", description = "Not authorized.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "403", description = "Forbidden.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+                         implementation = RespBasic.class)))}
      )
      public Response getResubmitRequestJson(@PathParam("jobUuid") String jobUuid,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
@@ -402,24 +402,24 @@ public class JobSubmitResource
                  @RequestBody(
                      required = true,
                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqUserEvent.class))),
+                         implementation = ReqUserEvent.class))),
              responses = 
                  {
                   @ApiResponse(responseCode = "200", description = "Event created.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "400", description = "Input error.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "401", description = "Not authorized.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "403", description = "Forbidden.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
+                         implementation = RespBasic.class))),
                   @ApiResponse(responseCode = "500", description = "Server error.",
                       content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
+                         implementation = RespBasic.class)))}
      )
      public Response sendEvent(@PathParam("jobUuid") String jobUuid,
                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
@@ -534,7 +534,7 @@ public class JobSubmitResource
       * real doSubmit method.
       * 
       * @param prettyPrint the request's query parameter
-      * @param payload the request's payload
+      * @param payloadStream the request's payload
       * @return the response to the user
       */
      private Response doSubmit(boolean prettyPrint, InputStream payloadStream)
@@ -560,7 +560,7 @@ public class JobSubmitResource
      /** All the work gets done here from both submit and resubmit.
       * 
       * @param prettyPrint the request's query parameter
-      * @param payload the request's payload as json
+      * @param json the request's payload as json
       * @return the response to the user
       */
      private Response doSubmit(boolean prettyPrint, String json)
@@ -744,7 +744,6 @@ public class JobSubmitResource
      /* ---------------------------------------------------------------------------- */
      /** Mark the job as failed in the database.
       * 
-      * @param jobDao the db access object
       * @param job the failed job
       * @param failMsg the failure message
      */

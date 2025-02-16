@@ -96,29 +96,30 @@ public final class JobSharedAppCtx
     /* ---------------------------------------------------------------------------- */
     /* calcExecSystemId:                                                            */
     /* ---------------------------------------------------------------------------- */
-    /** This method determines whether an attribute is shared.  It must be called
-     * AFTER any app value merging into the job submission request is performed. 
-     * 
+    /**
+     * This method determines of execSystemId should be considered shared.
+     * This is called after merging so one or the other should be non-blank.
      * @param jobExecSystemId the non-null job request value after app merge
      * @param appExecSystemId the possibly null app definition value
      */
     public void calcExecSystemId(String jobExecSystemId, String appExecSystemId)
     {
-        // Is the application shared with this user?
-        if (!_sharingEnabled) return;
-        
-        // We only share values assigned in the app definition.
-        if (StringUtils.isBlank(appExecSystemId)) return;
-        
-        // We share if the app and job request have the same value.
-        if (appExecSystemId.equals(jobExecSystemId)) 
+        // If not sharing or exec sys not defined in app then no sharing, we are done
+        if (!_sharingEnabled || StringUtils.isBlank(appExecSystemId)) return;
+
+        // At this point we know it is specified in the app.
+        // If not specified in job, or it is in job, but has same value as in the app, then we turn on sharing
+        if (StringUtils.isBlank(jobExecSystemId) || appExecSystemId.equals(jobExecSystemId))
+        {
             _sharedAppCtxAttribs.add(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_ID);
+        }
     }
     
     /* ---------------------------------------------------------------------------- */
     /* calcArchiveSystemId:                                                         */
     /* ---------------------------------------------------------------------------- */
-    /** This method determines whether an attribute is shared.  It must be called
+    /**
+     * This method determines if archiveSystemId is shared. It must be called
      * AFTER any app value merging into the job submission request is performed. 
      * 
      * @param jobArchiveSystemId the non-null job request value after app merge

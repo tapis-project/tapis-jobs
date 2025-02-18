@@ -1295,9 +1295,10 @@ public final class SubmitContext
         else                                    strictInputs = _app.getStrictFileInputs();
         
         // Process the fileInputs from the job submit request
-        var jobFileInputs = _submitReq.getFileInputs();  // forces list creation
+        // Initially this list just contains the file inputs from the job submit request.
+        var allFileInputs = _submitReq.getFileInputs();  // forces list creation
         // Use an iterator because we will be removing incomplete entries from the collection.
-        var it = jobFileInputs.listIterator();
+        var it = allFileInputs.listIterator();
         while (it.hasNext())
         {
             // Current request input to process.
@@ -1395,15 +1396,15 @@ public final class SubmitContext
             // Add the input object to the request and record its name.
             // Recording the name will avoid processing duplicates, though
             // apps should disallow duplicates from the beginning.
-            jobFileInputs.add(reqInput);
+            allFileInputs.add(reqInput);
             processedAppInputNames.add(appInput.getName());
         } // End processing of file inputs from app
 
         //
-        // At this point all file inputs from job and app have been merged into jobFilesInputs
+        // At this point all file inputs from job and app have been merged into allFilesInputs
         //
         // Loop over all file inputs for some final updates
-        for (var reqInput : jobFileInputs)
+        for (var reqInput : allFileInputs)
         {
             // Update shared context for destination path based on sharing of exec system
             reqInput.setDestSharedAppCtx(_sharedAppCtx.getSharingExecSystemInputDirAppOwner());

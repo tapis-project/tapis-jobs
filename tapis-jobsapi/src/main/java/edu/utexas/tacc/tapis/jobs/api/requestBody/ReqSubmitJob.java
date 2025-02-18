@@ -24,25 +24,25 @@ public class ReqSubmitJob
     private String   			    description;
     private String   			    appId;
     private String   			    appVersion;
-    private String                  jobType;
+    private String            jobType;
     private Boolean  			    archiveOnAppError;  // not assigned by default
-    private Boolean                 dynamicExecSystem;  // not assigned by default
+    private Boolean           dynamicExecSystem;  // not assigned by default
     private String   			    execSystemId;
     private String   			    execSystemExecDir;
     private String   		     	execSystemInputDir;
     private String   			    execSystemOutputDir;
-    private String                  execSystemLogicalQueue;  // can be null
+    private String            execSystemLogicalQueue;  // can be null
     private String   			    archiveSystemId;
     private String   			    archiveSystemDir;
     private String   		     	dtnSystemInputDir;
     private String   			    dtnSystemOutputDir;
-    private Integer   			    nodeCount;
-    private Integer      		    coresPerNode;
-    private Integer      		    memoryMB;
-    private Integer      		    maxMinutes;
+    private Integer 			    nodeCount;
+    private Integer    		    coresPerNode;
+    private Integer    		    memoryMB;
+    private Integer    		    maxMinutes;
     private List<JobFileInput>      fileInputs;
     private List<JobFileInputArray> fileInputArrays;
-    private JobParameterSet 	    parameterSet;             // assigned on first get
+    private JobParameterSet         parameterSet;             // assigned on first get
     private List<String>            execSystemConstraints;    // don't call--used internally only
     private List<String>            tags;                     // assigned on first get
     private List<ReqSubscribe>      subscriptions;            // assigned on first get
@@ -326,7 +326,7 @@ public class ReqSubmitJob
 	}
 
 	public List<JobFileInput> getFileInputs() {
-	    if (fileInputs == null) fileInputs = new ArrayList<JobFileInput>();
+	    if (fileInputs == null) fileInputs = new ArrayList<>();
 		return fileInputs;
 	}
 
@@ -335,7 +335,7 @@ public class ReqSubmitJob
 	}
 
     public List<JobFileInputArray> getFileInputArrays() {
-        if (fileInputArrays == null) fileInputArrays = new ArrayList<JobFileInputArray>();
+        if (fileInputArrays == null) fileInputArrays = new ArrayList<>();
         return fileInputArrays;
     }
 

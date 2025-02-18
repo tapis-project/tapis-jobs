@@ -935,7 +935,7 @@ public final class JobFileManager
             if (fileInput.getSourceUrl().startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX))
                 continue;
             
-            // The source is always actual source system whether or not a dtn 
+            // The source is always actual source system even if a dtn
             // is being used.  The destination, however, changes depending on 
             // whether a dtn is used.  This requires us to adjust the destination
             // sharing flag accordingly.

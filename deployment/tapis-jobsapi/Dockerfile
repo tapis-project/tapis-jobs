@@ -12,7 +12,7 @@
 #
 #   Tested with Docker version 18.06.0-ce
 ##########################################################################
-FROM tomcat:9.0.97-jdk21-temurin-noble
+FROM tomcat:9.0.99-jdk21-temurin-noble
 
 ARG VER
 ARG SRVC_ROOT

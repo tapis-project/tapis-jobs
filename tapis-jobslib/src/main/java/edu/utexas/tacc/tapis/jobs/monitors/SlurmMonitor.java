@@ -175,6 +175,11 @@ public final class SlurmMonitor
           return JobRemoteStatus.EMPTY;
         }
 
+        // Log the result
+        String msg = MsgUtils.getMsg("JOBS_MONITOR_RESULT", _job.getUuid(), _job.getRemoteJobId(),
+                                     statusType.getCode(), statusType.name());
+        _log.debug(msg);
+
         // Are we still waiting in the HPC queue?
         if (statusType.isQueued()) return JobRemoteStatus.QUEUED;
         
@@ -190,10 +195,9 @@ public final class SlurmMonitor
         // If the job is in an unrecoverable state, throw the exception so the job is cleaned up.
         // The job condition is also set if the status is unrecoverable.
         if (statusType.isUnrecoverable()) {
-            String msg = MsgUtils.getMsg("JOBS_MONITOR_UNRECOVERABLE_RESPONSE", 
-                                         getClass().getSimpleName(), _parsedStatusResponse.getRemoteJobId(),
-                                         statusType.name(), _parsedStatusResponse.getRemoteJobExitCode(),
-                                         _job.getUuid());
+            msg = MsgUtils.getMsg("JOBS_MONITOR_UNRECOVERABLE_RESPONSE",
+                                  getClass().getSimpleName(), _parsedStatusResponse.getRemoteJobId(),
+                                  statusType.name(), _parsedStatusResponse.getRemoteJobExitCode(), _job.getUuid());
             _log.warn(msg);
             
             // Update the finalMessage field in the jobCtx to reflect this status.
@@ -204,10 +208,9 @@ public final class SlurmMonitor
         
         // Failures.  The job condition is also set if the status is failed.
         if (statusType.isFailed()) {
-            String msg = MsgUtils.getMsg("JOBS_MONITOR_FAILURE_RESPONSE", 
-                                         getClass().getSimpleName(), _parsedStatusResponse.getRemoteJobId(),
-                                         statusType.name(), _parsedStatusResponse.getRemoteJobExitCode(),
-                                         _job.getUuid());
+            msg = MsgUtils.getMsg("JOBS_MONITOR_FAILURE_RESPONSE",
+                                  getClass().getSimpleName(), _parsedStatusResponse.getRemoteJobId(),
+                                  statusType.name(), _parsedStatusResponse.getRemoteJobExitCode(), _job.getUuid());
             _log.warn(msg);
 
             // Update the finalMessage field in the jobCtx to reflect this status. 
@@ -218,11 +221,9 @@ public final class SlurmMonitor
 
         // We shouldn't get here since all slurm states are accounted for 
         // in the above conditionals, but if we do get here we note it.
-        String msg = MsgUtils.getMsg("JOBS_MONITOR_UNKNOWN_RESPONSE",
-                                     getClass().getSimpleName(),
-                                     _parsedStatusResponse.getRemoteJobId(),
-                                     _parsedStatusResponse.getRemoteJobState().toUpperCase(),
-                                     _job.getUuid());
+        msg = MsgUtils.getMsg("JOBS_MONITOR_UNKNOWN_RESPONSE", getClass().getSimpleName(),
+                              _parsedStatusResponse.getRemoteJobId(),
+                              _parsedStatusResponse.getRemoteJobState().toUpperCase(), _job.getUuid());
         _log.warn(msg);
         return JobRemoteStatus.DONE;
     }

@@ -100,10 +100,19 @@ public final class StepwiseBackoffPolicy
         Instant now = Instant.now();
         if (tooManyFailures(lastAttemptFailed, now)) {
             _reasonCode = ReasonCode.TOO_MANY_FAILURES;
+            // TODO/TBD Note - job will enter FAILED_SKIP_ARCHIVE state
             return null;
         }
         
         // See if the maximum elapsed time has been exceeded.
+        // TODO/TBD: even if time has exceeded, should we monitor one more time?
+        //    issue - there can be a race condition between slurm cancelling the job due to #SBATCH --time
+        //      and Tapis Jobs cancelling the job due to exceeding maxMinutes.
+        //      If slurm cancels/times out the job then the job enters FAILED state
+        //        and archiving can happen.
+        //      If Tapis cancels/times out the job then the job enters FAILED_SKIP_ARCHIVE state
+        //        and archving does not happen.
+        //      Not archiving is an issue for some users, specifically in the designsafe portal, possibly others.
         if (_runningTimeInitialized && _runEndTime.isBefore(now)) {
             _reasonCode = ReasonCode.TIME_EXPIRED;
             return null;
@@ -119,6 +128,7 @@ public final class StepwiseBackoffPolicy
             // We may have processed all our steps.
             if (++_curStepIndex >= _steps.size()) {
                 _reasonCode = ReasonCode.TOO_MANY_ATTEMPTS;
+                // TODO/TBD Note - job will enter FAILED_SKIP_ARCHIVE state
                 return null;
             }
             
@@ -336,12 +346,10 @@ public final class StepwiseBackoffPolicy
         _monitorStart = Instant.now();
         
         // Set the elapsed time fields if the job is already executing.
-        if (_job.getStatus() == JobStatusType.RUNNING) 
-            initRunningTimeSettings(_monitorStart);
+        if (_job.getStatus() == JobStatusType.RUNNING) initRunningTimeSettings(_monitorStart);
         
-        // Initialize the step controls to the first step on
-        // on newly monitored jobs or where we left off on 
-        // partially monitored jobs.
+        // Initialize step controls to first step on newly monitored jobs or where we left off for jobs with
+        // monitoring already in progress.
         initStepSettings();
         
         // Indicate field initialization complete.
@@ -369,9 +377,8 @@ public final class StepwiseBackoffPolicy
     /* ---------------------------------------------------------------------- */
     /* initStepSettings:                                                      */
     /* ---------------------------------------------------------------------- */
-    /** Pick up where monitoring left off before monitoring for this job was 
-     * interrupted or, if this job has never been monitored before, start at 
-     * the beginning of the first step.
+    /** Pick up where monitoring left off before monitoring for this job was interrupted or,
+     * if this job has never been monitored before, start at the beginning of the first step.
      */
     private void initStepSettings()
     {

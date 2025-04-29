@@ -4,7 +4,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.utexas.tacc.tapis.jobs.cancellers.JobCancelerFactory;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
@@ -186,53 +185,63 @@ abstract class AbstractJobMonitor
     /* ---------------------------------------------------------------------- */
     /* monitor:                                                               */
     /* ---------------------------------------------------------------------- */
-    /** This is the actual monitor call.  The initial status values determine
-     * how a remote status change is detected.  The only two valid initial status 
-     * values are QUEUE and RUNNING.  Subclasses implement the abstract methods
-     * of this class to issue the actual query commands on the execution system.
-     * Subclasses can also override the JobMonitor interface's methods to take
-     * control of monitoring before it reaches this method.
+    /**
+     * This is the actual monitor call. The initial status values determine how a remote status change is detected.
+     * The only two valid initial status values are QUEUE and RUNNING.
+     * Subclasses implement the abstract methods of this class to issue the actual query commands
+     * on the execution system. Subclasses can also override the JobMonitor interface methods to take control of
+     * monitoring before it reaches this method.
      * 
-     * The general approach is to issue monitoring queries until the remote job's 
-     * status changes.  The frequency and other limits placed on querying are
-     * the determined by the policy settings.  When a change is detected monitoring 
-     * ceases and control is returned to the caller.  When a limit is exceeded an
-     * exception is thrown indicating to the caller that the job should be 
-     * considered FAILED.
+     * The general approach is to issue monitoring queries until the remote job's status changes.
+     * The frequency and other limits placed on querying are determined by the policy settings.
+     * When a change is detected monitoring ceases and control is returned to the caller.
+     * When a limit is exceeded an exception is thrown to indicate that the job should be considered FAILED.
      * 
-     * Depending on the policy settings, long intervals between monitor queries
-     * may cause the connection to the execution system to be closed.
+     * Depending on the policy settings, long intervals between monitor queries may cause the connection to
+     * the execution system to be closed.
      * 
-     * Under normal conditions, when a job terminates the remote job outcome
-     * and exit code are retrieved and used to update the job in memory and 
-     * in the database.  
+     * Under normal conditions, when a job terminates the remote job outcome and exit code are retrieved and used to
+     * update the job in memory and in the database.
      */
-    protected void monitor(final JobStatusType initialStatus)
-     throws TapisException
+    protected void monitor(final JobStatusType initialStatus) throws TapisException
     {
         // Sanity check.
         if (initialStatus != JobStatusType.QUEUED && initialStatus != JobStatusType.RUNNING)
         {    
         	_job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
-            String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "monitor", "initialStatus", initialStatus);
-            throw new JobException(msg);
+          String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "monitor", "initialStatus", initialStatus);
+          throw new JobException(msg);
         }
         
-        // We put all code inside the try block so that we can guarantee the job 
-        // outcome will always be set during this phase.
+        // We put all code in a try block so we can guarantee the job outcome will always be set during this phase.
         boolean exceptionThrown = false;
         boolean recoverableExceptionThrown = false;
         JobRemoteStatus remoteStatus = null;
-        try {
-            // Monitor the remote job as prescribed by the monitor policy until
-            // it reaches a terminal state or a policy limit has been reached.
+        try
+        {
+            // Monitor the remote job as prescribed by the monitor policy until it reaches a terminal state or a
+            // policy limit has been reached.
             boolean lastAttemptFailed = false; // no failed monitoring attempts yet!
-            while (true) 
+            Long waitMillis;
+            while (true)
             {
-                // ------------------------- Consult Policy --------------------------
                 remoteStatus = null; // reset on each iteration.
-                Long waitMillis = _policy.millisToWait(lastAttemptFailed);
-                if (waitMillis == null) {
+                // Before anything else check for async command. If PAUSE or CANCEL request has been received
+                // then no need to monitor. Job state is changed and an exception is thrown.
+                _jobCtx.checkCmdMsg();
+
+                // Before waiting determine the remote status. May not need to monitor.
+                // For example, slurm may have timed out the remote job during the last polling interval.
+                remoteStatus = queryRemoteJobStatus();
+                // Check to see if we are ready to break out of our forever monitoring loop.
+                // NOTE that if JobRemoteStatus is DONE or FAILED then job remote outcome and result are recorded.
+                if (monitoringIsDone(initialStatus, remoteStatus)) break;
+
+                // ------------------------- Consult Policy --------------------------
+                // TODO/TBD returns null when TBD?
+                waitMillis = _policy.millisToWait(lastAttemptFailed);
+                if (waitMillis == null)
+                {
                     // Set the job outcome so that archiving is skipped since the job may
                     // still be running or start running at some point in the future.
                     _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);
@@ -252,109 +261,76 @@ abstract class AbstractJobMonitor
                     throw new JobException(msg);
                 }
                 
-                // *** Async command check ***
+                // Check again that we have not received an async PAUSE or CANCEL
                 _jobCtx.checkCmdMsg();
             
                 // Wait the policy-determined number of milliseconds; exceptions are logged.
                 try {Thread.sleep(waitMillis);} 
-                    catch (InterruptedException e) {
-                        if (_log.isDebugEnabled()) {
-                            String msg = MsgUtils.getMsg("JOBS_MONITOR_INTERRUPTED", _job.getUuid(), 
-                                                         getClass().getSimpleName());
-                            _log.debug(msg);
-                        }
-                    }
+                catch (InterruptedException e)
+                {
+                  if (_log.isDebugEnabled())
+                  {
+                    String msg = MsgUtils.getMsg("JOBS_MONITOR_INTERRUPTED", _job.getUuid(), getClass().getSimpleName());
+                    _log.debug(msg);
+                  }
+                }
             
-                // *** Async command check ***
+                // *** Async command check for PAUSE or CANCEL ***
                 _jobCtx.checkCmdMsg();
             
                 // ------------------------- Request Status --------------------------
-                // The query method never returns null.  The call is first made assuming the job
-                // is active.  If necessary, a second call is made assuming that the job has 
-                // terminated.  The implementing subclass chooses how to support each of the calls.
-                remoteStatus = queryRemoteJob(true);
-                if (remoteStatus == JobRemoteStatus.NULL || remoteStatus == JobRemoteStatus.EMPTY)
-                    remoteStatus = queryRemoteJob(false);
-                
+                remoteStatus = queryRemoteJobStatus();
+
                 // We keep the connection open if we might use it again soon.
                 if (!_policy.keepConnection()) closeConnection();
                 
                 // --------------------- Process Failed Attempts ---------------------
-                // Detect a possible initial queuing race condition and
-                // let the policy determine whether we should retry.
-                if (remoteStatus == JobRemoteStatus.EMPTY || remoteStatus == JobRemoteStatus.NULL) 
-                    if (_policy.retryForInitialQueuing()) continue;
-                
-                // If the status problem hasn't cleared up by now, we assume that the problem
-                // retrieving the status is not due to an initial race condition but some
-                // other issue.  This code saves the attempt information in the database.
-                if (remoteStatus == JobRemoteStatus.EMPTY || remoteStatus == JobRemoteStatus.NULL) 
+                if (remoteStatus == JobRemoteStatus.EMPTY || remoteStatus == JobRemoteStatus.NULL)
                 {
-                    // Let's record this failure attempt.
-                    lastAttemptFailed = true;
-                    
-                    // Update the job monitoring counter and its persistent 
-                    // record in the database. An exception can be thrown here.
-                    final boolean success = false;
-                    _jobCtx.getJobsDao().incrementRemoteStatusCheck(_job, success);
-                    
-                    // Try again.
-                    continue;
+                  // Detect a possible initial queuing race condition. Let the policy determine whether we should retry.
+                  if (_policy.retryForInitialQueuing()) continue;
+
+                  // We were not able to get the status, and we are not attempting to deal with a race condition,
+                  // Record the failure.
+                  lastAttemptFailed = true;
+                  final boolean success = false; // TODO why is this final?
+                  // Update job monitoring counter and persist record in database. An exception can be thrown here.
+                  _jobCtx.getJobsDao().incrementRemoteStatusCheck(_job, success);
+                  // Try again.
+                  continue;
                 }
                 
                 // The monitoring command did not fail, so we can update the job monitoring counter
-                // and its persistent record in the database now. An exception can be thrown here.
-                final boolean success = true;
+                // and the persistent record in the database. An exception can be thrown here.
+                final boolean success = true; // TODO why is this final?
                 _jobCtx.getJobsDao().incrementRemoteStatusCheck(_job, success);
                 
                 // --------------------- Process No-Change ---------------------------
-                // Is the remote job's status still compatible with our initial status? 
+                // If the remote job's status did not change then clear failure flag
                 boolean noChange;
-                if (initialStatus == JobStatusType.QUEUED) noChange = remoteStatus == JobRemoteStatus.QUEUED;
-                  else noChange = remoteStatus == JobRemoteStatus.ACTIVE;
-                if (noChange) {
-                    // Clear any failure history and continue normally.
-                    lastAttemptFailed = false;
-                    continue;
-                }
-                
-                // --------------------- Process Advancement -------------------------
-                // Has the remote job moved off the queue and into an active execution state?
-                if (initialStatus == JobStatusType.QUEUED && remoteStatus == JobRemoteStatus.ACTIVE) 
-                    break;
-                
-                // --------------------- Process Termination -------------------------
-                // Are we in a terminal state?
-                if (remoteStatus == JobRemoteStatus.DONE || remoteStatus == JobRemoteStatus.FAILED) 
+                if (initialStatus == JobStatusType.QUEUED)
                 {
-                    // The exit code is always set.
-                    var code = getExitCode();
-                    
-                    // Set the job outcome. Finished is our success code. If the job failed,
-                    // then we skip archiving unless the user explicitly specified that 
-                    // archiving should be performed even on failures.
-                    if (remoteStatus == JobRemoteStatus.DONE) 
-                        _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FINISHED, code);
-                    else if (_job.isArchiveOnAppError())
-                        _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FAILED, code);
-                    else _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE, code);
-                    
-                    // Record the outcome.  
-                    if (_log.isDebugEnabled()) {
-                        String msg = MsgUtils.getMsg("JOBS_MONITOR_FINISHED", getClass().getSimpleName(),
-                                                     _job.getUuid(), remoteStatus.name(),
-                                                     _job.getRemoteOutcome().name(), code);
-                        _log.debug(msg);
-                    }
-                    
-                    // We're done monitoring.
-                    break;
+                  noChange = remoteStatus == JobRemoteStatus.QUEUED;
                 }
+                else
+                {
+                  noChange = remoteStatus == JobRemoteStatus.ACTIVE;
+                }
+                if (noChange)
+                {
+                  // Clear any failure history and continue normally.
+                  lastAttemptFailed = false;
+                  continue;
+                }
+
+                // Check to see if we are ready to break out of our forever monitoring loop.
+                // NOTE that if JobRemoteStatus is DONE or FAILED then job remote outcome and result are recorded.
+                if (monitoringIsDone(initialStatus, remoteStatus)) break;
             }
         }
-        catch (Exception e) {
+        catch (Exception e)
+        {
             // We need to do two things in this catch clause:
-            //   
             //  1. Record that an exception happened.
             //  2. Record whether the exception is recoverable or not.
             _log.error(e.getMessage(), e);
@@ -516,7 +492,67 @@ abstract class AbstractJobMonitor
             _log.error(msg, e);
           }
     }
-    
+
+    /* ********************************************************************** */
+    /*                            Private Methods                             */
+    /* ********************************************************************** */
+    /*
+     * Determine remote status by calling a primary command and if necessary a secondary fallback command.
+     * The implementing subclass chooses how to support each of the calls. Not all subclasses support/need
+     * a secondary call. Slurm monitoring makes use of a secondary command.
+     */
+    private JobRemoteStatus queryRemoteJobStatus() throws TapisException
+    {
+      // The query method never returns null. The call is first made assuming the job is active.
+      // If necessary, a second call is made assuming that the job has terminated.
+      JobRemoteStatus remoteStatus = queryRemoteJob(true);
+      if (remoteStatus == JobRemoteStatus.NULL || remoteStatus == JobRemoteStatus.EMPTY)
+      {
+        remoteStatus = queryRemoteJob(false);
+      }
+      return remoteStatus;
+    }
+
+    /*
+     * Determine if we should break out of our forever monitoring loop.
+     * It is time to break out if:
+     *   Job was QUEUED and is now active or
+     *   Job is DONE or FAILED
+     * If job is DONE or FAILED then update remote outcome and result
+     */
+    private boolean monitoringIsDone(JobStatusType initialStatus, JobRemoteStatus remoteStatus) throws JobException
+    {
+      // Has the remote job moved off the queue and into an active execution state? If yes we are done.
+      if (initialStatus == JobStatusType.QUEUED && remoteStatus == JobRemoteStatus.ACTIVE) return true;
+
+      // --------------------- Process Termination -------------------------
+      // Are we in a terminal state? If yes we record outcome and are done.
+      if (remoteStatus == JobRemoteStatus.DONE || remoteStatus == JobRemoteStatus.FAILED)
+      {
+        // We are done monitoring. Record job remote outcome and result
+        // The exit code is always set.
+        var code = getExitCode();
+        // Set the job outcome. Finished is our success code. If the job failed,
+        // then we skip archiving unless the user explicitly specified that
+        // archiving should be performed even on failures.
+        if (remoteStatus == JobRemoteStatus.DONE)
+            _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FINISHED, code);
+        else if (_job.isArchiveOnAppError())
+            _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FAILED, code);
+        else _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE, code);
+        if (_log.isDebugEnabled())
+        {
+          String msg = MsgUtils.getMsg("JOBS_MONITOR_FINISHED", getClass().getSimpleName(), _job.getUuid(),
+                                       remoteStatus.name(), _job.getRemoteOutcome().name(), code);
+          _log.debug(msg);
+        }
+        // We are done monitoring.
+        return true;
+      }
+      // Continue monitoring
+      return false;
+    }
+
     /* ********************************************************************** */
     /*                          class JobMonitorCmdResponse                   */
     /* ********************************************************************** */

@@ -9,6 +9,20 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.8.5 - 2025-??-??
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+Incremental improvements.
+
+### New Features:
+- Ignore expired JWTs older than 90 days (update from shared code).
+
+### Bug fixes:
+1. TODO/TBD - fix issue with job monitoring slurm timeout race condition
+
+-----------------------
 ## 1.8.4 - 2025-03-25
 
 **WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed

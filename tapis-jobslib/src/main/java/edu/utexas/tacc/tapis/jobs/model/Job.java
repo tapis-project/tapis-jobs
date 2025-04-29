@@ -1061,7 +1061,7 @@ public final class Job
 
     public void setSharedAppCtx(String sharedAppCtx) {
     	if (sharedAppCtx == null) return; // This should never happen.
-        this.sharedAppCtx = sharedAppCtx;
+      this.sharedAppCtx = sharedAppCtx;
     }
 
     public List<JobSharedAppCtxEnum> getSharedAppCtxAttribs() {
@@ -1089,9 +1089,7 @@ public final class Job
 
     // Get the current cmdMsg value and atomically set the field to null.
     @Schema(hidden = true)
-    public CmdMsg getAndSetCmdMsg() {
-        return _cmdMsg.getAndSet(null);
-    }
+    public CmdMsg getAndSetCmdMsg() { return _cmdMsg.getAndSet(null); }
     
     // Get the current cmdMsg value and atomically set the field to a new value.
     @Schema(hidden = true)

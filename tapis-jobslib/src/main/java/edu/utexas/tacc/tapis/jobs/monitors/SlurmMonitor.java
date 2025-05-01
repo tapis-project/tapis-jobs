@@ -33,7 +33,8 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
  *           "slurm_load_jobs error: Invalid job id specified"
  *       This is why stderr is redirected to /dev/null.
  */
-public final class SlurmMonitor extends AbstractJobMonitor
+public final class SlurmMonitor
+ extends AbstractJobMonitor
 {
     /* ********************************************************************** */
     /*                               Constants                                */

@@ -485,18 +485,20 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* checkCmdMsg:                                                           */
     /* ---------------------------------------------------------------------- */
-    public void checkCmdMsg()
-     throws JobAsyncCmdException
+    /*
+     * Check the current async cmdMsg and process it. If no msg simply return.
+     */
+    public void checkCmdMsg() throws JobAsyncCmdException
     {
-        // See if there the job received a command message
-        // and reset the job's message field to null.
+        // Extract the current cmdMsg and set new vlaue to null.
         CmdMsg cmdMsg = _job.getAndSetCmdMsg();
+        // Null means there was no cmdMsg so simply return.
         if (cmdMsg == null) return;
         
-        // Process each message based on type.  The cancel and paused commands
-        // change the job state and throw a JobAsyncCmdException to terminate
-        // or postpone job processing.
-        switch (cmdMsg.msgType) {
+        // Process each message based on type. The cancel and pause commands change the job state and
+        // throw a JobAsyncCmdException to terminate or postpone job processing.
+        switch (cmdMsg.msgType)
+        {
             case JOB_STATUS:  
                 JobExecutionUtils.executeCmdMsg(this, (JobStatusMsg) cmdMsg);
                 break;

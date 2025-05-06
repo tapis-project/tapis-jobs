@@ -208,8 +208,8 @@ abstract class AbstractJobMonitor
     {
         // Sanity check.
         if (initialStatus != JobStatusType.QUEUED && initialStatus != JobStatusType.RUNNING)
-        {    
-        	_job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
+        {
+          _job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
           String msg = MsgUtils.getMsg("TAPIS_INVALID_PARAMETER", "monitor", "initialStatus", initialStatus);
           throw new JobException(msg);
         }
@@ -313,10 +313,10 @@ abstract class AbstractJobMonitor
                   // Detect a possible initial queuing race condition. Let the policy determine whether we should retry.
                   if (_policy.retryForInitialQueuing()) continue;
 
-                  // We were not able to get the status, and we are not attempting to deal with a race condition,
+                  // We were not able to get the status, and we are not attempting to deal with a queueing race condition.
                   // Record the failure.
                   lastAttemptFailed = true;
-                  // Update job monitoring record, indicate remote check failed. An exception can be thrown here.
+                  // Update job monitoring counter and persist record in database. An exception can be thrown here.
                   _jobCtx.getJobsDao().incrementRemoteStatusCheck(_job, false);
                   // Try again.
                   continue;
@@ -344,6 +344,7 @@ abstract class AbstractJobMonitor
                 }
 
                 // --------------------- Process Termination -------------------------
+                // Check to see if we are ready to break out of our forever monitoring loop.
                 // NOTE that if JobRemoteStatus is DONE or FAILED then job remote outcome and result are recorded.
                 if (monitoringIsDone(initialStatus, remoteStatus)) break;
             }
@@ -370,13 +371,12 @@ abstract class AbstractJobMonitor
             throw e;
         }
         finally {
-            // Make sure the job outcome is set.  If we got here via an exception,
-            // the outcome is not set.  We set it so that archiving is not performed
-            // since the timing of the archiving cannot be coordinated with the job 
-            // if it is or will be executing.  
+            // Make sure the job outcome is set. If we got here via a non-recoverable exception and the outcome
+            // is not set we FAIL the job. Note that if archiveOnAppErr is true then archiving will be attempted
+            // even though the job may still be running.
             if (exceptionThrown && !recoverableExceptionThrown && _job.getRemoteOutcome() == null) {
                 // An exception could be thrown from here.
-                try {_jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);}
+                try {_jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED);}
                     catch (Exception e) {
                         // Log error and continue.
                         _log.error(e.getMessage(), e);
@@ -551,10 +551,9 @@ abstract class AbstractJobMonitor
       {
         // We are done monitoring. Record job remote outcome and result
         // The exit code is always set.
-        var code = getExitCode();
-        // Set the job outcome. Finished is our success code. If the job failed,
-        // then we skip archiving unless the user explicitly specified that
-        // archiving should be performed even on failures.
+        String code = getExitCode();
+        // Set the job outcome. Finished is our success code. If the job failed, then we skip archiving unless the user
+        // explicitly specified that archiving should be performed even on failures.
         if (remoteStatus == JobRemoteStatus.DONE)
             _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FINISHED, code);
         else if (_job.isArchiveOnAppError())

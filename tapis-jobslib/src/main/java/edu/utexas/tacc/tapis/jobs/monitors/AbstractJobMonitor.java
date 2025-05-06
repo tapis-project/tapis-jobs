@@ -12,6 +12,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
+import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy.ReasonCode;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
@@ -230,33 +231,55 @@ abstract class AbstractJobMonitor
                 // then no need to monitor. Job state is changed and an exception is thrown.
                 _jobCtx.checkCmdMsg();
 
-                // Before waiting determine the remote status. May not need to monitor.
-                // For example, slurm may have timed out the remote job during the last polling interval.
-                remoteStatus = queryRemoteJobStatus();
-                // Check to see if we are ready to break out of our forever monitoring loop.
-                // NOTE that if JobRemoteStatus is DONE or FAILED then job remote outcome and result are recorded.
-                if (monitoringIsDone(initialStatus, remoteStatus)) break;
+// TODO/TBD                // Before waiting determine the remote status. May not need to monitor.
+//                // For example, slurm may have timed out the remote job during the last polling interval.
+//                remoteStatus = queryRemoteJobStatus();
+//                // Check to see if we are ready to break out of our forever monitoring loop due to a change of status.
+//                // NOTE that if JobRemoteStatus is DONE or FAILED then job remote outcome and result are recorded.
+//                if (monitoringIsDone(initialStatus, remoteStatus)) break;
 
                 // ------------------------- Consult Policy --------------------------
-                // TODO/TBD returns null when TBD?
+                // TODO/TBD returns null when
+                //       ReasonCode.TOO_MANY_FAILURES - monitoring failed for more than one hour
+                //          - NOTE: This does not include when recoverable exceptions are thrown, e.g. TapisSSHTimeoutException
+                //                  In the case of recoverable exceptions the job goes into BLOCKED status and a message
+                //                  is placed in the recovery queue.
+                //            ????????? But queryRemoteJobStatus does not throw exception (including recoverable exceptions),
+                //                      so it does not go to blocked?
+                //          - NOTE: What does count is remoteStatus == JobRemoteStatus.EMPTY or JobRemoteStatus.NULL
+                //       ReasonCode.TOO_MANY_ATTEMPTS - monitoring has exceeded allowed number of attempts.
+                //         - Should never happen for current (the default) policy which has these for the default steps:
+                //                steps.add(Pair.of(1,   1000L));   // 1 second
+                //                steps.add(Pair.of(5,   10000L));  // 10 seconds
+                //                steps.add(Pair.of(10,  60000L));  // 1 minute
+                //                steps.add(Pair.of(100, 180000L)); // 3 minutes
+                //                steps.add(Pair.of(100, 300000L)); // 5 minutes
+                //                steps.add(Pair.of(-1,  600000L)); // 10 minutes forever
+                //       ReasonCode.TIME_EXPIRED - Job has exceeded its max allowed time.
+                //         - Only applies when monitoring while in RUNNING state
+                //         - This includes an additional 10 minutes (MONITOR_TIMEOUT_EXTENSION_SECS) to try to avoid a
+                //           race condition between the slurm timeout and the Tapis timeout.
+                // Determine how long to wait before the next monitor attempt.
                 waitMillis = _policy.millisToWait(lastAttemptFailed);
                 if (waitMillis == null)
                 {
-                    // Set the job outcome so that archiving is skipped since the job may
-                    // still be running or start running at some point in the future.
-                    _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE);
-                    
+                    // Either max time for job has been reached, or we are giving up on monitoring due to errors over a
+                    //   long period of time (MonitorPolicy.DEFAULT_CONSECUTIVE_FAILURE_MINUTES = 60 minutes).
+                    // The specific reason comes from the policy instance.
+                    ReasonCode reasonCode = _policy.getReasonCode();
+                    // Set the job outcome to failed.
+                    _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED);
+
                     // We want to update the finalMessage field in the jobCtx, which will be used to update the lastMessage field in the db. 
-                    String finalMessage = MsgUtils.getMsg("JOBS_EARLY_TERMINATION", _policy.getReasonCode().name());
-                    _jobCtx.setFinalMessage(finalMessage);
+                    _jobCtx.setFinalMessage(MsgUtils.getMsg("JOBS_EARLY_TERMINATION", reasonCode.name()));
                     
-                    // Cancel jobs that are not automatically killed by their schedulers.
-                    cancelExpiredJob();
+                    // If time has expired, cancel jobs that are not automatically killed by their schedulers.
+                    if (ReasonCode.TIME_EXPIRED.equals(reasonCode)) cancelExpiredJob();
                 
                     // Signal that this job is kaput.
                     _job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_TIMEOUT);
                     String msg = MsgUtils.getMsg("JOBS_MONITOR_EARLY_TERMINATION", getClass().getSimpleName(),
-                                                 _job.getUuid(), _policy.getReasonCode().name(),
+                                                 _job.getUuid(), reasonCode.name(),
                                                  _job.getRemoteOutcome().name());
                     throw new JobException(msg);
                 }
@@ -293,17 +316,14 @@ abstract class AbstractJobMonitor
                   // We were not able to get the status, and we are not attempting to deal with a race condition,
                   // Record the failure.
                   lastAttemptFailed = true;
-                  final boolean success = false; // TODO why is this final?
-                  // Update job monitoring counter and persist record in database. An exception can be thrown here.
-                  _jobCtx.getJobsDao().incrementRemoteStatusCheck(_job, success);
+                  // Update job monitoring record, indicate remote check failed. An exception can be thrown here.
+                  _jobCtx.getJobsDao().incrementRemoteStatusCheck(_job, false);
                   // Try again.
                   continue;
                 }
                 
-                // The monitoring command did not fail, so we can update the job monitoring counter
-                // and the persistent record in the database. An exception can be thrown here.
-                final boolean success = true; // TODO why is this final?
-                _jobCtx.getJobsDao().incrementRemoteStatusCheck(_job, success);
+                // Update job monitoring record, indicate remote check succeeded. An exception can be thrown here.
+                _jobCtx.getJobsDao().incrementRemoteStatusCheck(_job, true);
                 
                 // --------------------- Process No-Change ---------------------------
                 // If the remote job's status did not change then clear failure flag
@@ -320,10 +340,10 @@ abstract class AbstractJobMonitor
                 {
                   // Clear any failure history and continue normally.
                   lastAttemptFailed = false;
-                  continue;
+                  continue; // TODO remove, check is now done at start of loop
                 }
 
-                // Check to see if we are ready to break out of our forever monitoring loop.
+                // --------------------- Process Termination -------------------------
                 // NOTE that if JobRemoteStatus is DONE or FAILED then job remote outcome and result are recorded.
                 if (monitoringIsDone(initialStatus, remoteStatus)) break;
             }
@@ -514,7 +534,7 @@ abstract class AbstractJobMonitor
     }
 
     /*
-     * Determine if we should break out of our forever monitoring loop.
+     * Determine if we should break out of our forever monitoring loop due to a change of status.
      * It is time to break out if:
      *   Job was QUEUED and is now active or
      *   Job is DONE or FAILED

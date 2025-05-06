@@ -111,7 +111,7 @@ public final class StepwiseBackoffPolicy
         //      If slurm cancels/times out the job then the job enters FAILED state
         //        and archiving can happen.
         //      If Tapis cancels/times out the job then the job enters FAILED_SKIP_ARCHIVE state
-        //        and archving does not happen.
+        //        and archiving does not happen.
         //      Not archiving is an issue for some users, specifically in the designsafe portal, possibly others.
         if (_runningTimeInitialized && _runEndTime.isBefore(now)) {
             _reasonCode = ReasonCode.TIME_EXPIRED;
@@ -323,13 +323,18 @@ public final class StepwiseBackoffPolicy
     private long getDefaultMaxElapsedSeconds()
     {
         // We expect the job field to be set.
-        long maxSeconds = _job.getMaxMinutes() * 60;
-        if (maxSeconds <= 0) maxSeconds = (long) (Job.DEFAULT_MAX_MINUTES * 60);
+        long maxSeconds = _job.getMaxMinutes() * 60L;
+        if (maxSeconds <= 0) maxSeconds = Job.DEFAULT_MAX_MINUTES * 60L;
         
         // If the job is going to be submitted to a remote scheduler like slurm,
         // we add a little more time to our local limit to allow the remote 
         // scheduler to time out first.  This defers job management to the 
         // scheduler that is better placed to handle things.
+        // TODO This does not seem to be working, there appears to still be a race condition
+        //      Oh, maybe that's because this is only for the default? When is non-default used?
+        //      Always, because when creating the policy we never use anything but defaults?
+        //        If so, then question still remains, is this still not working to avoid race condition?
+        //        Or is a race condition not the root cause of the problem the user encountered?
         if (hasRemoteScheduler()) maxSeconds += MONITOR_TIMEOUT_EXTENSION_SECS;
         
         return maxSeconds;
@@ -360,7 +365,7 @@ public final class StepwiseBackoffPolicy
     /* initRunningTimeSettings:                                               */
     /* ---------------------------------------------------------------------- */
     /** Perform the one time initialization of the execution timer parameters.
-     * If no parameter is provide, the current time is taken to be the start time.
+     * If no parameter is provided, the current time is taken to be the start time.
      * 
      * @param now optional begin time
      */

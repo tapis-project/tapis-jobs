@@ -1,15 +1,11 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
-import java.util.ArrayList;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.JobTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
@@ -490,12 +486,12 @@ public final class JobExecutionContext
      */
     public void checkCmdMsg() throws JobAsyncCmdException
     {
-        // Extract the current cmdMsg and set new vlaue to null.
+        // Extract the current cmdMsg value and update new value to null.
         CmdMsg cmdMsg = _job.getAndSetCmdMsg();
-        // Null means there was no cmdMsg so simply return.
+        // Current value of null means no cmdMsg to process so return.
         if (cmdMsg == null) return;
         
-        // Process each message based on type. The cancel and pause commands change the job state and
+        // Process the message based on type. The cancel and pause commands change the job state and
         // throw a JobAsyncCmdException to terminate or postpone job processing.
         switch (cmdMsg.msgType)
         {

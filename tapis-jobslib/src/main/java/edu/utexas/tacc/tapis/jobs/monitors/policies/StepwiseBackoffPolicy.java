@@ -336,12 +336,10 @@ public final class StepwiseBackoffPolicy
         _monitorStart = Instant.now();
         
         // Set the elapsed time fields if the job is already executing.
-        if (_job.getStatus() == JobStatusType.RUNNING) 
-            initRunningTimeSettings(_monitorStart);
+        if (_job.getStatus() == JobStatusType.RUNNING) initRunningTimeSettings(_monitorStart);
         
-        // Initialize the step controls to the first step on
-        // on newly monitored jobs or where we left off on 
-        // partially monitored jobs.
+        // Initialize step controls to first step on newly monitored jobs or where we left off for jobs with
+        // monitoring already in progress.
         initStepSettings();
         
         // Indicate field initialization complete.
@@ -369,9 +367,8 @@ public final class StepwiseBackoffPolicy
     /* ---------------------------------------------------------------------- */
     /* initStepSettings:                                                      */
     /* ---------------------------------------------------------------------- */
-    /** Pick up where monitoring left off before monitoring for this job was 
-     * interrupted or, if this job has never been monitored before, start at 
-     * the beginning of the first step.
+    /** Pick up where monitoring left off before monitoring for this job was interrupted or,
+     * if this job has never been monitored before, start at the beginning of the first step.
      */
     private void initStepSettings()
     {

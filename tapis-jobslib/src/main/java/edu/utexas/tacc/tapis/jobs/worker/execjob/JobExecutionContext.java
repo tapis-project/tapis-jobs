@@ -261,8 +261,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     public void submitJob() throws TapisImplException, TapisException
     {
-        // Load the exec, archive and dtn systems now
-        // to avoid double faults in FileManager.
+        // Load the exec, archive and dtn systems now to avoid double faults in FileManager.
         initSystems();
         var launcher = JobLauncherFactory.getInstance(this);
         launcher.launch();

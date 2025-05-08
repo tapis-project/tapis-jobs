@@ -9,7 +9,7 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.8.5 - 2025-05-06
+## 1.8.5 - 2025-05-08
 
 **WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
 in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
@@ -18,6 +18,7 @@ Incremental improvements and a bug fix.
 
 ### New Features:
 - Ignore expired JWTs older than 90 days (update from shared code).
+- Add job completion condition code JOB_EXECUTION_MONITORING_ERROR_TIMEOUT
 
 ### Bug fixes:
 1. Fix issue with archiving not happening when job times out.

@@ -9,7 +9,50 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.8.2 - 2025-02-03
+## 1.8.5 - 2025-05-08
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+Incremental improvements and a bug fix.
+
+### New Features:
+- Ignore expired JWTs older than 90 days (update from shared code).
+- Add job completion condition code JOB_EXECUTION_MONITORING_ERROR_TIMEOUT
+
+### Bug fixes:
+1. Fix issue with archiving not happening when job times out.
+
+-----------------------
+## 1.8.4 - 2025-03-25
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+### New Features:
+- Update tomcat to version 9.0.99.
+
+### Bug fixes:
+1. Improved handling of unexpected squeue output during job monitoring. Do not abort.
+
+-----------------------
+## 1.8.3 - 2025-02-16
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+Bug fix for setting of shared application context when Jobs initiates a transfer for a file input.
+When the job submit request specifies file inputs the shared application context for the destination paths
+was not being correctly set for all cases. 
+
+### New Features:
+- None
+
+### Bug fixes:
+1. Shared application context not correctly set for destination paths of job request file inputs. 
+
+-----------------------
+## 1.8.2 - 2025-02-05
 
 **WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
 in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
@@ -20,6 +63,7 @@ Incremental improvements and new features.
 1. Support for Trusted Management System (TMS) ssh keys, Tapis authentication method TMS_KEYS.
 2. Add GUID to audit log record.
 3. Reject service JWTs from OSP authenticator service.
+4. Allow setting of *--user* option for Docker runtime.
 
 ### Bug fixes:
 - None

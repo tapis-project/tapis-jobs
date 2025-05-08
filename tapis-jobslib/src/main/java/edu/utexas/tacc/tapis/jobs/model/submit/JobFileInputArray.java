@@ -28,8 +28,7 @@ public class JobFileInputArray
     {return sourceUrls == null || sourceUrls.isEmpty();}
     
     public boolean equalSourceUrls​(List<String> urls) {
-        // We don't distinguish between null and empty when
-        // checking for equality.
+        // We don't distinguish between null and empty when checking for equality.
         if ((sourceUrls == null || sourceUrls.isEmpty()) && 
             (urls == null || urls.isEmpty())) return true;
         
@@ -48,8 +47,7 @@ public class JobFileInputArray
         for (var srcUrl : sourceUrls)
             if (!urlSet.contains(srcUrl)) return false;
             
-        // The two non-empty lists are the same size and
-        // they contain the same strings, order independent.
+        // The two non-empty lists are the same size, and they contain the same strings, order independent.
         return true;
     }
     

@@ -603,12 +603,11 @@ final class JobQueueProcessor
   /* ---------------------------------------------------------------------- */
   /* doSubmittingJob:                                                       */
   /* ---------------------------------------------------------------------- */
-  /** This method processes jobs that are in its named state.  This processing 
-   * always results in one of the following outcomes:
-   * 
+  /**
+   * This method processes jobs that are in the named state.
+   * This processing always results in one of the following outcomes:
    *  - return true to continue job processing in a new state
-   *  - throw a recoverable exception which will cause the job to be put into
-   *      recovery in a blocked state
+   *  - throw a recoverable exception which will cause the job to be put into recovery in a blocked state
    *  - throw async exception as the result of receiving certain asynchronous commands
    *  - throw an unrecoverable exception to fail this job
    * 

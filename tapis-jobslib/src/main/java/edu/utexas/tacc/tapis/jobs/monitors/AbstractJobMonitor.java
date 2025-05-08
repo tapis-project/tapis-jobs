@@ -187,7 +187,7 @@ abstract class AbstractJobMonitor
     /* ---------------------------------------------------------------------- */
     /**
      * This is the actual monitor call. The initial status values determine how a remote status change is detected.
-     * The only two valid initial status values are QUEUE and RUNNING.
+     * The only two valid initial status values are QUEUED and RUNNING.
      * Subclasses implement the abstract methods of this class to issue the actual query commands
      * on the execution system. Subclasses can also override the JobMonitor interface methods to take control of
      * monitoring before it reaches this method.
@@ -240,15 +240,27 @@ abstract class AbstractJobMonitor
                     // attempted even though the job may still be running.
                     _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED);
                     
-                    // We want to update the finalMessage field in the jobCtx, which will be used to update the lastMessage field in the db. 
+                    // We want to update the finalMessage field in the jobCtx, which will be used to update the
+                    // lastMessage field in the db.
                     String finalMessage = MsgUtils.getMsg("JOBS_EARLY_TERMINATION", reasonCode.name());
                     _jobCtx.setFinalMessage(finalMessage);
                     
-                    // If time has expired, cancel jobs that are not automatically killed by their schedulers.
-                    if (MonitorPolicy.ReasonCode.TIME_EXPIRED.equals(reasonCode)) cancelExpiredJob();
+                    if (MonitorPolicy.ReasonCode.TIME_EXPIRED.equals(reasonCode))
+                    {
+                        // Tapis detected the timeout and for some reason the batch scheduler had not yet
+                        // timed out the job. Cancel jobs that are not automatically killed by their schedulers
+                        // and set condition code appropriately.
+                        cancelExpiredJob();
+                        _job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_TIMEOUT);
+                    }
+                    else
+                    {
+                        // Monitoring had errors for more than MonitorPolicy.DEFAULT_CONSECUTIVE_FAILURE_MINUTES
+                        // (60 minutes). Set condition code appropriately.
+                        _job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_ERROR_TIMEOUT);
+                    }
 
                     // Signal that this job is kaput.
-                    _job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_TIMEOUT);
                     String msg = MsgUtils.getMsg("JOBS_MONITOR_EARLY_TERMINATION", getClass().getSimpleName(),
                                                  _job.getUuid(), reasonCode.name(), _job.getRemoteOutcome().name());
                     throw new JobException(msg);

@@ -15,7 +15,7 @@
     </parent>
 
     <artifactId>tapis-jobs</artifactId>
-    <version>1.8.5</version>
+    <version>1.8.6</version>
     <packaging>pom</packaging>
 
     <name>TACC Tapis Jobs Service Parent POM</name>
@@ -122,13 +122,6 @@
   <!--                     -->
   <!-- Only add dependencies here that are used by EVERY submodule. -->
   <dependencies>
-<!-- Uncomment when updating the openapi spec file. See file README.openapi
-    <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <version>1.33</version>
-    </dependency>
--->
     <dependency>
     <!-- There are only test dependencies on testng -->
       <groupId>org.testng</groupId>

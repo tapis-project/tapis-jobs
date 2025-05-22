@@ -50,11 +50,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/search")
 public class JobSearchResource extends AbstractResource {
@@ -133,33 +128,6 @@ public class JobSearchResource extends AbstractResource {
     /* ---------------------------------------------------------------------------- */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Operation(
-            description = "Retrieve list of jobs for the user based on search conditions in the query paramter on the dedicated search end-point.\n\n"
-                          + "The caller must be the job owner, creator or a tenant administrator. \n\n"
-                          + "List of Jobs shared with the user can also be searched",
-            tags = "jobs",
-            security = {@SecurityRequirement(name = "TapisJWT")},
-            responses = 
-                {
-                 @ApiResponse(responseCode = "200", description = "Jobs Search List retrieved.",
-                     content = @Content(schema = @Schema(
-                   		  implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearchAllAttributes.class))),
-                 @ApiResponse(responseCode = "400", description = "Input error.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                 @ApiResponse(responseCode = "401", description = "Not authorized.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                 @ApiResponse(responseCode = "403", description = "Forbidden.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                 @ApiResponse(responseCode = "404", description = "Jobs not found.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                 @ApiResponse(responseCode = "500", description = "Server error.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-    )
     public Response getJobSearchList(
    		 		@QueryParam("limit") int limit, 
    		 		@QueryParam("skip") int skip,
@@ -477,33 +445,6 @@ public class JobSearchResource extends AbstractResource {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Operation(
-            description = "Retrieve list of jobs for the user based on search conditions in the request body and pagination information from the query paramter on the dedicated search end-point.\n\n"
-                          + "The caller must be the job owner, creator or a tenant administrator."
-                          + "",
-            tags = "jobs",
-            security = {@SecurityRequirement(name = "TapisJWT")},
-            responses = 
-                {
-                 @ApiResponse(responseCode = "200", description = "Jobs Search List retrieved.",
-                     content = @Content(schema = @Schema(
-                   		  implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespJobSearchAllAttributes.class))),
-                 @ApiResponse(responseCode = "400", description = "Input error.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                 @ApiResponse(responseCode = "401", description = "Not authorized.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                 @ApiResponse(responseCode = "403", description = "Forbidden.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                 @ApiResponse(responseCode = "404", description = "Jobs not found.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                 @ApiResponse(responseCode = "500", description = "Server error.",
-                     content = @Content(schema = @Schema(
-                        implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-    )
     public Response getJobSearchListByPostSqlStr (
    		 		@QueryParam("limit") int limit, 
    		 		@QueryParam("skip") int skip,

@@ -8,7 +8,8 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shareddb.migrate.TapisJDBCMigrate;
 import edu.utexas.tacc.tapis.shareddb.migrate.TapisJDBCMigrateParms;
 
-/** This utility program migrates the TAPIS_DB_NAME using Flyway.  The options for this 
+/**
+ * This utility program migrates the TAPIS_DB_NAME using Flyway.  The options for this
  * program are implemented in MigrateParms, which can be viewed by running this program 
  * with the -help option.
  * 
@@ -21,7 +22,9 @@ import edu.utexas.tacc.tapis.shareddb.migrate.TapisJDBCMigrateParms;
  * 
  * Note that any administrative user--one that can create databases--can be used to
  * connect to the database.
- * 
+ * Example run parameters for locally running postgres on port 5400:
+ *   -h localhost -u postgres -pw password -p 5400
+ *
  * @author rcardone
  */
 public class TapisJobsJDBCMigrate 

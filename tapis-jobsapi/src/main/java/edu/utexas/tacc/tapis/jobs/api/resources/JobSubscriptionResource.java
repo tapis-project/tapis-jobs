@@ -47,12 +47,6 @@ import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
 public class JobSubscriptionResource 
@@ -128,51 +122,6 @@ public class JobSubscriptionResource
      @Path("/subscribe/{jobUuid}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Subcribe to a running job identified by it's UUID. "
-                           + "The caller must be the job owner or a tenant administrator.\n\n"
-                           + ""
-                           + "Like all Job subscription APIs, modifications only "
-                           + "affect running jobs and never change the saved job "
-                           + "definition. As a consequence, job resubmissions are not "
-                           + "affected by runtime subscription changes.\n\n"
-                           + ""
-                           + "The events to which one can subscribe are:\n\n"
-                           + ""
-                           + "- JOB_NEW_STATUS - the job has transitioned to a new status\n"
-                           + "- JOB_INPUT_TRANSACTION_ID - a request to stage job input files has been submitted\n"
-                           + "- JOB_ARCHIVE_TRANSACTION_ID - a request to archive job output files has been submitted\n"
-                           + "- JOB_SUBSCRIPTION - a change to the job's subscriptions has occurred\n"
-                           + "- JOB_SHARE_EVENT - a job resource has been shared or unshared\n"
-                           + "- JOB_ERROR_MESSAGE - the job experienced an error\n"
-                           + "- JOB_USER_EVENT - user generated events\n"
-                           + "- ALL - all job event categories\n"
-                           + "",
-             tags = "subscriptions",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             requestBody = 
-                 @RequestBody(
-                     required = true,
-                     content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe.class))),
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job subscription created.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
      public Response subscribe(@PathParam("jobUuid") String jobUuid,
                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                InputStream payloadStream)
@@ -288,33 +237,6 @@ public class JobSubscriptionResource
      @Path("/subscribe/{jobUuid}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Retrieve a job's subscriptions fom the Notifications service. "
-                           + "After subscriptions expire or are deleted by user action they "
-                           + "may no longer be listed in Notification service. To inspect "
-                           + "the initial set of subscriptions assigned to a job, retrieve "
-                           + "the job definition."
-                           + "",
-             tags = "subscriptions",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job created.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetSubscriptions.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
      public Response getSubscriptions(@PathParam("jobUuid") String jobUuid,
                                       @DefaultValue("100")   @QueryParam("limit") int limit, 
                                       @DefaultValue("0")     @QueryParam("skip")  int skip,
@@ -381,39 +303,6 @@ public class JobSubscriptionResource
      @Path("/subscribe/{uuid}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Depending on the UUID provide, this API either deletes a "
-                           + "single subscription from a job or all subscriptions "
-                           + "from a job. To delete single subscription, provide the UUID "
-                           + "of that subscription as listed in the subscription retrieval "
-                           + "result for the job.  To delete all a job's subscriptions, specify "
-                           + "the job UUID.\n\n"
-                           + ""
-                           + "Like all Job subscription APIs, modifications only "
-                           + "affect running jobs and never change the saved job "
-                           + "definition. As a consequence, job resubmissions are not "
-                           + "affected by runtime subscription changes."
-                           + "",
-             tags = "subscriptions",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job created.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
      public Response deleteSubscriptions(@PathParam("uuid") String uuid,
                                          @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {

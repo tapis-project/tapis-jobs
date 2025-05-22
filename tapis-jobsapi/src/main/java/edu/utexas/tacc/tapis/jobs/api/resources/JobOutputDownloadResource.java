@@ -40,11 +40,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
 public class JobOutputDownloadResource extends AbstractResource{
@@ -113,37 +108,6 @@ public class JobOutputDownloadResource extends AbstractResource{
      @GET
      @Path("/{jobUuid}/output/download/{outputPath: (.*+)}")
      @Produces(MediaType.APPLICATION_OCTET_STREAM)
-     @Operation(
-             description = "Download a job's output files using the job's UUID. "
-      		               + "By default, the job must be in a terminal state (FINISHED or FAILED or CANCELLED) "
-      		               + "for this command to execute. "
-		                   + "To execute when a job is not in a terminal state--and possibly receive incomplete "
-		                   + "results--set _allowIfRunning=true_.  \n\n"
-                           + "The caller must be the job owner, creator or a tenant administrator. "
-            		       + "The _outputPath_ is always relative to the job output directory and must end with a '/'. "
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job's output files downloaded.",content = 
-                          @Content(mediaType = "application/octet-stream", schema = @Schema(type = "string", format = "binary"))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "404", description = "Job not found.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
      public Response getJobOutputDownload(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
     		 						  @DefaultValue("false") @QueryParam("compress") boolean compress,	@DefaultValue("zip") @QueryParam("format") String format,
     		 						  @DefaultValue("false") @QueryParam("allowIfRunning")boolean allowIfRunning,

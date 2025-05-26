@@ -20,6 +20,7 @@ import java.util.TreeSet;
 
 import javax.sql.DataSource;
 
+import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -1282,7 +1283,10 @@ public final class JobsDao
 	        job.setCreated(now);
 	        job.setLastUpdated(now);
 		}
-        
+
+        JsonObject notesObj = Job.DEFAULT_NOTES;
+        if (job.getNotes() != null) notesObj = (JsonObject) job.getNotes();
+
         // ------------------------- Check Input -------------------------
         // Exceptions can be throw from here.
         validateNewJob(job);
@@ -1379,8 +1383,8 @@ public final class JobsDao
           pstmt.setArray(41, attribsArray);
               
           // Notes is non-null json.
-          pstmt.setString(42, job.getNotes());
-          
+          pstmt.setString(42, notesObj.toString());
+
           // Tracking ID from request header can be null.
           pstmt.setString(43, job.getTrackingId());             // could be null  
           
@@ -1705,7 +1709,7 @@ public final class JobsDao
      * code will already be set.  If not, the condition is set to an internal 
      * error and logged in updateEnded().
      * 
-     * @param uuid the job whose status is to change    
+     * @param job the Tais job
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record or null
      * @return the last update time saved in the job record
@@ -2523,8 +2527,8 @@ public final class JobsDao
      * In cases where the job has failed it's expected that the job's condition
      * code will already be set.  If not, the condition is set to an internal 
      * error and logged in updateEnded().
-     * 
-     * @param uuid the job whose status is to change    
+     *
+		 * @param job the Tais job
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record
      * @param commit true to commit the transaction and close the connection;
@@ -2685,7 +2689,7 @@ public final class JobsDao
      * calling it more than once for a job will not change the job record.
      * 
      * @param conn the connection with the in-progress transaction
-     * @param uuid the job uuid
+     * @param job the Tapis Job
      * @param ts the remote execution start time
      * @throws SQLException
      */
@@ -2718,7 +2722,7 @@ public final class JobsDao
      * calling it more than once for a job will not change the job record.
      * 
      * @param conn the connection with the in-progress transaction
-     * @param uuid the job uuid
+     * @param job the Tapis Job
      * @param ts the remote execution start time
      * @throws SQLException
      */
@@ -2751,7 +2755,7 @@ public final class JobsDao
      * calling it more than once for a job will not change the job record.
      * 
      * @param conn the connection with the in-progress transaction
-     * @param uuid the job uuid
+     * @param job the Tapis Job
      * @param ts the job termination time
      * @param newStatus the job's new, terminal status
      * @throws SQLException
@@ -3253,7 +3257,7 @@ public final class JobsDao
 	        	obj.setSharedAppCtxAttribs(JobSharedAppCtx.EMPTY_APP_CTX_ATTRIBS); // immutable list
 	        
 	        // Notes non-null json value.
-	        obj.setNotes(rs.getString(62));
+	        obj.setNotes(rs.getObject(62));
 
 	        obj.setStageAppTransactionId(rs.getString(63));
 	        obj.setStageAppCorrelationId(rs.getString(64));

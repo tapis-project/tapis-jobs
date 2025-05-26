@@ -12,7 +12,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-public class ReqSubmitJob 
+public class ReqSubmitJob
  implements IReqBody
 {
     /* **************************************************************************** */
@@ -49,7 +49,7 @@ public class ReqSubmitJob
     private Boolean                 isMpi;
     private String                  mpiCmd;
     private String                  cmdPrefix;
-    private Object                  notes;  
+    private Object                  notes;
     
     // Constraints flattened and aggregated from app and job request.
     private transient String        consolidatedConstraints;          
@@ -57,9 +57,6 @@ public class ReqSubmitJob
     // Temporary storage for hpc queue name during request processing.
     private transient String        hpcQueueName;
     
-    // Convert the incoming notes object to a string once.
-    private transient String        notesAsString;
-
 	@Override
 	public String validate() 
 	{
@@ -423,14 +420,5 @@ public class ReqSubmitJob
 
     public void setHpcQueueName(String hpcQueueName) {
         this.hpcQueueName = hpcQueueName;
-    }
-
-    @Schema(hidden = true)
-    public String getNotesAsString() {
-        return notesAsString;
-    }
-
-    public void setNotesAsString(String notesAsString) {
-        this.notesAsString = notesAsString;
     }
 }

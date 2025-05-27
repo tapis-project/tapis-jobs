@@ -1,5 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.config;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Properties;
@@ -240,10 +242,29 @@ public final class RuntimeParameters
           }
     
     // Get the local name of the node that we are running on as set
-    // by the deploying framework, such as Kubernetes.  If this set
+    // by the deploying framework, such as Kubernetes. If this set
     // then more extensive SSH logging will take place.
+    // If env value is set to "auto" then use InetAddress to get local host name
     parm = inputProperties.getProperty(EnvVar.TAPIS_LOCAL_NODE_NAME.getEnvName());
-    if (!StringUtils.isBlank(parm)) setLocalNodeName(parm);
+    if (!StringUtils.isBlank(parm))
+    {
+      String hostname = parm.trim();
+      if ("auto".equalsIgnoreCase(hostname))
+      {
+        try
+        {
+          hostname = InetAddress.getLocalHost().getHostName();
+        }
+        catch (UnknownHostException e)
+        {
+          // Log error and set to null
+          String msg = MsgUtils.getMsg("JOBS_INIT_PARM_LOCALNODE_ERR", parm, e.getMessage());
+          _log.warn(msg, e);
+          hostname = null;
+        }
+      }
+      setLocalNodeName(hostname);
+    }
                  
     // Optional test header parameter switch.
     parm = inputProperties.getProperty(EnvVar.TAPIS_ENVONLY_ALLOW_TEST_HEADER_PARMS.getEnvName());

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
+import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
 
@@ -29,6 +30,7 @@ import org.jooq.OrderField;
 import org.jooq.Result;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +62,7 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
 
 /** A note about querying our JSON data types.  The jobs database schema currently defines these 
@@ -1709,7 +1712,7 @@ public final class JobsDao
      * code will already be set.  If not, the condition is set to an internal 
      * error and logged in updateEnded().
      * 
-     * @param job the Tais job
+     * @param job the Tapis job
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record or null
      * @return the last update time saved in the job record
@@ -2527,8 +2530,8 @@ public final class JobsDao
      * In cases where the job has failed it's expected that the job's condition
      * code will already be set.  If not, the condition is set to an internal 
      * error and logged in updateEnded().
-     *
-		 * @param job the Tais job
+     * 
+     * @param job the Tapis job
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record
      * @param commit true to commit the transaction and close the connection;
@@ -3257,7 +3260,9 @@ public final class JobsDao
 	        	obj.setSharedAppCtxAttribs(JobSharedAppCtx.EMPTY_APP_CTX_ATTRIBS); // immutable list
 	        
 	        // Notes non-null json value.
-	        obj.setNotes(rs.getObject(62));
+	        // Convert from sql PGobject to a JsonObject
+	        JsonObject notesJsonObj = convertPGObjToJsonObj((PGobject) rs.getObject(62));
+	        obj.setNotes(notesJsonObj);
 
 	        obj.setStageAppTransactionId(rs.getString(63));
 	        obj.setStageAppCorrelationId(rs.getString(64));
@@ -3664,6 +3669,14 @@ public final class JobsDao
     {
         public String name;
         public String owner;
+    }
+
+    private JsonObject convertPGObjToJsonObj(PGobject pgObj) {
+      // Convert from sql PGobject to a JsonObject
+      if (pgObj == null) return EMPTY_JSON_OBJ;
+      String objString = pgObj.toString();
+      JsonObject jsonObj = TapisGsonUtils.getGson().fromJson(objString, JsonObject.class);
+      return jsonObj;
     }
 }
     

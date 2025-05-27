@@ -529,12 +529,9 @@ public final class JobsImpl
             }
         
         // ----- Share Authorization checks.
-       if (checkShare) {   
-	        /**
-	         * 
-	         * If the user is not the job owner or not admin or not the one who created the job,
-	         * we need to check if the job has been shared with the user.
-	         * */
+       if (checkShare) {
+            // If the user is not the job owner or not admin or not the one who created the job,
+            // we need to check if the job has been shared with the user.
     	    if (!isJobShared(jobUuid, user, tenant, jobResourceShareType, privilege)) {
     	        String msg = MsgUtils.getMsg("JOBS_MISMATCHED_OWNER", user, jobOwner);
        		     _log.error(msg);

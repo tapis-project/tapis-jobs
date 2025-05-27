@@ -40,10 +40,11 @@ public final class Job
 	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
 	public static final String EMPTY_JSON = "{}";
 	public static final String EMPTY_JSON_ARRAY = "[]";
+	public static final JsonObject EMPTY_JSON_OBJ = TapisGsonUtils.getGson().fromJson("{}", JsonObject.class);
 	public static final String DEFAULT_SHARED_APP_CTX = "";
-  public static final String NOTES_FIELD = "notes";
-	public static final JsonObject DEFAULT_NOTES = TapisGsonUtils.getGson().fromJson("{}", JsonObject.class);
-
+	public static final String NOTES_FIELD = "notes";
+	public static final JsonObject DEFAULT_NOTES = EMPTY_JSON_OBJ;
+	
 	// Default directory assignments.  All paths are relative to their system's 
 	// rootDir unless otherwise noted.  Leading slashes are optional on relative
 	// paths and required on absolute paths.  When the full path names of relative 
@@ -199,8 +200,10 @@ public final class Job
     /* ---------------------------------------------------------------------------- */
     /* toString:                                                                    */
     /* ---------------------------------------------------------------------------- */
-//    @Override
-//    public String toString() {return TapisUtils.toString(this);}
+    // TODO Remove/replace this? When debugging in Intellij it appears to lead to
+    //   infinite recursion and the debugger will only continue after a stack overflow error.
+    @Override
+    public String toString() {return TapisUtils.toString(this);}
 
     /* ---------------------------------------------------------------------------- */
     /* getFileInputsSpec:                                                           */

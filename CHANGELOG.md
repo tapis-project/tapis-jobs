@@ -9,19 +9,23 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
-## 1.8.6 - 2025-??-??
+## 1.9.0 - 2025-??-??
 
-**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
-in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
-
-Incremental improvements and TODO/TBD a bug fix.
+Incremental improvements.
 
 ### New Features:
 - Move openapi specification file to repo tapis-project/openapi-jobs
 - Support runtime setting TAPIS_LOCAL_NODE_NAME=auto. When set to *auto* the local host name is used.
 
+### Breaking Changes:
+1. Support for runtime option *SINGULARITY_START* has been removed.
+2. The endpoints *ready* and *sayHello* have been removed. Please use the endpoints *healthcheck* and *readycheck*.
+3. When fetching a job via the getJob endpoint the json type for the attribute *notes* has been
+   changed from type *string* to type *object*. Previously, the *notes* attribute was returned as a
+   string with embedded json. Now it is returned as a standard json structured object.
+
 ### Bug fixes:
-1. TODO/TBD
+1. None
 
 -----------------------
 ## 1.8.5 - 2025-05-08

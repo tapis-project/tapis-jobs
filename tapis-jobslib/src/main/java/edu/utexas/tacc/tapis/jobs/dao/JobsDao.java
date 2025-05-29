@@ -1287,6 +1287,7 @@ public final class JobsDao
 	        job.setLastUpdated(now);
 		}
 
+        // Make sure notes is filled in as a JsonObject.
         JsonObject notesObj = Job.DEFAULT_NOTES;
         if (job.getNotes() != null) notesObj = (JsonObject) job.getNotes();
 

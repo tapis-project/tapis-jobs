@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -22,6 +23,8 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -53,6 +56,8 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+
+import static edu.utexas.tacc.tapis.jobs.model.Job.NOTES_FIELD;
 
 @Path("/")
 public class JobSubmitResource 
@@ -388,7 +393,7 @@ public class JobSubmitResource
          // ------------------------- Validate Payload -------------------------
          // Read the payload into a string.
          String json = null;
-         try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+         try {json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8);}
            catch (Exception e) {
              String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job submission", e.getMessage());
              _log.error(msg, e);
@@ -432,7 +437,12 @@ public class JobSubmitResource
              return Response.status(Status.INTERNAL_SERVER_ERROR).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
          }
-         
+
+         // Extract Notes from the raw json. Notes require special handling. Else they end up as a LinkedTreeMap which
+         // causes trouble when attempting to convert to a JsonObject.
+         Object notes = extractNotes(json);
+         payload.setNotes(notes);
+
          // Create the request context object.
          var reqCtx = new SubmitContext(payload);
          
@@ -641,4 +651,20 @@ public class JobSubmitResource
                _log.error(msg, e1);
          }
      }
+  /*
+   * Extract notes from the incoming json.
+   * Return null if no notes provided by incoming request
+   * This explicit method to extract is needed because notes is an unstructured object and other seemingly simpler
+   * approaches caused problems with the json marshalling. This method ensures notes end up as a JsonObject rather
+   * than a LinkedTreeMap.
+   */
+  private static JsonObject extractNotes(String rawJson)
+  {
+    // Check inputs
+    if (StringUtils.isBlank(rawJson)) return null;
+    // Turn the request string into a json object and extract the notes object
+    JsonObject topObj = TapisGsonUtils.getGson().fromJson(rawJson, JsonObject.class);
+    if (!topObj.has(NOTES_FIELD)) return null;
+    return topObj.getAsJsonObject(NOTES_FIELD);
+  }
 }

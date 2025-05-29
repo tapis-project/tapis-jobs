@@ -9,6 +9,21 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.8.6 - 2025-??-??
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+Incremental improvements and TODO/TBD a bug fix.
+
+### New Features:
+- Move openapi specification file to repo tapis-project/openapi-jobs
+- Support runtime setting TAPIS_LOCAL_NODE_NAME=auto. When set to *auto* the local host name is used.
+
+### Bug fixes:
+1. TODO/TBD
+
+-----------------------
 ## 1.8.5 - 2025-05-08
 
 **WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed

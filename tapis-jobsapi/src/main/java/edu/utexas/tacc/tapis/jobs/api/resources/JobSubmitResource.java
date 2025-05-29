@@ -53,12 +53,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
 public class JobSubmitResource 
@@ -130,56 +124,6 @@ public class JobSubmitResource
      @Path("/submit")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Submit a job for execution.  "
-                           + "The main phases of job execution are:\n\n"
-            		       + ""
-            		       + "  - validate input\n"
-            		       + "  - check resource availability\n"
-            		       + "  - stage input files\n"
-            		       + "  - stage application code\n"
-            		       + "  - launch application\n"
-            		       + "  - monitor application\n"
-            		       + "  - archive application output\n\n"
-                           + ""
-                           + "At a minimum, the job name, application ID and application version must be "
-                           + "specified in the request payload. The optional parameters available in a job "
-                           + "request provide great flexibility but must be considered in the context of "
-                           + "the application and system definitions. The actual values used during job "
-                           + "execution are a combination of the values in this request and those specified in "
-                           + "the job's application and system definitions. It's often desirable to keep the "
-                           + "submission request simple by specifying common values in these other two "
-                           + "definitions. "
-                           + ""
-                           + "See the "
-                           + "[Job Submission Request](https://tapis.readthedocs.io/en/latest/technical/jobs.html#the-job-submission-request) "
-                           + "documentation for details."
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             requestBody = 
-                 @RequestBody(
-                     required = true,
-                     content = @Content(schema = @Schema(
-                         implementation = ReqSubmitJob.class))),
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job created.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespSubmitJob.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class)))}
-     )
      public Response submitJob(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                InputStream payloadStream)
      {
@@ -201,45 +145,6 @@ public class JobSubmitResource
      @Path("/{jobUuid}/resubmit")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Resubmit a job for execution using the job's original parameters.  "
-                           + "The main phases of job execution are:\n\n"
-                           + ""
-                           + "  - validate input\n"
-                           + "  - check resource availability\n"
-                           + "  - stage input files\n"
-                           + "  - stage application code\n"
-                           + "  - launch application\n"
-                           + "  - monitor application\n"
-                           + "  - archive application output\n\n"
-                           + ""
-                           + "When a job is submitted its request payload is captured and available "
-                           + "for resubmission using this API. The resubmitted job is assigned a new "
-                           + "UUID and does not reference or have any special access to the original "
-                           + "job's information once the orginal job's request is copied. The resubmitted "
-                           + "job's execution can differ from the original job's if the application, system "
-                           + "or other aspects of the execution environment have changed."
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job created.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespSubmitJob.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class)))}
-     )
      public Response resubmitJob(@PathParam("jobUuid") String jobUuid,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
@@ -289,28 +194,6 @@ public class JobSubmitResource
      @GET
      @Path("/{jobUuid}/resubmit_request")
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Get Resubmit request for of a job in JSON format.  ",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Resumbit request for the job is retrieved sucessfully.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespGetResubmit.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class)))}
-     )
      public Response getResubmitRequestJson(@PathParam("jobUuid") String jobUuid,
                                  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
@@ -384,43 +267,6 @@ public class JobSubmitResource
      @Path("/{jobUuid}/sendEvent")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Send a user event to an active job. The job must be in"
-                           + " the same tenant as the caller, but no other authorization is needed."
-                           + " If the job has terminated the request will be rejected. The caller"
-                           + " must specify a payload of non-empty string data in the *eventData*"
-                           + " field. The *eventDetail* field can be set to further qualify the type"
-                           + " of user event, which is useful when filtering events. If not provided"
-                           + " the *eventDetail* defaults to \"DEFAULT\".\n\n"
-                           + ""
-                           + "Subscribers that register interest in events of type JOB_USER_EVENT"
-                           + " will receive a notification as a result of this call."
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             requestBody = 
-                 @RequestBody(
-                     required = true,
-                     content = @Content(schema = @Schema(
-                         implementation = ReqUserEvent.class))),
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Event created.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = RespBasic.class)))}
-     )
      public Response sendEvent(@PathParam("jobUuid") String jobUuid,
                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                InputStream payloadStream)

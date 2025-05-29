@@ -79,7 +79,7 @@ public class SingularityRunMonitor
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
         // Get the command text for this job's container.
-        String cmd = JobExecutionUtils.SINGULARITY_START_MONITOR;
+        String cmd = JobExecutionUtils.SINGULARITY_MONITOR;
         
         // Execute the query with retry capability.
         String result = null;

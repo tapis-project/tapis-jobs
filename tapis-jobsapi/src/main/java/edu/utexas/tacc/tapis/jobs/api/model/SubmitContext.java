@@ -2818,7 +2818,8 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /** Validate that each glob and regex in the filter lists can be compiled.
      * 
-     * @param filterName the final archive filter
+     * @param filters - final archive filter list
+     * @param filterName - name of the filter being validated, either excludes or includes, for logging
      * @throws TapisImplException on invalid filter content
      */
     private void validateArchiveFilters(List<String> filters, String filterName)

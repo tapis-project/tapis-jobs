@@ -124,35 +124,6 @@ public final class GeneralResource
   /*                                Public Methods                                */
   /* **************************************************************************** */
   /* ---------------------------------------------------------------------------- */
-  /* hello:                                                                       */
-  /* ---------------------------------------------------------------------------- */
-  /**
-   * @deprecated Use healthcheck or readycheck instead.
-   */
-  @Deprecated(since="1.8.1", forRemoval = true)
-  @GET
-  @Path("/hello")
-  @Produces(MediaType.APPLICATION_JSON)
-  @PermitAll
-  public Response sayHello(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
-  {
-      // Trace this request.
-      if (_log.isTraceEnabled()) {
-          String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "hello", 
-                                     "  " + _request.getRequestURL());
-          _log.trace(msg);
-      }
-      
-      // Create the response payload.
-      RespBasic r = new RespBasic("Hello from the Tapis Jobs Service.");
-         
-      // ---------------------------- Success ------------------------------- 
-      // Success means we found the resource. 
-      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "hello", "0 items"), prettyPrint, r)).build();
-  }
-
-  /* ---------------------------------------------------------------------------- */
   /* healthcheck:                                                                 */
   /* ---------------------------------------------------------------------------- */
   /** This method does no logging and is expected to be as lightweight as possible.
@@ -274,43 +245,6 @@ public final class GeneralResource
       resp.commit = TapisUtils.getGitCommit();
       resp.build = TapisUtils.getBuildTime();
       return Response.ok(resp).build();
-  }
-
-  /* ---------------------------------------------------------------------------- */
-  /* ready:                                                                       */
-  /* ---------------------------------------------------------------------------- */
-
-  /**
-   * This method does no logging and is expected to be as lightweight as possible.
-   * It's intended as the endpoint that monitoring applications can use to check
-   * whether the application is ready to accept traffic.  In particular, kubernetes
-   * can use this endpoint as part of its pod readiness check.
-   * <p>
-   * Note that no JWT is required on this call.
-   * <p>
-   * A good synopsis of the difference between liveness and readiness checks:
-   * <p>
-   * ---------
-   * The probes have different meaning with different results:
-   * <p>
-   * - failing liveness probes  -> restart pod
-   * - failing readiness probes -> do not send traffic to that pod
-   * <p>
-   * See <a href="https://stackoverflow.com/questions/54744943/why-both-liveness-is-needed-with-readiness">...</a>
-   *
-   *  @deprecated Use healthcheck or readycheck instead.
-   * ---------
-   *
-   * @return a success response if all is ok
-   */
-  @Deprecated(since="1.8.1", forRemoval = true)
-  @GET
-  @Path("/ready")
-  @Produces(MediaType.APPLICATION_JSON)
-  @PermitAll
-  public Response ready()
-  {
-    return readycheck();
   }
 
   /* ---------------------------------------------------------------------------- */

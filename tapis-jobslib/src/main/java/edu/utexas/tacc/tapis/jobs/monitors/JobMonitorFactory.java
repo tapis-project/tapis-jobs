@@ -61,7 +61,7 @@ public class JobMonitorFactory
         if (jobType == JobType.FORK) {
             monitor = switch (runtime) {
                 case DOCKER      -> new DockerNativeMonitor(jobCtx, policy);
-                case SINGULARITY -> getSingularityOption(jobCtx, policy, app);
+                case SINGULARITY -> new SingularityRunMonitor(jobCtx, policy);
                 case ZIP         -> new ZipNativeMonitor(jobCtx, policy);
                 default -> {
                     String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
@@ -101,24 +101,6 @@ public class JobMonitorFactory
         }
         
         return monitor;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* getSingularityOption:                                                  */
-    /* ---------------------------------------------------------------------- */
-    private static JobMonitor getSingularityOption(JobExecutionContext jobCtx,
-                                                   MonitorPolicy policy,
-                                                   TapisApp app)
-     throws JobException
-    {
-        // We are only interested in the singularity options.  These have
-        // been validated in JobExecStageFactory, so no need to repeat here.
-        var opts = app.getRuntimeOptions();
-        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
-        
-        // Create the specified monitor.
-        if (start) return new SingularityStartMonitor(jobCtx, policy);
-          else return new SingularityRunMonitor(jobCtx, policy);
     }
     
     /* ---------------------------------------------------------------------- */

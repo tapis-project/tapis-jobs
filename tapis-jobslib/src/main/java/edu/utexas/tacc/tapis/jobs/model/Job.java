@@ -200,8 +200,6 @@ public final class Job
     /* ---------------------------------------------------------------------------- */
     /* toString:                                                                    */
     /* ---------------------------------------------------------------------------- */
-    // TODO Remove/replace this? When debugging in Intellij it appears to lead to
-    //   infinite recursion and the debugger will only continue after a stack overflow error.
     @Override
     public String toString() {return TapisUtils.toString(this);}
 

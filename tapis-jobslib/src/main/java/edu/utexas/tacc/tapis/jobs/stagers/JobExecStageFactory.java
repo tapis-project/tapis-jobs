@@ -102,28 +102,6 @@ public final class JobExecStageFactory
     }
 
     /* ---------------------------------------------------------------------- */
-    /* getForkSingularityStager:                                              */
-    /* ---------------------------------------------------------------------- */
-    private static JobExecStager getForkSingularityStager(JobExecutionContext jobCtx,
-                                                          RuntimeOptionEnum runtimeOption)
-            throws TapisException
-    {
-        // Get the scheduler's stager.
-        JobExecStager stager = switch (runtimeOption) {
-            case SINGULARITY_RUN   -> new SingularityRunStager(jobCtx);
-
-            default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
-                                             runtimeOption + "(SINGULARITY)",
-                                             "JobExecStageFactory");
-                throw new JobException(msg);
-            }
-        };
-
-        return stager;
-    }
-
-    /* ---------------------------------------------------------------------- */
     /* getBatchSingularityStager:                                             */
     /* ---------------------------------------------------------------------- */
     private static JobExecStager getBatchSingularityStager(JobExecutionContext jobCtx,

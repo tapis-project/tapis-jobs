@@ -2868,31 +2868,6 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     	}
     	
-        // This should be checked in apps, but we double check here.
-        if (app.getRuntime() == RuntimeEnum.SINGULARITY) {
-            
-            // Make sure one runtime execution option is chosen.
-            var opts = app.getRuntimeOptions();
-            boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
-            boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
-            
-            // Did we get conflicting information?
-            if (start && run) {
-                String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT", 
-                                             _job.getUuid(), 
-                                             app.getId(),
-                                             RuntimeOptionEnum.SINGULARITY_START.name(),
-                                             RuntimeOptionEnum.SINGULARITY_RUN.name());
-                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
-            if (!(start || run)) {
-                String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_MISSING", 
-                                             _job.getUuid(),
-                                             app.getId());
-                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
-        }
-        
         // Check that the log configuration is complete if it's provided.  Either both
         // file names are null or both are provided; it's an error if only 1 is provided.
         if (app.getJobAttributes() != null && app.getJobAttributes().getParameterSet() != null)

@@ -102,7 +102,7 @@ public class JobHistoryResource extends AbstractResource {
      @Path("/{jobUuid}/history")
      @Produces(MediaType.APPLICATION_JSON)
      public Response getJobHistory(@PathParam("jobUuid") String jobUuid, @QueryParam("limit") int limit,
-				@QueryParam("skip") int skip, @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+				@QueryParam("skip") int skip)
                                
      {
        // Trace this request.
@@ -117,7 +117,7 @@ public class JobHistoryResource extends AbstractResource {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
@@ -127,7 +127,7 @@ public class JobHistoryResource extends AbstractResource {
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // orderBy is of the format - fname1(desc), fname2, fname3(asc), ...
@@ -149,12 +149,12 @@ public class JobHistoryResource extends AbstractResource {
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
       
            
@@ -165,7 +165,7 @@ public class JobHistoryResource extends AbstractResource {
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        
        } else if(!jobstatus.getVisible()) {
     	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
@@ -174,7 +174,7 @@ public class JobHistoryResource extends AbstractResource {
        	   missingName.name = jobUuid;
        	   RespName r = new RespName(missingName);
        	   return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-            msg, prettyPrint, r)).build();
+            msg, r)).build();
        }
       
        List<JobEvent> events = null;
@@ -184,11 +184,11 @@ public class JobHistoryResource extends AbstractResource {
        	} catch (TapisImplException e) {
     	   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        	} catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        
        
@@ -200,11 +200,11 @@ public class JobHistoryResource extends AbstractResource {
 		} catch (TapisImplException e) {
 			_log.error(e.getMessage(), e);
 	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	       	} catch (Exception e) {
 	           _log.error(e.getMessage(), e);
 	           return Response.status(Status.INTERNAL_SERVER_ERROR).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	       }
        }
        // Success.
@@ -212,6 +212,6 @@ public class JobHistoryResource extends AbstractResource {
 	     
        return Response.status(Status.OK).entity(TapisRestUtils
     		   .createSuccessResponse(
-               MsgUtils.getMsg("JOBS_HISTORY_RETRIEVED",  threadContext.getOboTenantId(),threadContext.getOboUser(),jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("JOBS_HISTORY_RETRIEVED",  threadContext.getOboTenantId(),threadContext.getOboUser(),jobUuid), r)).build();
      }
 }

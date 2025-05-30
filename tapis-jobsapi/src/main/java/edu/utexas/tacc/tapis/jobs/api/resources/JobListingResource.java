@@ -110,8 +110,7 @@ extends AbstractResource
 			@QueryParam("startAfter") int startAfter,
 			@QueryParam("orderBy") String OrderBy,
 			@QueryParam("computeTotal")  boolean computeTotal,
-			@DefaultValue("MY_JOBS") @QueryParam("listType") String listType,
-			@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+			@DefaultValue("MY_JOBS") @QueryParam("listType") String listType)
 
 	{
 		// Trace this request.
@@ -128,7 +127,7 @@ extends AbstractResource
 			var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
 			_log.error(msg);
 			return Response.status(Status.INTERNAL_SERVER_ERROR).
-					entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+					entity(TapisRestUtils.createErrorResponse(msg)).build();
 		}
 
 		// ------ Set default values for the reserved query parameters ------------
@@ -146,7 +145,7 @@ extends AbstractResource
 		if(!EnumUtils.isValidEnum(JobListType.class, listType)) {
 			String msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR", threadContext.getOboTenantId(),threadContext.getOboUser(), listType);
 			_log.error(msg);
-			return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg,prettyPrint)).build();
+			return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
 		}
 
 		boolean sharedWithMe = false;
@@ -170,7 +169,7 @@ extends AbstractResource
 		} catch (TapisImplException e) {
 			_log.error(e.getMessage(), e);
 			return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-					entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+					entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 		}
 		String sharedCond = null;
 		// Add the shared jobs UUIDs to the shared searchlist
@@ -196,7 +195,7 @@ extends AbstractResource
 				} catch (TapisImplException e) {
 					_log.error(e.getMessage(), e);
 					return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-							entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+							entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				}
 			}
 			//totalCountShared represents all the jobs that are shared with the user
@@ -207,7 +206,7 @@ extends AbstractResource
 				} catch (TapisImplException e) {
 					_log.error(e.getMessage(), e);
 					return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-							entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+							entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				}
 			} 
 
@@ -232,12 +231,12 @@ extends AbstractResource
 			catch (TapisImplException e) {
 				_log.error(e.getMessage(), e);
 				return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-						entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+						entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			}
 			catch (Exception e) {
 				_log.error(e.getMessage(), e);
 				return Response.status(Status.INTERNAL_SERVER_ERROR).
-						entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+						entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			}
 		}
 
@@ -258,7 +257,7 @@ extends AbstractResource
 			  } catch (TapisImplException e) {
 				  _log.error(e.getMessage(), e);
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-			                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			  }
 		}
 
@@ -273,7 +272,7 @@ extends AbstractResource
 			} catch (TapisImplException e) {
 				_log.error(e.getMessage(), e);
 				return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-						entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+						entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			} 
 			if(!jobSharedSummaryList.isEmpty()) {
 				jobList.addAll(jobSharedSummaryList);
@@ -283,7 +282,7 @@ extends AbstractResource
 		if(jobList.isEmpty()) {
 			String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
 			RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
-			return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,prettyPrint,r)).build(); 
+			return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,r)).build();
 		}
 
 		if (computeTotal && srchParms.getLimit() <= 0 && srchParms.getSkip() == 0) totalCount = jobList.size();
@@ -294,7 +293,7 @@ extends AbstractResource
 
 		return Response.status(Status.OK).entity(TapisRestUtils
 				.createSuccessResponse(
-						MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
+						MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
 	}
 }
 

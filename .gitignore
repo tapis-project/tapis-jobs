@@ -1,10 +1,6 @@
 # Compiled class file
 *.class
 
-# Generated files
-openapi.json
-openapi.yaml
-
 # Log file
 *.log
 

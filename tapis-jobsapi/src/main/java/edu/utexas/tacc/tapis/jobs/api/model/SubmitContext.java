@@ -17,6 +17,7 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response.Status;
+import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +66,8 @@ import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
 import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
+
+import static edu.utexas.tacc.tapis.jobs.model.Job.DEFAULT_NOTES;
 
 /* This class orchestrates the job submission process, which includes incorporating
  * and validating file, application and system information.  
@@ -2815,7 +2818,8 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /** Validate that each glob and regex in the filter lists can be compiled.
      * 
-     * @param filterName the final archive filter
+     * @param filters - final archive filter list
+     * @param filterName - name of the filter being validated, either excludes or includes, for logging
      * @throws TapisImplException on invalid filter content
      */
     private void validateArchiveFilters(List<String> filters, String filterName)
@@ -2864,31 +2868,6 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     	}
     	
-        // This should be checked in apps, but we double check here.
-        if (app.getRuntime() == RuntimeEnum.SINGULARITY) {
-            
-            // Make sure one runtime execution option is chosen.
-            var opts = app.getRuntimeOptions();
-            boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
-            boolean run   = opts.contains(RuntimeOptionEnum.SINGULARITY_RUN);
-            
-            // Did we get conflicting information?
-            if (start && run) {
-                String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_CONFLICT", 
-                                             _job.getUuid(), 
-                                             app.getId(),
-                                             RuntimeOptionEnum.SINGULARITY_START.name(),
-                                             RuntimeOptionEnum.SINGULARITY_RUN.name());
-                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
-            if (!(start || run)) {
-                String msg = MsgUtils.getMsg("TAPIS_SINGULARITY_OPTION_MISSING", 
-                                             _job.getUuid(),
-                                             app.getId());
-                throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-            }
-        }
-        
         // Check that the log configuration is complete if it's provided.  Either both
         // file names are null or both are provided; it's an error if only 1 is provided.
         if (app.getJobAttributes() != null && app.getJobAttributes().getParameterSet() != null)
@@ -3021,14 +3000,25 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* validateNotes:                                                               */
     /* ---------------------------------------------------------------------------- */
-    private void validateNotes() throws TapisImplException
+    private void validateNotes()
     {
-        // See if there are any notes in the request or, if not, the app.
-        Object notes = _submitReq.getNotes();
-        if (notes == null) notes = _app.getNotes();
-        
-        // This utility method can throw exceptions with correctly assigned response codes.
-        _submitReq.setNotesAsString(JobsApiUtils.convertInputObjectToString(notes));
+      // Set notes in submit request using following precedence:
+      //  - Notes from job submit
+      //  - Notes from app
+      //  - Default notes (empty json)
+      Object notes = _submitReq.getNotes();
+      if (notes == null) {
+        // Check notes from App
+        if (_app.getNotes() != null) {
+          // Convert from string to JsonObject
+          JsonObject jo = TapisGsonUtils.getGson().fromJson(_app.getNotes().toString(), JsonObject.class);
+          notes = jo;
+        } else {
+          // Final fallback
+          notes = DEFAULT_NOTES;
+        }
+      }
+      _submitReq.setNotes(notes);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -3137,7 +3127,7 @@ public final class SubmitContext
         }
         
         // Notes always has a well-formed json string representation of a json object.
-        _job.setNotes(_submitReq.getNotesAsString()); 
+        _job.setNotes(_submitReq.getNotes());
         
         // Assign tapisQueue now that the job object is completely initialized.
         _job.setTapisQueue(new SelectQueueName().select(_job));

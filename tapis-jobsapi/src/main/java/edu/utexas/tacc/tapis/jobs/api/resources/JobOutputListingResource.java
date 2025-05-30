@@ -106,8 +106,7 @@ public class JobOutputListingResource extends AbstractResource{
      @Produces(MediaType.APPLICATION_JSON)
      public Response getJobOutputList(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
     		 						  @QueryParam("limit") int limit,	@QueryParam("skip") int skip,
-    		 						  @DefaultValue("false") @QueryParam("allowIfRunning") boolean allowIfRunning,
-    		 						  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+    		 						  @DefaultValue("false") @QueryParam("allowIfRunning") boolean allowIfRunning)
                                
      {
        // Trace this request.
@@ -122,7 +121,7 @@ public class JobOutputListingResource extends AbstractResource{
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
@@ -132,7 +131,7 @@ public class JobOutputListingResource extends AbstractResource{
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Retrieve Job -----------------------------
@@ -145,11 +144,11 @@ public class JobOutputListingResource extends AbstractResource{
        } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        } catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        
        if (job == null) {
@@ -159,14 +158,13 @@ public class JobOutputListingResource extends AbstractResource{
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
            
        } else if(!job.isVisible()) {
            String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
            _log.warn(msg);
            return Response.status(Status.NOT_FOUND).
-                   entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid,threadContext.getOboTenantId()), 
-                          prettyPrint)).build();
+             entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE",jobUuid,threadContext.getOboTenantId()))).build();
        }
         
        // ------------------------- Check the Job's status -----------------------------
@@ -177,7 +175,7 @@ public class JobOutputListingResource extends AbstractResource{
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED",
-    			   jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint,r)).build();
+    			   jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()),r)).build();
        }
        
        // Set default parameters
@@ -205,14 +203,14 @@ public class JobOutputListingResource extends AbstractResource{
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	   }
        if(filesList == null) {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job Output Files List", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job Output Files List", jobUuid), r)).build();
        }
        
        // ------------------------- Process Results --------------------------
@@ -222,7 +220,7 @@ public class JobOutputListingResource extends AbstractResource{
        RespGetJobOutputList r = new RespGetJobOutputList(filesList,srchParms.getLimit(),srchParms.getSkip());
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),
-            		   threadContext.getOboTenantId()), prettyPrint, r)).build();
+            		   threadContext.getOboTenantId()), r)).build();
      }
      
      

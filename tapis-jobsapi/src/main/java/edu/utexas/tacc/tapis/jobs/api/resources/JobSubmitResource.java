@@ -7,13 +7,11 @@ import java.nio.charset.StandardCharsets;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -74,7 +72,9 @@ public class JobSubmitResource
         "/edu/utexas/tacc/tapis/jobs/api/jsonschema/SubmitJobRequest.json";
     private static final String FILE_USER_EVENT_REQUEST = 
             "/edu/utexas/tacc/tapis/jobs/api/jsonschema/UserEventRequest.json";
-    
+
+    private static boolean prettyPrint = false;
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -129,8 +129,7 @@ public class JobSubmitResource
      @Path("/submit")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     public Response submitJob(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                               InputStream payloadStream)
+     public Response submitJob(InputStream payloadStream)
      {
        // Trace this request.
        if (_log.isTraceEnabled()) {
@@ -150,8 +149,7 @@ public class JobSubmitResource
      @Path("/{jobUuid}/resubmit")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     public Response resubmitJob(@PathParam("jobUuid") String jobUuid,
-                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response resubmitJob(@PathParam("jobUuid") String jobUuid)
      {
     	 // Trace this request.
     	 if (_log.isTraceEnabled()) {
@@ -165,7 +163,7 @@ public class JobSubmitResource
          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit", "jobuuid");
          _log.error(msg);
          return Response.status(Status.BAD_REQUEST).
-                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                 entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Get Resubmit -----------------------------
@@ -178,7 +176,7 @@ public class JobSubmitResource
            String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
-                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                 entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // Make sure we got something.
@@ -186,7 +184,7 @@ public class JobSubmitResource
            String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // The shared code takes it from here.
@@ -199,8 +197,7 @@ public class JobSubmitResource
      @GET
      @Path("/{jobUuid}/resubmit_request")
      @Produces(MediaType.APPLICATION_JSON)
-     public Response getResubmitRequestJson(@PathParam("jobUuid") String jobUuid,
-                                 @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response getResubmitRequestJson(@PathParam("jobUuid") String jobUuid)
      {
     	 // Trace this request.
     	 if (_log.isTraceEnabled()) {
@@ -214,7 +211,7 @@ public class JobSubmitResource
          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit_reques_json", "jobuuid");
          _log.error(msg);
          return Response.status(Status.BAD_REQUEST).
-                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                 entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Get Resubmit -----------------------------
@@ -227,7 +224,7 @@ public class JobSubmitResource
            String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
-                 entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                 entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // Make sure we got something.
@@ -235,7 +232,7 @@ public class JobSubmitResource
            String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Input Processing -------------------------
@@ -247,7 +244,7 @@ public class JobSubmitResource
                                         "resubmitrequestjson", e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
        // ------------------------- Create Context ---------------------------
@@ -257,12 +254,12 @@ public class JobSubmitResource
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
       
        RespGetResubmit r = new RespGetResubmit(payload);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -272,9 +269,7 @@ public class JobSubmitResource
      @Path("/{jobUuid}/sendEvent")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     public Response sendEvent(@PathParam("jobUuid") String jobUuid,
-                               @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
-                               InputStream payloadStream)
+     public Response sendEvent(@PathParam("jobUuid") String jobUuid, InputStream payloadStream)
      {
        // Trace this request.
        if (_log.isTraceEnabled()) {
@@ -291,7 +286,7 @@ public class JobSubmitResource
            String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job send event", e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
        
        // ------------------------- Input Processing -------------------------
@@ -302,7 +297,7 @@ public class JobSubmitResource
            String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "sendEvent", e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
        // ------------------------- Create Context ---------------------------
@@ -312,7 +307,7 @@ public class JobSubmitResource
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Inspect Job ------------------------------
@@ -326,12 +321,12 @@ public class JobSubmitResource
        catch (TapisNotFoundException e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        
        // Make sure the job is in the same tenant as the requestor.  Note that this restriction
@@ -341,7 +336,7 @@ public class JobSubmitResource
                                         job.getTenant());
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
        // Don't send events to terminated jobs. The job could terminate in the window between 
@@ -351,7 +346,7 @@ public class JobSubmitResource
            String msg = MsgUtils.getMsg("JOBS_IN_TERMINAL_STATE", jobUuid, job.getStatus().name());
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Send Event -------------------------------
@@ -366,13 +361,13 @@ public class JobSubmitResource
            String msg = MsgUtils.getMsg("JOBS_CREATE_JOB_EVENT", eventName, jobUuid, e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // Success.
        RespBasic r = new RespBasic(event.getDescription());
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_CREATED", "event", eventName), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_CREATED", "event", eventName), r)).build();
      }
      
      /* **************************************************************************** */
@@ -384,7 +379,6 @@ public class JobSubmitResource
      /** Dump the payload from the input stream into a string and then call the 
       * real doSubmit method.
       * 
-      * @param prettyPrint the request's query parameter
       * @param payloadStream the request's payload
       * @return the response to the user
       */
@@ -398,7 +392,7 @@ public class JobSubmitResource
              String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job submission", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg)).build();
            }
          
          // The real submit.
@@ -425,7 +419,7 @@ public class JobSubmitResource
                                           "submitJob", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
 
          // ------------------------- Create Context ---------------------------
@@ -435,7 +429,7 @@ public class JobSubmitResource
              var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
              _log.error(msg);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
 
          // Extract Notes from the raw json. Notes require special handling. Else they end up as a LinkedTreeMap which
@@ -453,13 +447,13 @@ public class JobSubmitResource
          catch (TapisImplException e) {
              _log.error(e.getMessage(), e);
              return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
          catch (Exception e) {
              // This should never happen, but we defend against it. 
              _log.error(e.getMessage(), e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
          
          // ------------------- Create User Subscriptions ----------------------
@@ -479,7 +473,7 @@ public class JobSubmitResource
          catch (Exception e) {
              _log.error(e.getMessage(), e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
          
          // Save and sent any initial subscription events.
@@ -498,7 +492,7 @@ public class JobSubmitResource
                
                // Let the user know the job failed.
                return Response.status(Status.INTERNAL_SERVER_ERROR).
-                       entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                       entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
            }
          
          // ------------------------- Save Resubmit Info -----------------------
@@ -523,7 +517,7 @@ public class JobSubmitResource
          // Success.
          RespSubmitJob r = new RespSubmitJob(job);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("JOBS_CREATED", job.getUuid()), prettyPrint, r)).build();
+                 MsgUtils.getMsg("JOBS_CREATED", job.getUuid()), r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -552,7 +546,7 @@ public class JobSubmitResource
                                               job.getOwner(), job.getTenant(), e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.INTERNAL_SERVER_ERROR).
-                         entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                         entity(TapisRestUtils.createErrorResponse(msg)).build();
              }
                  
              // Log subscriptions created.

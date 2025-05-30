@@ -99,8 +99,7 @@ public class JobStatusResource
      @GET
      @Path("/{jobUuid}/status")
      @Produces(MediaType.APPLICATION_JSON)
-     public Response getJobStatus(@PathParam("jobUuid") String jobUuid,
-                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response getJobStatus(@PathParam("jobUuid") String jobUuid)
                                
      {
        // Trace this request.
@@ -115,7 +114,7 @@ public class JobStatusResource
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
@@ -125,7 +124,7 @@ public class JobStatusResource
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Retrieve Job Status-----------------------------
@@ -138,11 +137,11 @@ public class JobStatusResource
        } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        } catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        // ------------------------- Process Results --------------------------
        if (jobstatus == null) {
@@ -150,7 +149,7 @@ public class JobStatusResource
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        
        } else if(!jobstatus.getVisible()) {
     	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
@@ -159,7 +158,7 @@ public class JobStatusResource
        	   missingName.name = jobUuid;
        	   RespName r = new RespName(missingName);
        	   return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-            msg, prettyPrint, r)).build();
+            msg, r)).build();
        }
        
        // Success.
@@ -169,6 +168,6 @@ public class JobStatusResource
     	   resultStatus.setCondition(jobstatus.getCondition().name());
        RespGetJobStatus r = new RespGetJobStatus(resultStatus);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_STATUS_RETRIEVED", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("JOBS_STATUS_RETRIEVED", jobUuid), r)).build();
      }
 }

@@ -95,8 +95,7 @@ public class JobCancelResource extends AbstractResource {
      @POST
      @Path("/{jobUuid}/cancel")
      @Produces(MediaType.APPLICATION_JSON)
-     public Response cancelJob(@PathParam("jobUuid") String jobUuid,
-                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response cancelJob(@PathParam("jobUuid") String jobUuid)
                                
      {
        // Trace this request.
@@ -111,7 +110,7 @@ public class JobCancelResource extends AbstractResource {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
@@ -121,7 +120,7 @@ public class JobCancelResource extends AbstractResource {
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Retrieve Job -----------------------------
@@ -135,12 +134,12 @@ public class JobCancelResource extends AbstractResource {
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
 
        // ------------------------- Process Results --------------------------
@@ -150,7 +149,7 @@ public class JobCancelResource extends AbstractResource {
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        }
        // ------------------------- Check the Job's status -----------------------------
        // If job is in terminal state then job cancellation cannot be performed.
@@ -162,15 +161,14 @@ public class JobCancelResource extends AbstractResource {
            String msg = MsgUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid);
            _log.warn(msg);
     	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(
-                   MsgUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint, r)).build(); 
+                   MsgUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), r)).build();
        }
        
        //------------------------- Cancel the Job  -----------------------------
        // initiate the cancellation.
        if (!jobsImpl.doCancelJob(jobUuid, threadContext))
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid),
-                       prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid))).build();
                        
        // ---------------------------- Success -------------------------------
        // Success.
@@ -180,7 +178,7 @@ public class JobCancelResource extends AbstractResource {
        
        RespCancelJob r = new RespCancelJob(cancelMsg); 
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED_DETAILS", jobUuid), prettyPrint,r)).build();
+               MsgUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED_DETAILS", jobUuid),r)).build();
      }
      
      

@@ -12,6 +12,10 @@ https://tapis-project.github.io/live-docs
 ## 1.9.0 - 2025-??-??
 
 Incremental improvements.
+WIP: item 4 below, return top level notes attr as json rather than a string with json embedded.
+     WMA group prefers we do all these conversions at once.
+     Other attrs to convert: parameterSet, subscriptions, fileInputs,
+     The others will take longer than the work on notes.
 
 ### New Features:
 - Move openapi specification file to repo tapis-project/openapi-jobs

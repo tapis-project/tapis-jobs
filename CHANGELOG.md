@@ -21,9 +21,6 @@ Incremental improvements.
 1. Support for the deprecated runtime option *SINGULARITY_START* has been removed.
 2. The deprecated endpoints *ready* and *sayHello* have been removed. Please use the endpoints *healthcheck* and *readycheck*.
 3. The query parameter *pretty* has been removed.
-4. When fetching a job via the getJob endpoint the json type for the attribute *notes* has been
-   changed from type *string* to type *object*. Previously, the *notes* attribute was returned as a
-   string with embedded json. Now it is returned as a standard json structured object.
 
 ### Bug fixes:
 1. None

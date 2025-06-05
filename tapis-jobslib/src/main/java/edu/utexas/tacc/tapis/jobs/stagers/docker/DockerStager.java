@@ -267,7 +267,7 @@ public class DockerStager
      throws JobException
     {
         // Get the list of user-specified container arguments.
-        var parmSet = _job.getParameterSetModel();
+        var parmSet = _job.getParameterSet();
         var opts    = parmSet.getContainerArgs();
         if (opts == null || opts.isEmpty()) return;
         

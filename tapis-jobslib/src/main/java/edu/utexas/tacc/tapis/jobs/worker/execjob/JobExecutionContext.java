@@ -747,7 +747,7 @@ public final class JobExecutionContext
         
     		// See if the user requested us not to delete the downloaded archive file.
     		boolean zipSave = false;
-    		var containerArgs = _job.getParameterSetModel().getContainerArgs();
+    		var containerArgs = _job.getParameterSet().getContainerArgs();
     		for (var arg : containerArgs)
     			if (Job.TAPIS_ZIP_SAVE.equals(arg.getArg().strip())) {
     				zipSave = true;

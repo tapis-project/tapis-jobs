@@ -107,7 +107,7 @@ public final class Job
     private int      			maxMinutes = DEFAULT_MAX_MINUTES;
     
     private String   			fileInputs = EMPTY_JSON_ARRAY;
-    private String   			parameterSet = EMPTY_JSON;
+    private JobParameterSet	parameterSet = new JobParameterSet();
     private String              execSystemConstraints;
     private String              subscriptions = EMPTY_JSON;
     
@@ -166,10 +166,6 @@ public final class Job
     @Schema(hidden = true)
     private List<JobFileInput>      _fileInputsSpec;
     
-    // The parsed version of the parameterSet json string cached for future use. 
-    @Schema(hidden = true)
-    private JobParameterSet         _parameterSetModel;
-    
     // Only one command at a time is stored, so there's the possibility
     // of an unread command being overwritten, but sending multiple
     // asynchronous commands to a job is indeterminate anyway. The field
@@ -218,18 +214,6 @@ public final class Job
         return _fileInputsSpec;
     }
     
-    /* ---------------------------------------------------------------------------- */
-    /* getParameterSetModel:                                                        */
-    /* ---------------------------------------------------------------------------- */
-    @Schema(hidden = true)
-    public JobParameterSet getParameterSetModel() 
-    {
-        // Cache the parsed parameter set if it doesn't exist.
-        if (_parameterSetModel == null)
-            _parameterSetModel = TapisGsonUtils.getGson().fromJson(parameterSet, JobParameterSet.class);
-        return _parameterSetModel;
-    }
-
     /* ---------------------------------------------------------------------------- */
     /* isArchiveSameAsOutput:                                                       */
     /* ---------------------------------------------------------------------------- */
@@ -435,7 +419,7 @@ public final class Job
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "fileInputs");
             throw new JobException(msg);
         }
-        if (StringUtils.isBlank(parameterSet)) {
+        if (parameterSet == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "parameterSet");
             throw new JobException(msg);
         }
@@ -490,16 +474,10 @@ public final class Job
             }
         }
         
-        // This forces the parameter set json to be parsed.
-        if (getParameterSetModel() == null) {
-            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "parameterSet");
-            throw new JobException(msg);
-        }
-        
         // The log configuration must always exist and be completely initialized
         // even though it may be not be used in certain scenarios.
-        if (getParameterSetModel().getLogConfig() == null || 
-            !getParameterSetModel().getLogConfig().isComplete()) {
+        if (parameterSet.getLogConfig() == null ||
+            !parameterSet.getLogConfig().isComplete()) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "parameterSet.logConfig");
             throw new JobException(msg);
         }
@@ -783,11 +761,11 @@ public final class Job
 		this.fileInputs = inputs;
 	}
 
-	public String getParameterSet() {
+	public JobParameterSet getParameterSet() {
 		return parameterSet;
 	}
 
-	public void setParameterSet(String parameters) {
+	public void setParameterSet(JobParameterSet parameters) {
 		this.parameterSet = parameters;
 	}
 

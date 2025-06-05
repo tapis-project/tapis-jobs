@@ -186,7 +186,7 @@ public class SlurmOptions
             throws JobException
     {
         // Get the list of user-specified container arguments.
-        var parmSet = _job.getParameterSetModel();
+        var parmSet = _job.getParameterSet();
         var opts    = parmSet.getSchedulerOptions();
         if (opts == null || opts.isEmpty()) return;
 
@@ -674,7 +674,7 @@ public class SlurmOptions
         if (StringUtils.isBlank(getOutput()) && StringUtils.isBlank(getArray())) {
         	// The log configuration should never be null after getting the parameter set model.
         	// Unset output files use the default file, though they should always be set by now.
-        	var logConfig = _job.getParameterSetModel().getLogConfig();
+        	var logConfig = _job.getParameterSet().getLogConfig();
         	
         	// Get the output and error file names.
         	var fout = logConfig.getStdoutFilename();

@@ -1,7 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
 import org.testng.annotations.Test;
-
+import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
@@ -79,8 +80,9 @@ public class CreateJobWithConstraintsTest
 	    job.setExecSystemConstraints(constraints);
 	    
 	    String parms = "{\"parameterSet\": {\"appArgs\": [{\"arg\": \"-f x.txt\"}, {\"arg\": \"banana\"}]}}";
-	    job.setParameterSet(parms);
-	    
+	    JobParameterSet parmSet = TapisGsonUtils.getGson().fromJson(parms, JobParameterSet.class);
+	    job.setParameterSet(parmSet);
+
 		return job;
 	}
 }

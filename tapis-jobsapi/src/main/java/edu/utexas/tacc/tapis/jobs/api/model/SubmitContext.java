@@ -27,7 +27,6 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetLogConfig;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
@@ -41,6 +40,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobKeyValuePair;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
@@ -51,7 +51,6 @@ import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
@@ -1660,7 +1659,7 @@ public final class SubmitContext
     		}
     		
     		// Add the input file envKey to the list of environment variables.
-    		var newKV = new KeyValuePair();
+    		var newKV = new JobKeyValuePair();
     		newKV.setKey(newKey);
     		newKV.setValue(inputEnvKey.getTargetPath());
     		newKV.setDescription("EnvKey from input file: " + inputFilename);
@@ -3102,13 +3101,13 @@ public final class SubmitContext
         // populated list is then sorted and the whole parameter set serialized.
         var envVars = _submitReq.getParameterSet().getEnvVariables();
         for (var entry : _macros.entrySet()) {
-            var kv = new KeyValuePair();
+            var kv = new JobKeyValuePair();
             kv.setKey(Job.TAPIS_ENV_VAR_PREFIX + entry.getKey());
             kv.setValue(entry.getValue());
             envVars.add(kv);
         }
         envVars.sort(new KeyValuePairComparator());
-        _job.setParameterSet(TapisGsonUtils.getGson(false).toJson(_submitReq.getParameterSet()));
+        _job.setParameterSet(_submitReq.getParameterSet());
             
         // Tags.
         var tags = new TreeSet<String>();
@@ -3140,10 +3139,10 @@ public final class SubmitContext
     /*                        KeyValuePairComparator class                          */
     /* **************************************************************************** */
     private static final class KeyValuePairComparator
-     implements Comparator<KeyValuePair>
+     implements Comparator<JobKeyValuePair>
     {
         @Override
-        public int compare(KeyValuePair o1, KeyValuePair o2) 
+        public int compare(JobKeyValuePair o1, JobKeyValuePair o2)
         {return o1.getKey().compareToIgnoreCase(o2.getKey());}
     }
     

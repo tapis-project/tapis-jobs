@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
-import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 
 /** This is the java model for the parameterSet JSON value defined in 
  * SubmitJobRequest.json. 
@@ -16,7 +15,7 @@ public class JobParameterSet
     private List<JobArgSpec>     appArgs;
     private List<JobArgSpec>     containerArgs;
     private List<JobArgSpec>     schedulerOptions;
-    private List<KeyValuePair>   envVariables;
+    private List<JobKeyValuePair>   envVariables;
     private IncludeExcludeFilter archiveFilter;
     private LogConfig            logConfig; 
     
@@ -31,7 +30,7 @@ public class JobParameterSet
         if (appArgs == null) appArgs = new ArrayList<JobArgSpec>();
         if (containerArgs == null) containerArgs = new ArrayList<JobArgSpec>();
         if (schedulerOptions == null) schedulerOptions = new ArrayList<JobArgSpec>();
-        if (envVariables == null) envVariables = new ArrayList<KeyValuePair>();
+        if (envVariables == null) envVariables = new ArrayList<JobKeyValuePair>();
         if (archiveFilter == null) archiveFilter = new IncludeExcludeFilter(); // initAll called
         if (logConfig == null) logConfig = new LogConfig(); // internal members unassigned
     }
@@ -54,10 +53,10 @@ public class JobParameterSet
     public void setSchedulerOptions(List<JobArgSpec> schedulerOptions) {
         this.schedulerOptions = schedulerOptions;
     }
-    public List<KeyValuePair> getEnvVariables() {
+    public List<JobKeyValuePair> getEnvVariables() {
         return envVariables;
     }
-    public void setEnvVariables(List<KeyValuePair> envVariables) {
+    public void setEnvVariables(List<JobKeyValuePair> envVariables) {
         this.envVariables = envVariables;
     }
     public IncludeExcludeFilter getArchiveFilter() {

@@ -988,7 +988,7 @@ public final class JobFileManager
     {
         // -------------------- Assess Work ------------------------------
         // Get the archive filter spec in canonical form.
-        var parmSet = _job.getParameterSetModel();
+        var parmSet = _job.getParameterSet();
         var archiveFilter = parmSet.getArchiveFilter();
         if (archiveFilter == null) archiveFilter = new IncludeExcludeFilter();
         archiveFilter.initAll();

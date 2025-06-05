@@ -21,6 +21,7 @@ import java.util.TreeSet;
 
 import javax.sql.DataSource;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
@@ -47,6 +48,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
@@ -1347,7 +1349,7 @@ public final class JobsDao
           pstmt.setInt(27, job.getMaxMinutes());
               
           pstmt.setString(28, job.getFileInputs());                 
-          pstmt.setString(29, job.getParameterSet());             
+          pstmt.setString(29, TapisGsonUtils.getGson().toJson(job.getParameterSet()));
           pstmt.setString(30, job.getExecSystemConstraints());                 
           pstmt.setString(31, job.getSubscriptions());             
 
@@ -3088,7 +3090,7 @@ public final class JobsDao
 	          throw new TapisException(msg);
 		}
 		
-		if (StringUtils.isBlank(job.getParameterSet())) {
+		if (job.getParameterSet() == null) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "parameterSet");
 	          throw new TapisException(msg);
 		}
@@ -3149,6 +3151,9 @@ public final class JobsDao
 	    // which is the order specified in all calling methods.
 	    Job obj = new Job();
 	    try {
+	        // Populate parameter set based on json object from DB
+	        String parmSetStr = rs.getString(31);
+	        JobParameterSet parmSet = TapisGsonUtils.getGson().fromJson(parmSetStr, JobParameterSet.class);
 	        obj.setId(rs.getInt(1));
 	        obj.setName(rs.getString(2));
 	        obj.setOwner(rs.getString(3));
@@ -3187,7 +3192,7 @@ public final class JobsDao
 	        obj.setMaxMinutes(rs.getInt(29));
 	        
 	        obj.setFileInputs(rs.getString(30));
-	        obj.setParameterSet(rs.getString(31));
+	        obj.setParameterSet(parmSet);
 	        obj.setExecSystemConstraints(rs.getString(32));
 	        obj.setSubscriptions(rs.getString(33));	        
 	        

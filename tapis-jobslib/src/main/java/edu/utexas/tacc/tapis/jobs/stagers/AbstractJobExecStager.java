@@ -165,7 +165,7 @@ public abstract class AbstractJobExecStager
     protected String concatAppArguments()
     {
         // Get the list of user-specified container arguments.
-        var parmSet = _job.getParameterSetModel();
+        var parmSet = _job.getParameterSet();
         var opts    = parmSet.getAppArgs();
         if (opts == null || opts.isEmpty()) return null;
         
@@ -205,7 +205,7 @@ public abstract class AbstractJobExecStager
     {
         // Get the user-supplied or defaulted log configuration and
         // create the new log configuration for this command.
-        var origConfig     = _job.getParameterSetModel().getLogConfig();
+        var origConfig     = _job.getParameterSet().getLogConfig();
         var resolvedConfig = new LogConfig();
 
         // We must always fully qualify at least one of the paths.
@@ -236,7 +236,7 @@ public abstract class AbstractJobExecStager
     {
         var envVariables = new ArrayList<Pair<String, String>>();
         // Get the list of environment variables.
-        var parmSet = _job.getParameterSetModel();
+        var parmSet = _job.getParameterSet();
         var envList = parmSet.getEnvVariables();
         if (envList == null || envList.isEmpty()) return envVariables;
         // Process each environment variable.

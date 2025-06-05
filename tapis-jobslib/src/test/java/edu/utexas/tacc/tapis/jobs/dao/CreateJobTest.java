@@ -1,7 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
 import org.testng.annotations.Test;
-
+import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
@@ -66,7 +67,8 @@ public class CreateJobTest
 				+ "                \"schedulerOptions\": [{\"arg\": \"-A 34493\"}], "
 				+ "                \"envVariables\": [{\"key\": \"TAPIS_SERVICE\", \"value\": \"jobs\"}]"
 				+ "}}";
-	    job.setParameterSet(json);
+			JobParameterSet parmSet = TapisGsonUtils.getGson().fromJson(json, JobParameterSet.class);
+	    job.setParameterSet(parmSet);
 	    
 		return job;
 	}

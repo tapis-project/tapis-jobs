@@ -18,10 +18,10 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetArchiveFilter;
 import edu.utexas.tacc.tapis.jobs.model.IncludeExcludeFilter;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobArgSpec;
+import edu.utexas.tacc.tapis.jobs.model.submit.JobKeyValuePair;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import edu.utexas.tacc.tapis.shared.model.KeyValuePair;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class JobParmSetMarshaller 
@@ -228,7 +228,7 @@ public final class JobParmSetMarshaller
      * @param sysKvList systems generated kv list or null
      * @throws TapisImplException 
      */
-    public void mergeEnvVariables(List<KeyValuePair> reqKvList,
+    public void mergeEnvVariables(List<JobKeyValuePair> reqKvList,
                                   List<edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair> appKvList,
                                   List<edu.utexas.tacc.tapis.systems.client.gen.model.KeyValuePair> sysKvList) 
      throws TapisImplException
@@ -337,7 +337,7 @@ public final class JobParmSetMarshaller
      * @param reqKvList the list of candidate env variables
      * @throws TapisImplException on validation failure
      */
-    private void finalizeEnvVariables(List<KeyValuePair> reqKvList) 
+    private void finalizeEnvVariables(List<JobKeyValuePair> reqKvList)
      throws TapisImplException
     {
     	// Validate and finalize each env variable in the request list.
@@ -362,7 +362,7 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* mergeAppIntoReqEnvVariable:                                                  */
     /* ---------------------------------------------------------------------------- */
-    private void mergeAppIntoReqEnvVariable(KeyValuePair reqKv, 
+    private void mergeAppIntoReqEnvVariable(JobKeyValuePair reqKv,
     				 edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv) 
      throws TapisImplException
     {
@@ -498,10 +498,10 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* convertToKeyValuePair:                                                       */
     /* ---------------------------------------------------------------------------- */
-    private KeyValuePair convertToKeyValuePair(
+    private JobKeyValuePair convertToKeyValuePair(
     	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv)
     {
-        var jobKv = new KeyValuePair();
+        var jobKv = new JobKeyValuePair();
         jobKv.setKey(appKv.getKey());
         jobKv.setDescription(appKv.getDescription());
         jobKv.setValue(appKv.getValue());
@@ -536,7 +536,7 @@ public final class JobParmSetMarshaller
      * @return true to merge the app/system variable, false to discard it
      */
     private boolean includeEnvVarByDefault(
-    	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv, List<KeyValuePair> reqList)
+    	edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair appKv, List<JobKeyValuePair> reqList)
     {
         // See if the include-by-default appKey has been explicitly excluded in the request.
         for (var reqKv : reqList) {
@@ -570,7 +570,7 @@ public final class JobParmSetMarshaller
      * @param reqList the request variable list that might reference the candidate appKv
      * @return true to merge the app/system variable, false to discard it
      */
-    private boolean includeEnvVarOnDemand(String appKey, List<KeyValuePair> reqList)
+    private boolean includeEnvVarOnDemand(String appKey, List<JobKeyValuePair> reqList)
     {
         // See if the include-on-demand appArg should be included in the 
         // request by either being simply referenced or explicitly included.
@@ -741,7 +741,7 @@ public final class JobParmSetMarshaller
      * @throws TapisImplException when a job request env variable tries to change a FIXED app/system variable
      */
     private void detectFixedEnvVarOverride(
-    				   KeyValuePair reqKv,
+    				   JobKeyValuePair reqKv,
     		           edu.utexas.tacc.tapis.apps.client.gen.model.KeyValuePair fixedAppKv)
      throws TapisImplException
     {

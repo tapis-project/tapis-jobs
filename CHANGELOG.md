@@ -12,6 +12,10 @@ https://tapis-project.github.io/live-docs
 ## 1.9.0 - 2025-??-??
 
 Incremental improvements.
+WIP: item 4 below, return top level notes attr as json rather than a string with json embedded.
+     WMA group prefers we do all these conversions at once.
+     Other attrs to convert: parameterSet, subscriptions, fileInputs,
+     The others will take longer than the work on notes.
 
 ### New Features:
 - Move openapi specification file to repo tapis-project/openapi-jobs
@@ -24,6 +28,10 @@ Incremental improvements.
 4. When fetching a job via the getJob endpoint the json type for the attribute *notes* has been
    changed from type *string* to type *object*. Previously, the *notes* attribute was returned as a
    string with embedded json. Now it is returned as a standard json structured object.
+4. TODO: When fetching a job via the getJob endpoint the json type for some of the complex attributes are returned as strings
+   with embedded json. The attributes treated this way are *fileInputs*, *parameterSet*, *subscriptions* and *notes*.
+   These attributes are now returned as json type *object* instead of type *string*. So now the data will be returned
+   as standard json making it easier to view and process.
 
 ### Bug fixes:
 1. None

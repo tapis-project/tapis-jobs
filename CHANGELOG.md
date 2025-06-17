@@ -9,6 +9,11 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 -----------------------
+## 1.8.5-HOTFIX1 - 2025-06-17
+### New Features:
+- Support Apptainer (i.e. Singularity) option --fakeroot
+
+-----------------------
 ## 1.8.5 - 2025-05-08
 
 **WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed

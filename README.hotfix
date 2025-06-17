@@ -1,0 +1,47 @@
+Preparing for a hotfix after a point release, in this case 1.8.5-hotfix
+
+1. Create hotfix branches for all java code repositories, in this case:
+   - tapis-bom
+   - tapis-client-java
+   - tapis-shared-java
+   - openapi-systems
+   - openapi-apps
+   - openapi-files
+   - openapi-notifications
+   - openapi-security
+   - tapis-jobs
+
+2. In the hotfix branch of repo tapis-client-java, update pom files in for clients that have a specPath.
+   - apps-client/pom.xml
+   - files-client/pom.xml
+   - notifications-client/pom.xml
+   - security-client/pom.xml
+   - systems-client/pom.xml
+  Change specPath to point at hotfix branches. For example, for apps-client/pom.xml:
+    <specPath>https://raw.githubusercontent.com/tapis-project/openapi-apps/1.8.5-hotfix/AppsAPI.yaml</specPath>
+
+3. Update the snapshot versions for tapis-bom, tapis-client-java, tapis-shared-java.
+   Use mvn, e.g.
+      mvn versions:set -DgenerateBackupPoms=false -DnewVersion=2.0.222
+   Note that making the local snapshots look like the most recent version even though it is older code
+   is needed for maven to properly resolve dependencies.
+
+Creating a hotfix deployment:
+1. Check out hotfix branches for shared code: tapis-bom, tapis-client-java, tapis-shared-java.
+2. Build shared code locally. First clear out local mvn cache, rm -fr ~/.m2/repository/edu/utexas/tacc/tapis
+3. Check out the hotfix branch for the service that requires a change.
+4. Make changes to the hotfix branch for the service. Commit updates.
+5. Build the service locally.
+6. Edit and run the special script to create the new docker images. The script must be custom created for each service and hotfix.
+   - For example, for jobs hotfix branch 1.8.5-hotfix the script is tapis-jobs/jobs_manual_build_deploy.sh
+   - The script is based on the jenkins job TapisJava -> 3_ManualBuildDeploy -> jobs
+   - To run this script, the docker user and password must be set, e.g.
+     - export DCKR_USER=scblack, export DCKR_PW=*********
+   - The docker user must have permission to push to the appropriate docker hub repo, e.g. tapis/jobsapi
+   - The script creates new docker images and tags them
+     - #DCKR_TAG1="staging"
+     - DCKR_TAG2="prod"
+     - DCKR_TAG3="1.6.0"
+     - DCKR_TAG4="latest"
+   NOTE: The tags above may include "staging". To build images for "prod" only, edit the script to
+         comment out all references to DCKR_TAG1.

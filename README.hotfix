@@ -41,7 +41,7 @@ Creating a hotfix deployment:
    - The script creates new docker images and tags them
      - #DCKR_TAG1="staging"
      - DCKR_TAG2="prod"
-     - DCKR_TAG3="1.6.0"
+     - DCKR_TAG3="1.8.5"
      - DCKR_TAG4="latest"
    NOTE: The tags above may include "staging". To build images for "prod" only, edit the script to
          comment out all references to DCKR_TAG1.

@@ -353,7 +353,10 @@ abstract class AbstractSingularityStager
             case "--writable-tmpfs":
                 singularityCmd.setWritableTmpfs(true);
                 break;
-                
+            case "--fakeroot":
+                singularityCmd.setFakeRoot(true);
+                break;
+
             default:
                 // The following options are reserved for tapis-only use.
                 // If the user specifies any of them as a container option,

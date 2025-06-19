@@ -16,6 +16,7 @@ Incremental improvements.
 ### New Features:
 - Move openapi specification file to repo tapis-project/openapi-jobs
 - Support runtime setting TAPIS_LOCAL_NODE_NAME=auto. When set to *auto* the local host name is used.
+- Support Apptainer (i.e. Singularity) option --fakeroot
 
 ### Breaking Changes:
 1. Support for the deprecated runtime option *SINGULARITY_START* has been removed.
@@ -23,7 +24,7 @@ Incremental improvements.
 3. The query parameter *pretty* has been removed.
 
 ### Bug fixes:
-1. None
+- None
 
 -----------------------
 ## 1.8.5 - 2025-05-08

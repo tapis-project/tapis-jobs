@@ -6,8 +6,6 @@ source ~/.bash_profile
 
 SVC_NAME=jobs
 
-# sdk use java 17.0.2-open
-#sdk use java 17.0.6-tem
 sdk use java 21.0.5-tem
 sdk use maven 3.6.3
 
@@ -46,35 +44,46 @@ if [ $RET_CODE -ne 0 ]; then
   exit $RET_CODE
 fi
 
+if [ "$JobsDeploy" == "true" -a "$JobsPublish" == "true" ]; then
+  # Set flag indicating this is a manual deploy
+  # docker_build.sh script will tag image with tapis/<service_name>:dev
+  export TAPIS_DEPLOY_MANUAL=true
+fi
 # Jobs Publish Image
 echo "JobsPublish = $JobsPublish"
 if [ "$JobsPublish" == "true" ]; then
-	echo "************************ Building & Publishing Jobs Image"
-	docker login -u $DCKR_USERNAME -p $DCKR_PASSWD
-	deployment/build-jobsapi.sh
-	docker tag tapis/jobsapi:${TAPIS_VERSION} tapis/jobsapi:dev
-	docker push tapis/jobsapi:dev
-    
-    echo "************************ Building & Publishing Jobs Migrate Image"
-	deployment/build-jobsmigrate.sh
-	docker tag tapis/jobsmigrate:${TAPIS_VERSION} tapis/jobsmigrate:dev
-	docker push tapis/jobsmigrate:dev
-    
-    echo "************************ Building & Publishing Jobs Worker Image"
-	deployment/build-jobsworker.sh
-	docker tag tapis/jobsworker:${TAPIS_VERSION} tapis/jobsworker:dev
-	docker push tapis/jobsworker:dev
+  cd $WORKSPACE
+  echo "************************ Building & Publishing Image"
+# Build agent nodes should already logged in to docker
+#  docker login -u $DCKR_USERNAME -p $DCKR_PASSWD
+  deployment/docker_build.sh dev -push
+  RET_CODE=$?
+  if [ $RET_CODE -ne 0 ]; then
+    echo "======================================================================"
+    echo "Docker build and push failure."
+    echo "Exiting ..."
+    echo "======================================================================"
+    exit $RET_CODE
+  fi
+  cd $WORKSPACE
+#  echo "************************ Removing docker images"
+#  release/docker_rmi.sh dev
+#  RET_CODE=$?
+#  if [ $RET_CODE -ne 0 ]; then
+#    echo "======================================================================"
+#    echo "Docker rmi failure."
+#    echo "Exiting ..."
+#    echo "======================================================================"
+#    exit $RET_CODE
+#  fi
+#  cd $WORKSPACE
 fi
 
 # Jobs Deploy Service
 echo "JobsDeploy = $JobsDeploy"
 if [ "$JobsDeploy" == "true" ]; then
-	echo "************************ Deploying Service: $SVC_NAME"
-	# SSH to cic02 as the tapisdev account with access to the tapisdev k8s namespace -
-	# delete pod to make it automatically pull the latest.
-	ssh -i $HOME/.ssh/Jenkins-2018 tapisdev@129.114.35.220 \
- "cd ~/tapis-kube/$SVC_NAME/api; ./burndown; ./burnup; cd ../workers; ./burndown; ./burnup; cd ../readers; ./burndown; ./burnup"
- #  ssh -i $HOME/.ssh/Jenkins-2018 tapisdev@129.114.35.220 'cd ~/tapis-kube/jobs/workers; ./burndown; ./burnup'
- #  ssh -i $HOME/.ssh/Jenkins-2018 tapisdev@129.114.35.220 'cd ~/tapis-kube/jobs/readers; ./burndown; ./burnup'
+  echo "************************ Deploying Service: $SVC_NAME"
+  # SSH to cic02 as the tapisdev account with access to the tapisdev k8s namespace -
+  ssh -i $HOME/.ssh/Jenkins-2018 tapisdev@129.114.35.220 \
+     "cd ~/tapis-kube/$SVC_NAME/api; ./burndown; ./burnup; cd ../workers; ./burndown; ./burnup; cd ../readers; ./burndown; ./burnup"
 fi
-

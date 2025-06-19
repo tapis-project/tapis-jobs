@@ -28,6 +28,9 @@ hs_err_pid*
 # Binary targets
 target
 *~
+# Generated openapi files
+*openapi.json
+*openapi.yaml
 
 # test reports
 testreports

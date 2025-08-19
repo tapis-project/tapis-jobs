@@ -46,10 +46,7 @@ public class JobOutputListingResource extends AbstractResource{
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobOutputListingResource.class);
-    
-    
-    
-    
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -115,7 +112,9 @@ public class JobOutputListingResource extends AbstractResource{
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -123,7 +122,7 @@ public class JobOutputListingResource extends AbstractResource{
            return Response.status(Status.BAD_REQUEST).
                       entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // ------------------------- Create Context ---------------------------
        // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -133,7 +132,7 @@ public class JobOutputListingResource extends AbstractResource{
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;
        var jobsImpl = JobsImpl.getInstance();

@@ -3,15 +3,19 @@ package edu.utexas.tacc.tapis.jobs.api.utils;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
-
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.SecurityContext;
 
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import org.apache.commons.lang3.StringUtils;
-
 import com.google.gson.JsonObject;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
 
+import edu.utexas.tacc.tapis.jobs.api.JobsApplication;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
+import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -69,7 +73,7 @@ public class JobsApiUtils
      * base url could not be found.  If the optional pathSuffix is provided, it will 
      * be appended to the constructed url with a preceding slash if necessary.
      * 
-     * @param roleTenant the tenantId whose base url will be retrieved
+     * @param tenantId the tenantId whose base url will be retrieved
      * @param path the path to append to the tenant's base url
      * @param pathSuffix optional suffix to append to the path
      * @return the tenant's base url with the path and suffix appended or just the 
@@ -176,7 +180,7 @@ public class JobsApiUtils
      * See EventReaders.makeNotifEventType() for the schema to which all Job events
      * conform.     
      * 
-     * @param jobEventType the 2nd component in a job subscription type filter
+     * @param filter the 2nd component in a job subscription type filter
      * @param eventDetail specific event or the wildcard character
      * @return the 3 part type filter string
      */
@@ -300,4 +304,13 @@ public class JobsApiUtils
         var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", objectName, fieldName, sanitized);
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     }
+
+  // Simple wrapper for checking restricted svc permissions
+  public static void checkRestrictedSvcs(SecurityContext securityContext)
+  {
+    // Create a user that collects together tenant, user and request information needed by the service call
+    ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) securityContext.getUserPrincipal());
+
+    TapisRestUtils.checkServiceRestrictions(TapisConstants.SERVICE_NAME_JOBS, JobsApplication.SVCLIST_TRUSTED, rUser);
+  }
 }

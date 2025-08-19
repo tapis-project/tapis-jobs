@@ -8,6 +8,17 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
+---------------------------------------------------------------------------
+## 1.9.1 - 2025-08-19
+
+Enhancement.
+
+### New features:
+- Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
+
+### Bug fixes:
+- None
+
 -----------------------
 ## 1.9.0 - 2025-06-23
 

@@ -132,7 +132,9 @@ public class JobSubscriptionResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // Eliminate whitespace only input.
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "subscribe", "jobUuid");
@@ -248,7 +250,9 @@ public class JobSubscriptionResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Get Job Info -----------------------------
        // Get the job DTO or return with an error response.
        Object obj = getJobDTO(jobUuid, prettyPrint);
@@ -312,7 +316,9 @@ public class JobSubscriptionResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // Determine which type of deletion takes place based on whether a job uuid is passed in.
        if (uuid.endsWith(JOB_UUID_SUFFIX)) return deleteJobSubscriptions(uuid, prettyPrint);
          else return deleteJobSubscription(uuid, prettyPrint);

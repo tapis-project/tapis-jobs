@@ -111,7 +111,9 @@ public class JobHistoryResource extends AbstractResource {
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -129,7 +131,7 @@ public class JobHistoryResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // orderBy is of the format - fname1(desc), fname2, fname3(asc), ...
        // ThreadContext designed to never return null for SearchParameters
        SearchParameters srchParms = threadContext.getSearchParameters();

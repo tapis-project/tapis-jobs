@@ -144,7 +144,9 @@ public class JobSearchResource extends AbstractResource {
                                      "  " + _request.getRequestURL());
         _log.trace(msg);
       }
-      
+
+      JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
       // ------------------------- Create Context ---------------------------
       // Validate the threadlocal content here so no subsequent code on this request needs to.
       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -154,7 +156,7 @@ public class JobSearchResource extends AbstractResource {
           return Response.status(Status.INTERNAL_SERVER_ERROR).
                   entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
-      
+
       // ---------------------- Get the Search Query Parameters --------------------
       int totalCount = DEFAULT_TOTAL_COUNT;
       List<String> searchList;
@@ -460,7 +462,9 @@ public class JobSearchResource extends AbstractResource {
                                      "  " + _request.getRequestURL());
         _log.trace(msg);
       }
-      
+
+      JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
       // ------------------------- Create Context ---------------------------
       // Validate the threadlocal content here so no subsequent code on this request needs to.
       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -470,7 +474,9 @@ public class JobSearchResource extends AbstractResource {
           return Response.status(Status.INTERNAL_SERVER_ERROR).
                   entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
-      
+
+      JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
       // ------------------------- Validate Payload -------------------------
       // Read the payload into a string.
       String rawJson = null;

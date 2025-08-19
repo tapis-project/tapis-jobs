@@ -120,6 +120,8 @@ extends AbstractResource
 			_log.trace(msg);
 		}
 
+    JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
 		// ------------------------- Create Context ---------------------------
 		// Validate the threadlocal content here so no subsequent code on this request needs to.
 		TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();

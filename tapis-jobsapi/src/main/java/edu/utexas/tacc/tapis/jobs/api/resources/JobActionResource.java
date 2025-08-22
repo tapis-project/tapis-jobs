@@ -70,7 +70,7 @@ public class JobActionResource extends AbstractResource {
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
+
      @Context
      private Application        _application;
   
@@ -122,7 +122,9 @@ public class JobActionResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
     // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
@@ -211,7 +213,9 @@ public class JobActionResource extends AbstractResource {
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -229,8 +233,8 @@ public class JobActionResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
-    // ------------------------- Retrieve Job Status-----------------------------
+
+       // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
        try {

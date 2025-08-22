@@ -104,7 +104,9 @@ public class JobCancelResource extends AbstractResource {
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -122,7 +124,7 @@ public class JobCancelResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;
        var jobsImpl = JobsImpl.getInstance();

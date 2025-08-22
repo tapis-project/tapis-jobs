@@ -128,7 +128,9 @@ public class JobShareResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // The shared code takes it from here.
        String json = null;
        try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
@@ -266,7 +268,9 @@ public class JobShareResource
                                         "  " + _request.getRequestURL());
            _log.trace(msg);
          }
-         
+
+         JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
          // ------------------------- Input Processing -------------------------
          if (StringUtils.isBlank(jobUuid)) {
              String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -377,7 +381,9 @@ public class JobShareResource
                                         "  " + _request.getRequestURL());
            _log.trace(msg);
          }
-         
+
+         JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
          // ------------------------- Input Processing -------------------------
          if (StringUtils.isBlank(jobUuid)) {
              String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");

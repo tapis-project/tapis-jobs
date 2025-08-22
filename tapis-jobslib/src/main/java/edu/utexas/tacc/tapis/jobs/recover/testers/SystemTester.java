@@ -118,7 +118,7 @@ extends AbsTester
        // We need the tenantId to be specified.
        _tenantId = testerParameters.get("tenantId");
        if (StringUtils.isBlank(_tenantId)) {
-           String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "validateTesterParameters", 
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters",
                                         "tenantId");
            _log.error(msg);
            throw new JobRecoveryAbortException(msg);

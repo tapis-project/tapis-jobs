@@ -8,23 +8,17 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
------------------------
-## 1.9.0 - 2025-??-??
+---------------------------------------------------------------------------
+## 1.9.1 - 2025-08-22
 
-Incremental improvements.
+Enhancement and bug fix.
 WIP: item 4 below, return top level notes attr as json rather than a string with json embedded.
-     WMA group prefers we do all these conversions at once.
-     Other attrs to convert: parameterSet, subscriptions, fileInputs,
-     The others will take longer than the work on notes.
+WMA group prefers we do all these conversions at once.
+Other attrs to convert: parameterSet, subscriptions, fileInputs,
+The others will take longer than the work on notes.
 
-### New Features:
-- Move openapi specification file to repo tapis-project/openapi-jobs
-- Support runtime setting TAPIS_LOCAL_NODE_NAME=auto. When set to *auto* the local host name is used.
-
-### Breaking Changes:
-1. Support for the deprecated runtime option *SINGULARITY_START* has been removed.
-2. The deprecated endpoints *ready* and *sayHello* have been removed. Please use the endpoints *healthcheck* and *readycheck*.
-3. The query parameter *pretty* has been removed.
+### New features:
+- Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
 4. When fetching a job via the getJob endpoint the json type for the attribute *notes* has been
    changed from type *string* to type *object*. Previously, the *notes* attribute was returned as a
    string with embedded json. Now it is returned as a standard json structured object.
@@ -34,7 +28,25 @@ WIP: item 4 below, return top level notes attr as json rather than a string with
    as standard json making it easier to view and process.
 
 ### Bug fixes:
-1. None
+- Fix issue with recovery from BLOCKED state. Incorrect error messages and not all authentication methods handled properly.
+
+-----------------------
+## 1.9.0 - 2025-06-23
+
+Incremental improvements and new features.
+
+### New Features:
+- Move openapi specification file to repo tapis-project/openapi-jobs
+- Support runtime setting TAPIS_LOCAL_NODE_NAME=auto. When set to *auto* the local host name is used.
+- Support Apptainer (i.e. Singularity) option --fakeroot
+
+### Breaking Changes:
+1. Support for the deprecated runtime option *SINGULARITY_START* has been removed.
+2. The deprecated endpoints *ready* and *sayHello* have been removed. Please use the endpoints *healthcheck* and *readycheck*.
+3. The query parameter *pretty* has been removed.
+
+### Bug fixes:
+- None
 
 -----------------------
 ## 1.8.5 - 2025-05-08

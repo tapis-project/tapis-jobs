@@ -137,7 +137,9 @@ public class JobSubmitResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // The shared code takes it from here.
        return doSubmit(prettyPrint, payloadStream);
      }
@@ -157,7 +159,9 @@ public class JobSubmitResource
     				 				      "  " + _request.getRequestURL());
     		 _log.trace(msg);
     	 }
-     
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Validate Parameter -----------------------
        if (StringUtils.isAllBlank(jobUuid)) {
          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit", "jobuuid");
@@ -205,7 +209,9 @@ public class JobSubmitResource
     				 				      "  " + _request.getRequestURL());
     		 _log.trace(msg);
     	 }
-     
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Validate Parameter -----------------------
        if (StringUtils.isAllBlank(jobUuid)) {
          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit_reques_json", "jobuuid");
@@ -277,7 +283,9 @@ public class JobSubmitResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Validate Payload -------------------------
        // Read the payload into a string.
        String json = null;

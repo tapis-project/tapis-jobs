@@ -39,13 +39,13 @@ import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
-/** Main processing class for job worker.  Each instance of this class runs on
- * its own thread and pulls jobs off of the job submission queue.  The thread
+/** Main processing class for job worker. Each instance of this class runs on
+ * its own thread and pulls jobs off of the job submission queue. The thread
  * that starts processing a job will see the job through to termination unless
- * a recoverable error occurs.  In that case, the job is put into a BLOCKED 
+ * a recoverable error occurs. In that case, the job is put into a BLOCKED
  * state, queued on the recovery queue, and control relinquished by the thread.
  * Once a thread relinquishes control of a job it no longer has any connection 
- * to or affinity for that job; its ready to accept new work from the submission
+ * to or affinity for that job. It is be ready to accept new work from the submission
  * queue.
  * 
  * A job's lifecycle consists of managing its progress through the various 

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.reader;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -241,7 +242,7 @@ public final class RecoveryReader
       
       // The body should always be a UTF-8 json string.
       String body;
-      try {body = new String(delivery.body, "UTF-8");}
+      try {body = new String(delivery.body, StandardCharsets.UTF_8);}
           catch (Exception e) {
               String msg = MsgUtils.getMsg("ALOE_BYTE_ARRAY_DECODE", new String(Hex.encodeHex(delivery.body)));
               _log.error(msg);
@@ -703,8 +704,7 @@ public final class RecoveryReader
     /* ---------------------------------------------------------------------- */
     private boolean processMsg(RecoverMsg message)
     {
-        // To get here we must of sent a message type that this processor
-        // is not expected to handle.
+        // To get here,  we must have sent a message type that this processor is not expected to handle.
         String msg = MsgUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", message.getMsgType().name(), 
                                      getName());
         _log.error(msg);
@@ -733,7 +733,7 @@ public final class RecoveryReader
         if (!(t instanceof RecoveryReaderThread)) {
             // This shouldn't happen since we determine a compile time which
             // threads we are going to restart using this method.
-            String msg = MsgUtils.getMsg("ALOE_THREAD_DIED", t.getName(), t.getId(), 
+            String msg = MsgUtils.getMsg("ALOE_THREAD_DIED", t.getName(), t.threadId(),
                                          e.getClass().getSimpleName(), e);
             _log.error(msg);
             return;
@@ -751,14 +751,14 @@ public final class RecoveryReader
         // Are we in a restart storm?
         if (_threadRestartThrottle.record()) {
             // Create the new thread object.  Note that the new thread's
-            // recovery queue will be empty but we shouldn't lose any
+            // recovery queue will be empty, but we shouldn't lose any
             // messages since the recovery information is either in
             // the database or still in the RabbitMQ durable queue.
             initRecoveryReaderThread();
             
             // Log more information.
             _log.error(MsgUtils.getMsg("TAPIS_THREAD_RESTART", 
-                                       oldWorker.getName(), oldWorker.getId(),
+                                       oldWorker.getName(), oldWorker.threadId(),
                                        _parms.name, e.getClass().getSimpleName(),
                                        _recoveryReaderThread.getName()), e);
                                            
@@ -766,7 +766,7 @@ public final class RecoveryReader
         else {
             // Too many restarts in the configured time window.
             _log.error(MsgUtils.getMsg("TAPIS_TOO_MANY_RESTARTS_TERMINATION", 
-                                       oldWorker.getName(), oldWorker.getId(),
+                                       oldWorker.getName(), oldWorker.threadId(),
                                        _threadRestartThrottle.getLimit(),
                                        _threadRestartThrottle.getSeconds()));
                

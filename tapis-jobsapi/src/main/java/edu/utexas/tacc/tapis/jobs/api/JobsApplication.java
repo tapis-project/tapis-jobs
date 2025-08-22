@@ -1,12 +1,11 @@
 package edu.utexas.tacc.tapis.jobs.api;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Map;
-
+import java.util.Set;
 import javax.ws.rs.ApplicationPath;
-
 import org.glassfish.jersey.server.ResourceConfig;
-
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.events.NotificationLiveness;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
@@ -17,40 +16,7 @@ import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
-import io.swagger.v3.jaxrs2.integration.resources.AcceptHeaderOpenApiResource;
-import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
-import io.swagger.v3.oas.annotations.ExternalDocumentation;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.info.Contact;
-import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.info.License;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.servers.Server;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
-@OpenAPIDefinition(
-        info = @Info(title = "Tapis Jobs API",
-                     version = "0.1",
-                     description = "The Tapis Jobs API executes jobs on Tapis systems.",
-                     license = @License(name = "3-Clause BSD License", url = "https://opensource.org/licenses/BSD-3-Clause"),
-                     contact = @Contact(name = "CICSupport", 
-                                        email = "cicsupport@tacc.utexas.edu")),
-        tags = {@Tag(name = "jobs", description = "manage job execution and data"),
-                @Tag(name = "subscriptions", description = "manage job subscriptions"),
-                @Tag(name = "general", description = "informational endpoints")},
-        servers = {@Server(url = "http://localhost:8080/v3", description = "Local test environment")},
-        externalDocs = @ExternalDocumentation(description = "Tapis Home",
-                                     url = "https://tacc-cloud.readthedocs.io/projects/agave/en/latest/")
-)
-@SecurityScheme(
-        name="TapisJWT",
-        description="Tapis signed JWT token authentication",
-        type=SecuritySchemeType.APIKEY,
-        in=SecuritySchemeIn.HEADER,
-        paramName="X-Tapis-Token"
-)
 // The path here is appended to the context root and
 // is configured to work when invoked in a standalone 
 // container (command line) and in an IDE (eclipse). 
@@ -58,6 +24,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class JobsApplication 
 extends ResourceConfig
 {
+   // List of Tapis services allowed to call this service with a service JWT.
+   // No services are allowed.
+   public static final Set<String> SVCLIST_TRUSTED = new HashSet<>(Set.of());
    // The table we query to test database connectivity.
    private static final String QUERY_TABLE = "jobs";
    
@@ -66,11 +35,6 @@ extends ResourceConfig
        // ------------------ Unrecoverable Errors ------------------
        // Log our existence.
        System.out.println("**** Starting tapis-jobsapi ****");
-       
-       // Register the swagger resources that allow the 
-       // documentation endpoints to be automatically generated.
-       register(OpenApiResource.class);
-       register(AcceptHeaderOpenApiResource.class);
        
        // We specify what packages JAX-RS should recursively scan
        // to find annotations.  By setting the value to the top-level

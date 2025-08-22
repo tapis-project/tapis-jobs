@@ -1286,11 +1286,7 @@ public final class JobsDao
 	        job.setCreated(now);
 	        job.setLastUpdated(now);
 		}
-
-        // Make sure notes is filled in as a JsonObject.
-        JsonObject notesObj = Job.DEFAULT_NOTES;
-        if (job.getNotes() != null) notesObj = (JsonObject) job.getNotes();
-
+        
         // ------------------------- Check Input -------------------------
         // Exceptions can be throw from here.
         validateNewJob(job);
@@ -1387,8 +1383,8 @@ public final class JobsDao
           pstmt.setArray(41, attribsArray);
               
           // Notes is non-null json.
-          pstmt.setString(42, notesObj.toString());
-
+          pstmt.setString(42, job.getNotes());
+          
           // Tracking ID from request header can be null.
           pstmt.setString(43, job.getTrackingId());             // could be null  
           
@@ -3261,9 +3257,7 @@ public final class JobsDao
 	        	obj.setSharedAppCtxAttribs(JobSharedAppCtx.EMPTY_APP_CTX_ATTRIBS); // immutable list
 	        
 	        // Notes non-null json value.
-	        // Convert from sql PGobject to a JsonObject
-	        JsonObject notesJsonObj = convertPGObjToJsonObj((PGobject) rs.getObject(62));
-	        obj.setNotes(notesJsonObj);
+	        obj.setNotes(rs.getString(62));
 
 	        obj.setStageAppTransactionId(rs.getString(63));
 	        obj.setStageAppCorrelationId(rs.getString(64));

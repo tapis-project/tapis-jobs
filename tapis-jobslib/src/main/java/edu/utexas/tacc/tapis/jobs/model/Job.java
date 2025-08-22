@@ -152,7 +152,7 @@ public final class Job
     
     private String              trackingId;
     
-    private Object              notes = DEFAULT_NOTES; // Should never be null.
+    private String              notes = EMPTY_JSON; // Should never be null.
     
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
@@ -471,7 +471,7 @@ public final class Job
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "jobType");
             throw new JobException(msg);
         }
-        if (notes == null) {
+        if (StringUtils.isBlank(notes)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "notes");
             throw new JobException(msg);
         }
@@ -1083,12 +1083,11 @@ public final class Job
 	public void setTrackingId(String trackingId) {
 		this.trackingId = trackingId;
 	}
-
-    public Object getNotes() {
+    public String getNotes() {
         return notes;
     }
 
-    public void setNotes(Object notes) {
+    public void setNotes(String notes) {
         if (notes != null) this.notes = notes;
     }
 

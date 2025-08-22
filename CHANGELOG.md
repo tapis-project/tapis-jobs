@@ -22,7 +22,7 @@ Enhancement and bug fix.
 -----------------------
 ## 1.9.0 - 2025-06-23
 
-Incremental improvements.
+Incremental improvements and new features.
 
 ### New Features:
 - Move openapi specification file to repo tapis-project/openapi-jobs

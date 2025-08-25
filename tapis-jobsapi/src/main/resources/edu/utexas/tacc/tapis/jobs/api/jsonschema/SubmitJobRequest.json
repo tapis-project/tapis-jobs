@@ -48,6 +48,10 @@
             "$comment": "Whether archiving should proceed even if application reports an error, default=true",
             "type": "boolean"
           },
+          "archiveMode": {
+            "$comment": "When to archive: ALWAYS, SKIP_ON_FAIL, SKIP",
+            "$ref": "#/$defs/ArchiveModeEnum"
+          },
           "dynamicExecSystem": {
             "$comment": "Whether the best fit execution system should be chosen using execSystemConstraints, default=false",
             "type": "boolean"
@@ -263,6 +267,6 @@
                 "arg": { "type": "string", "minLength": 1 },
                 "notes": { "type": "object" }
             }
-        }
-    }
+        },
+        "ArchiveModeEnum": { "type": "string", "enum": [ "ALWAYS", "SKIP_ON_FAIL", "SKIP" ], "default": "ALWAYS" }    }
 }

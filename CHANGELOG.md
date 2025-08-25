@@ -9,17 +9,13 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
-## 1.9.1 - 2025-08-22
+## 1.9.1 - 2025-08-25
 
-Incremental improvements.
-WIP: item 4 below, return top level notes attr as json rather than a string with json embedded.
-     WMA group prefers we do all these conversions at once.
-     Other attrs to convert: parameterSet, subscriptions, fileInputs,
-     The others will take longer than the work on notes.
-Enhancement and bug fix.
+Incremental improvements, enhancements and bug fix.
 
 ### New features:
 - Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
+- Return top level notes attribute as a json attribute rather than a string with json embedded.
 
 ### Bug fixes:
 - Fix issue with recovery from BLOCKED state. Incorrect error messages and not all authentication methods handled properly.

@@ -2689,7 +2689,7 @@ public final class SubmitContext
      * 
      * @param logicalQueueName name of the tapis queue defined in the exec system
      * @return null or the remote hpc queue name defined in logical queue
-     * @throws TapisImplException
+     * @throws TapisImplException on error
      */
     private String validateExecSystemLogicalQueue(String logicalQueueName) 
      throws TapisImplException

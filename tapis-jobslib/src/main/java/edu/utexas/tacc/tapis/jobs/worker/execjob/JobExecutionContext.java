@@ -100,11 +100,11 @@ public final class JobExecutionContext
     {
         // Jobs and their dao's cannot be null.
         if (job == null) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "JobExecutionContext", "job");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "JobExecutionContext", "job");
             throw new TapisRuntimeException(msg);
         }
         if (jobDao == null) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "JobExecutionContext", "jobDao");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "JobExecutionContext", "jobDao");
             throw new TapisRuntimeException(msg);
         }
         _job = job;

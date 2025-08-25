@@ -178,7 +178,7 @@ public final class RecoveryManager
      * When this method runs, it must be the only thread accessing the recovery
      * data structures.
      * 
-     * @param recoverMsg a new recovery record or null if this is just a wake up call.
+     * @param newJobRecovery a new recovery record or null if this is just a wake up call.
      */
     public synchronized void recover(JobRecovery newJobRecovery)
     {

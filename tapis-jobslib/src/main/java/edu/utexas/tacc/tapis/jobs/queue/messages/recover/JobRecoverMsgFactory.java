@@ -72,7 +72,7 @@ public final class JobRecoverMsgFactory
     {
         // The config parameter cannot be null.
         if (config == null) {
-          String emsg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "getJobRecoverMsg", "config");
+          String emsg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobRecoverMsg", "config");
           _log.error(emsg);
           throw new TapisRuntimeException(emsg);
         }

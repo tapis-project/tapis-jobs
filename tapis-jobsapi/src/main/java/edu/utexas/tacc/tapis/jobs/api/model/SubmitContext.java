@@ -379,8 +379,14 @@ public final class SubmitContext
             _submitReq.setArchiveOnAppError(_app.getJobAttributes().getArchiveOnAppError());
         if (_submitReq.getArchiveOnAppError() == null)
             _submitReq.setArchiveOnAppError(Job.DEFAULT_ARCHIVE_ON_APP_ERROR);
-        
-        // Merge node count.
+
+        // TODO Merge archiveMode setting.
+        if (_submitReq.getArchiveMode() == null)
+          _submitReq.setArchiveMode(_app.getJobAttributes().getArchiveMode());
+        if (_submitReq.getArchiveMode() == null)
+          _submitReq.setArchiveMode(Job.DEFAULT_ARCHIVE_MODE);
+
+      // Merge node count.
         if (_submitReq.getNodeCount() == null)
             _submitReq.setNodeCount(_app.getJobAttributes().getNodeCount());
         if (_submitReq.getNodeCount() == null || _submitReq.getNodeCount() <= 0)
@@ -2296,7 +2302,8 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.ArchiveSystemId.name(),   _submitReq.getArchiveSystemId());
         _macros.put(JobTemplateVariables.DynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
         _macros.put(JobTemplateVariables.ArchiveOnAppError.name(), _submitReq.getArchiveOnAppError().toString());
-        
+        _macros.put(JobTemplateVariables.ArchiveMode.name(), _submitReq.getArchiveMode().toString());
+
         _macros.put(JobTemplateVariables.SysRootDir.name(), _execSystem.getRootDir());
         _macros.put(JobTemplateVariables.SysHost.name(), _execSystem.getHost());
         
@@ -3053,6 +3060,7 @@ public final class SubmitContext
         
         // Flags already validated.
         _job.setArchiveOnAppError(_submitReq.getArchiveOnAppError());
+        _job.setArchiveMode(_submitReq.getArchiveMode());
         _job.setDynamicExecSystem(_submitReq.getDynamicExecSystem());
         
         // Exec system fields.

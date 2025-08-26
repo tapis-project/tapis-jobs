@@ -34,8 +34,9 @@ public enum JobTemplateVariables
 	
 	ArchiveSystemId,
 	ArchiveSystemDir,
-	ArchiveOnAppError,
-	
+  ArchiveOnAppError,
+  ArchiveMode,
+
 	DtnSystemId,
 	DtnSystemInputDir,
 	DtnSystemOutputDir,

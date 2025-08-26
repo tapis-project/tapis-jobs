@@ -37,6 +37,7 @@ public final class Job
 	public static final int DEFAULT_MAX_MINUTES = 10;
 	public static final int MAX_LAST_MESSAGE_LEN = 16384;
 	public static final Boolean DEFAULT_ARCHIVE_ON_APP_ERROR = Boolean.TRUE;
+  public static final ArchiveModeEnum DEFAULT_ARCHIVE_MODE = ArchiveModeEnum.ALWAYS;
 	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
 	public static final String EMPTY_JSON = "{}";
 	public static final String EMPTY_JSON_ARRAY = "[]";
@@ -84,9 +85,10 @@ public final class Job
     private String   			uuid;
     private String   			appId;
     private String   			appVersion;
-    
-    private boolean  			archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
-    private boolean             dynamicExecSystem = DEFAULT_DYNAMIC_EXEC_SYSTEM;
+
+    private boolean         archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
+    private ArchiveModeEnum archiveMode = DEFAULT_ARCHIVE_MODE;
+    private boolean       dynamicExecSystem = DEFAULT_DYNAMIC_EXEC_SYSTEM;
     
     private String   			execSystemId;
     private String   			execSystemExecDir;
@@ -176,7 +178,12 @@ public final class Job
     // contains the last unread asynchronous message sent to this job.
     @Schema(hidden = true)
     private final transient AtomicReference<CmdMsg> _cmdMsg = new AtomicReference<>(null);
-    
+
+    // ************************************************************************
+    // *********************** Enums ******************************************
+    // ************************************************************************
+    public enum ArchiveModeEnum  {ALWAYS, SKIP_ON_FAIL, SKIP}
+
     /* **************************************************************************** */
     /*                                 Constructors                                 */
     /* **************************************************************************** */
@@ -655,7 +662,15 @@ public final class Job
 		this.archiveOnAppError = archiveOnAppError;
 	}
 
-	public boolean isDynamicExecSystem() {
+  public ArchiveModeEnum getArchiveMode() {
+    return archiveMode;
+  }
+
+  public void setArchiveMode(ArchiveModeEnum archiveMode) {
+    this.archiveMode = archiveMode;
+  }
+
+  public boolean isDynamicExecSystem() {
 		return dynamicExecSystem;
 	}
 

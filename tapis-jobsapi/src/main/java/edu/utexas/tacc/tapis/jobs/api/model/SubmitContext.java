@@ -17,7 +17,8 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response.Status;
-import com.google.gson.JsonObject;
+
+import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +28,9 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetLogConfig;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
+import edu.utexas.tacc.tapis.apps.client.gen.model.JobAttributes;
+import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
@@ -67,6 +69,7 @@ import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
+import static edu.utexas.tacc.tapis.jobs.model.Job.DEFAULT_ARCHIVE_MODE;
 import static edu.utexas.tacc.tapis.jobs.model.Job.DEFAULT_NOTES;
 
 /* This class orchestrates the job submission process, which includes incorporating
@@ -121,11 +124,14 @@ public final class SubmitContext
     /* **************************************************************************** */
     // Constructor input.
     private final ReqSubmitJob       _submitReq;
+    private final JobParameterSet    _jobReqParmSet;
     private final TapisThreadContext _threadContext;
     private final Job                _job;
     
     // The raw sources of job information.
     private TapisApp    _app;
+    private JobAttributes _appJobAttrs;
+    private ParameterSet _appParmSet;
     private TapisSystem _execSystem;
     private TapisSystem _dtnSystem;
     private TapisSystem _archiveSystem;
@@ -147,6 +153,7 @@ public final class SubmitContext
     public SubmitContext(ReqSubmitJob submitReq)
     {
         _submitReq = submitReq;
+        _jobReqParmSet = _submitReq.getParameterSet();
         _threadContext = TapisThreadLocal.tapisThreadContext.get();
         
         // Create the new job.
@@ -161,11 +168,14 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     public Job initNewJob() throws TapisImplException
     {
+        // Initial validation
+        initValidate();
+
         // Assign the owner and tenant in the request.
         // Many methods depend on assignment made here.
         assignOwnerAndTenant();
         
-        // Get the app.
+        // Get the app. App is validated. From here-on, _app, _appJobAttrs and _appParmSet will be non-null
         assignApp();
         
         // Calculate all job arguments.
@@ -188,10 +198,6 @@ public final class SubmitContext
     /*                                  Accessors                                   */
     /* **************************************************************************** */
     public Job getJob() {return _job;}
-    public TapisApp getApp() {return _app;}
-    public TapisSystem getExecSystem() {return _execSystem;}
-    public TapisSystem getDtnSystem() {return _dtnSystem;}
-    public TapisSystem getArchiveSystem() {return _archiveSystem;}
     public ReqSubmitJob getSubmitReq() {return _submitReq;}
 
     /* **************************************************************************** */
@@ -321,7 +327,7 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
-        // Check that the runtime has appropriate options selected.
+        // Check that we have a valid app. From hereon, _app, _appJobAttrs and _appParmSet will be non-null
         validateApp(_app);
         
         // Always establish our shared application context.
@@ -356,12 +362,15 @@ public final class SubmitContext
         
         // Resolve MPI and command prefix values.
         resolveMpiAndCmdPrefix();
-        
+
+        // Resolve archiveMode
+        resolveArchiveMode();
+
         // Merge tapis-defined logical queue value only when we are running in batch mode.
         if (JobType.BATCH.name().equals(_submitReq.getJobType())) 
         {
             if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
-                _submitReq.setExecSystemLogicalQueue(_app.getJobAttributes().getExecSystemLogicalQueue());
+                _submitReq.setExecSystemLogicalQueue(_appJobAttrs.getExecSystemLogicalQueue());
             if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
                 _submitReq.setExecSystemLogicalQueue(_execSystem.getBatchDefaultLogicalQueue());
             var hpcQueueName = validateExecSystemLogicalQueue(_submitReq.getExecSystemLogicalQueue());
@@ -370,43 +379,37 @@ public final class SubmitContext
         
         // Merge job description.
         if (StringUtils.isBlank(_submitReq.getDescription()))
-            _submitReq.setDescription(_app.getJobAttributes().getDescription());
+            _submitReq.setDescription(_appJobAttrs.getDescription());
         if (StringUtils.isBlank(_submitReq.getDescription()))
             _submitReq.setDescription(getDefaultDescription());
         
         // Merge archive flag.
         if (_submitReq.getArchiveOnAppError() == null)
-            _submitReq.setArchiveOnAppError(_app.getJobAttributes().getArchiveOnAppError());
+            _submitReq.setArchiveOnAppError(_appJobAttrs.getArchiveOnAppError());
         if (_submitReq.getArchiveOnAppError() == null)
             _submitReq.setArchiveOnAppError(Job.DEFAULT_ARCHIVE_ON_APP_ERROR);
 
-        // TODO Merge archiveMode setting.
-        if (_submitReq.getArchiveMode() == null)
-          _submitReq.setArchiveMode(_app.getJobAttributes().getArchiveMode());
-        if (_submitReq.getArchiveMode() == null)
-          _submitReq.setArchiveMode(Job.DEFAULT_ARCHIVE_MODE);
-
       // Merge node count.
         if (_submitReq.getNodeCount() == null)
-            _submitReq.setNodeCount(_app.getJobAttributes().getNodeCount());
+            _submitReq.setNodeCount(_appJobAttrs.getNodeCount());
         if (_submitReq.getNodeCount() == null || _submitReq.getNodeCount() <= 0)
             _submitReq.setNodeCount(Job.DEFAULT_NODE_COUNT);
         
         // Merge cores per node.
         if (_submitReq.getCoresPerNode() == null)
-            _submitReq.setCoresPerNode(_app.getJobAttributes().getCoresPerNode());
+            _submitReq.setCoresPerNode(_appJobAttrs.getCoresPerNode());
         if (_submitReq.getCoresPerNode() == null || _submitReq.getCoresPerNode() <= 0)
             _submitReq.setCoresPerNode(Job.DEFAULT_CORES_PER_NODE);
         
         // Merge memory MB.
         if (_submitReq.getMemoryMB() == null)
-            _submitReq.setMemoryMB(_app.getJobAttributes().getMemoryMB());
+            _submitReq.setMemoryMB(_appJobAttrs.getMemoryMB());
         if (_submitReq.getMemoryMB() == null || _submitReq.getMemoryMB() <= 0)
             _submitReq.setMemoryMB(Job.DEFAULT_MEM_MB);
         
         // Merge max minutes.
         if (_submitReq.getMaxMinutes() == null)
-            _submitReq.setMaxMinutes(_app.getJobAttributes().getMaxMinutes());
+            _submitReq.setMaxMinutes(_appJobAttrs.getMaxMinutes());
         if (_submitReq.getMaxMinutes() == null || _submitReq.getMaxMinutes() <= 0)
             _submitReq.setMaxMinutes(Job.DEFAULT_MAX_MINUTES);
         
@@ -415,7 +418,7 @@ public final class SubmitContext
         
         // Merge tags, duplicates may be present at this point.
         var tags = _submitReq.getTags(); // force list creation
-        if (_app.getJobAttributes().getTags() != null) tags.addAll(_app.getJobAttributes().getTags());
+        if (_appJobAttrs.getTags() != null) tags.addAll(_appJobAttrs.getTags());
         
         // Merge app subscriptions into request subscription list.
         mergeSubscriptions();
@@ -479,9 +482,9 @@ public final class SubmitContext
     	
     	// Assign the non-empty app value if no value was specified in the request. 
     	if (StringUtils.isBlank(_submitReq.getDtnSystemInputDir())) 
-    		_submitReq.setDtnSystemInputDir(_app.getJobAttributes().getDtnSystemInputDir());
+    		_submitReq.setDtnSystemInputDir(_appJobAttrs.getDtnSystemInputDir());
     	if (StringUtils.isBlank(_submitReq.getDtnSystemOutputDir())) 
-    		_submitReq.setDtnSystemOutputDir(_app.getJobAttributes().getDtnSystemOutputDir());
+    		_submitReq.setDtnSystemOutputDir(_appJobAttrs.getDtnSystemOutputDir());
     	
     	// Validate the non-null input path.
     	if (!TapisConstants.TAPIS_NOT_SET.equals(_submitReq.getDtnSystemInputDir()))
@@ -538,34 +541,32 @@ public final class SubmitContext
     {
         // Get convenient access to the two parameter sets.
         // Make sure the request set it initialized.
-        var appParmSet = _app.getJobAttributes().getParameterSet();
-        var reqParmSet = _submitReq.getParameterSet(); 
-        reqParmSet.initAll(); // top level fully initialized
+        _jobReqParmSet.initAll(); // top level fully initialized
         
         // Merge the argSpecs.
         var marshaller = new JobParmSetMarshaller();
-        marshaller.mergeArgSpecList(reqParmSet.getAppArgs(), appParmSet.getAppArgs(), ArgTypeEnum.APP_ARGS);
-        marshaller.mergeArgSpecList(reqParmSet.getContainerArgs(), appParmSet.getContainerArgs(), ArgTypeEnum.CONTAINER_ARGS);
-        marshaller.mergeArgSpecList(reqParmSet.getSchedulerOptions(), appParmSet.getSchedulerOptions(), ArgTypeEnum.SCHEDULER_OPTIONS);
-        marshaller.mergeTapisProfileFromSystem(reqParmSet.getSchedulerOptions(), _execSystem.getBatchSchedulerProfile());
+        marshaller.mergeArgSpecList(_jobReqParmSet.getAppArgs(), _appParmSet.getAppArgs(), ArgTypeEnum.APP_ARGS);
+        marshaller.mergeArgSpecList(_jobReqParmSet.getContainerArgs(), _appParmSet.getContainerArgs(), ArgTypeEnum.CONTAINER_ARGS);
+        marshaller.mergeArgSpecList(_jobReqParmSet.getSchedulerOptions(), _appParmSet.getSchedulerOptions(), ArgTypeEnum.SCHEDULER_OPTIONS);
+        marshaller.mergeTapisProfileFromSystem(_jobReqParmSet.getSchedulerOptions(), _execSystem.getBatchSchedulerProfile());
         
         // Merge environment variables from systems, apps and the job request.
-        var reqEnv = reqParmSet.getEnvVariables();
-        var appEnv = appParmSet.getEnvVariables();
+        var reqEnv = _jobReqParmSet.getEnvVariables();
+        var appEnv = _appParmSet.getEnvVariables();
         var sysEnv = _execSystem.getJobEnvVariables();
         marshaller.mergeEnvVariables(reqEnv, appEnv, sysEnv);
         
         // Merge the archive filters.
-        marshaller.mergeArchiveFilters(reqParmSet.getArchiveFilter(), appParmSet.getArchiveFilter());
+        marshaller.mergeArchiveFilters(_jobReqParmSet.getArchiveFilter(), _appParmSet.getArchiveFilter());
         
         // Assign the log configuration. Validation occurs after macro substitution.
-        assignLogConfig(reqParmSet.getLogConfig(), appParmSet.getLogConfig());
+        assignLogConfig(_jobReqParmSet.getLogConfig(), _appParmSet.getLogConfig());
         
         // Validate parameter set components.
-        validateArchiveFilters(reqParmSet.getArchiveFilter().getIncludes(), "includes");
-        validateArchiveFilters(reqParmSet.getArchiveFilter().getExcludes(), "excludes");
-        validateSchedulerProfile(reqParmSet.getSchedulerOptions());
-        validateZipContainerArgs(reqParmSet.getContainerArgs());
+        validateArchiveFilters(_jobReqParmSet.getArchiveFilter().getIncludes(), "includes");
+        validateArchiveFilters(_jobReqParmSet.getArchiveFilter().getExcludes(), "excludes");
+        validateSchedulerProfile(_jobReqParmSet.getSchedulerOptions());
+        validateZipContainerArgs(_jobReqParmSet.getContainerArgs());
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -622,7 +623,7 @@ public final class SubmitContext
      */  
     private void resolveConstraints() throws TapisImplException
     {
-        var appConstraintList = _app.getJobAttributes().getExecSystemConstraints();
+        var appConstraintList = _appJobAttrs.getExecSystemConstraints();
         _submitReq.consolidateConstraints(appConstraintList);
         
         // Detect control characters.
@@ -656,7 +657,7 @@ public final class SubmitContext
         // --------------------- Exec System ---------------------
         // Merge dynamic execution flag.
         if (_submitReq.getDynamicExecSystem() == null)
-            _submitReq.setDynamicExecSystem(_app.getJobAttributes().getDynamicExecSystem());
+            _submitReq.setDynamicExecSystem(_appJobAttrs.getDynamicExecSystem());
         if (_submitReq.getDynamicExecSystem() == null)
             _submitReq.setDynamicExecSystem(Job.DEFAULT_DYNAMIC_EXEC_SYSTEM);
         
@@ -678,7 +679,7 @@ public final class SubmitContext
         if (_execSystem.getEnableCmdPrefix() == null || !_execSystem.getEnableCmdPrefix())
         {
             if (!StringUtils.isBlank(_submitReq.getCmdPrefix()) ||
-                    !StringUtils.isBlank(_app.getJobAttributes().getCmdPrefix()) )
+                    !StringUtils.isBlank(_appJobAttrs.getCmdPrefix()) )
             {
                 String msg = MsgUtils.getMsg("JOBS_CMD_PREFIX_NOT_ENABLED_FOR_SYSTEM", _execSystem.getId());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
@@ -759,17 +760,17 @@ public final class SubmitContext
         		// will be accessed through a SAC.
         		_sharedAppCtx.calcDtnDirSharing(JobSharedAppCtxEnum.SAC_DTN_SYSTEM_INPUT_DIR, 
         			                            _submitReq.getDtnSystemInputDir(), 
-        			                            _app.getJobAttributes().getDtnSystemInputDir());
+        			                            _appJobAttrs.getDtnSystemInputDir());
         		_sharedAppCtx.calcDtnDirSharing(JobSharedAppCtxEnum.SAC_DTN_SYSTEM_OUTPUT_DIR, 
                                                 _submitReq.getDtnSystemOutputDir(), 
-                                                _app.getJobAttributes().getDtnSystemOutputDir());
+                                                _appJobAttrs.getDtnSystemOutputDir());
         	} // using the dtn
         } // dtn 
         
         // --------------------- Archive System ------------------
         // Assign and load the archive system if one is specified.
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId()))
-            _submitReq.setArchiveSystemId(_app.getJobAttributes().getArchiveSystemId());
+            _submitReq.setArchiveSystemId(_appJobAttrs.getArchiveSystemId());
         
         // Assign the default archive system if it's still blank.
         if (StringUtils.isBlank(_submitReq.getArchiveSystemId())) 
@@ -780,7 +781,7 @@ public final class SubmitContext
         // Determine the shared application context attribute. By this time the request archive system
         // has been assigned, though that system may not be loaded yet.
         _sharedAppCtx.calcArchiveSystemId(_submitReq.getArchiveSystemId(), 
-                                          _app.getJobAttributes().getArchiveSystemId(),
+                                          _appJobAttrs.getArchiveSystemId(),
                                           _submitReq.getExecSystemId());
                 
         // Assign the archive system object if it's the same as the execution system.
@@ -819,7 +820,7 @@ public final class SubmitContext
         // If not in job request then use the value from the app
         if (StringUtils.isBlank(execSystemId))
         {
-            execSystemId = _app.getJobAttributes().getExecSystemId();
+            execSystemId = _appJobAttrs.getExecSystemId();
         }
         
         // If exec system not specified in job request or app it is an error.
@@ -833,7 +834,7 @@ public final class SubmitContext
         JobsApiUtils.hasDangerousCharacters("", "execSystemId", _submitReq.getExecSystemId());
     	
         // Determine the shared application context attribute.
-        _sharedAppCtx.calcExecSystemId(_submitReq.getExecSystemId(), _app.getJobAttributes().getExecSystemId());
+        _sharedAppCtx.calcExecSystemId(_submitReq.getExecSystemId(), _appJobAttrs.getExecSystemId());
 
         // Fill in final exec sys in submit request
         // NOTE: All resolved values placed into _submitReq
@@ -941,8 +942,7 @@ public final class SubmitContext
                 try {JobType.valueOf(appJobType.name());}
                 catch (Exception e)
                 {
-                   String msg = MsgUtils.getMsg("JOBS_INVALID_APP_JOBTYPE",
-                                       _app.getId(), _app.getVersion(), appJobType);
+                  String msg = MsgUtils.getMsg("JOBS_INVALID_APP_JOBTYPE", _app.getId(), _app.getVersion(), appJobType);
                   throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
                 _submitReq.setJobType(appJobType.name());
@@ -967,7 +967,42 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
     }
-    
+
+  /* ---------------------------------------------------------------------------- */
+  /* resolveArchiveMode:                                                          */
+  /* ---------------------------------------------------------------------------- */
+  /**
+   * Resolve final archiveMode setting for the job type using the request and application value.
+   * Precedence: job submit request, app attribute, default
+   *
+   * @throws TapisImplException invalid archiveMode from App
+   */
+  private void resolveArchiveMode() throws TapisImplException
+  {
+    Job.ArchiveModeEnum archiveMode;
+    if (_submitReq.getArchiveMode() != null) {
+      // Assigned in the request
+      archiveMode = _submitReq.getArchiveMode();
+    }
+    else if (_appJobAttrs != null && _appJobAttrs.getArchiveMode() != null) {
+      // Assigned in the app, attempt to convert to known enum
+      var appArchiveMode = _appJobAttrs.getArchiveMode();
+      try {
+        archiveMode = Job.ArchiveModeEnum.valueOf(appArchiveMode.name());
+      }
+      catch (Exception e)
+      {
+        String msg = MsgUtils.getMsg("JOBS_INVALID_ARCHIVEMODE", appArchiveMode.name());
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+      }
+    }
+    else {
+      // Not in request or App
+      archiveMode = DEFAULT_ARCHIVE_MODE;
+    }
+    _submitReq.setArchiveMode(archiveMode);
+  }
+
     /* ---------------------------------------------------------------------------- */
     /* resolveDirectoryPathNames:                                                   */
     /* ---------------------------------------------------------------------------- */
@@ -991,26 +1026,26 @@ public final class SubmitContext
         // If a dtn is used, then the input directory must be relative to the dtn
         // mount point rather than the execution system's working directory.
         if (StringUtils.isBlank(_submitReq.getExecSystemInputDir()))
-            _submitReq.setExecSystemInputDir(_app.getJobAttributes().getExecSystemInputDir());
+            _submitReq.setExecSystemInputDir(_appJobAttrs.getExecSystemInputDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemInputDir())) 
         	_submitReq.setExecSystemInputDir(Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR);
         
         // Exec path.
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
-            _submitReq.setExecSystemExecDir(_app.getJobAttributes().getExecSystemExecDir());
+            _submitReq.setExecSystemExecDir(_appJobAttrs.getExecSystemExecDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemExecDir()))
             _submitReq.setExecSystemExecDir(Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR);
         
         // Output path.
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
-            _submitReq.setExecSystemOutputDir(_app.getJobAttributes().getExecSystemOutputDir());
+            _submitReq.setExecSystemOutputDir(_appJobAttrs.getExecSystemOutputDir());
         if (StringUtils.isBlank(_submitReq.getExecSystemOutputDir()))
             _submitReq.setExecSystemOutputDir(Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR);
       
         // --------------------- Archive System ------------------
         // Set the archive system directory.
         if (StringUtils.isBlank(_submitReq.getArchiveSystemDir()))
-            _submitReq.setArchiveSystemDir(_app.getJobAttributes().getArchiveSystemDir());
+            _submitReq.setArchiveSystemDir(_appJobAttrs.getArchiveSystemDir());
         if (StringUtils.isBlank(_submitReq.getArchiveSystemDir()))
             if (_archiveSystem == _execSystem) // Address equality OK here (see resolveSystems())
                 // Leave the output in place when the exec system is also the archive system.
@@ -1039,29 +1074,29 @@ public final class SubmitContext
         var defaultDir = Job.DEFAULT_EXEC_SYSTEM_INPUT_DIR;
         _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_INPUT_DIR,
                                          _submitReq.getExecSystemInputDir(),
-                                         _app.getJobAttributes().getExecSystemInputDir(), 
+                                         _appJobAttrs.getExecSystemInputDir(),
                                          defaultDir);
 
         // Are we accessing the exec directory in a shared context?
         defaultDir = Job.DEFAULT_EXEC_SYSTEM_EXEC_DIR;
         _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_EXEC_DIR,
                                          _submitReq.getExecSystemExecDir(),
-                                         _app.getJobAttributes().getExecSystemExecDir(), 
+                                         _appJobAttrs.getExecSystemExecDir(),
                                          defaultDir);
         
         // Are we accessing the output directory in a shared context?
         defaultDir = Job.DEFAULT_EXEC_SYSTEM_OUTPUT_DIR;
         _sharedAppCtx.calcExecDirSharing(JobSharedAppCtxEnum.SAC_EXEC_SYSTEM_OUTPUT_DIR,
                                          _submitReq.getExecSystemOutputDir(),
-                                         _app.getJobAttributes().getExecSystemOutputDir(), 
+                                         _appJobAttrs.getExecSystemOutputDir(),
                                          defaultDir);
 
         // Are we accessing the archive directory in a shared context?
         defaultDir = Job.DEFAULT_ARCHIVE_SYSTEM_DIR;
         _sharedAppCtx.calcArchiveDirSharing(_submitReq.getArchiveSystemDir(),
-                                            _app.getJobAttributes().getArchiveSystemDir(),
+                                            _appJobAttrs.getArchiveSystemDir(),
                                             _submitReq.getArchiveSystemId(),
-                                            _app.getJobAttributes().getArchiveSystemId(),
+                                            _appJobAttrs.getArchiveSystemId(),
                                             _submitReq.getExecSystemId(),
                                             defaultDir);
     }
@@ -1073,24 +1108,24 @@ public final class SubmitContext
     {
         // Determine whether MPI is indicated.
         if (_submitReq.getIsMpi() == null) {
-            if (_app.getJobAttributes().getIsMpi() != null)
-                _submitReq.setIsMpi(_app.getJobAttributes().getIsMpi());
+            if (_appJobAttrs.getIsMpi() != null)
+                _submitReq.setIsMpi(_appJobAttrs.getIsMpi());
             else 
                 _submitReq.setIsMpi(Boolean.FALSE);
         }
         
         // Set the MPI command or leave as null.
         if (StringUtils.isBlank(_submitReq.getMpiCmd())) {
-            if (StringUtils.isNotBlank(_app.getJobAttributes().getMpiCmd()))
-                _submitReq.setMpiCmd(_app.getJobAttributes().getMpiCmd());
+            if (StringUtils.isNotBlank(_appJobAttrs.getMpiCmd()))
+                _submitReq.setMpiCmd(_appJobAttrs.getMpiCmd());
             else if (StringUtils.isNotBlank(_execSystem.getMpiCmd()))
                 _submitReq.setMpiCmd(_execSystem.getMpiCmd());
         }
         
         // Set the command prefix or leave as null.
         if (StringUtils.isBlank(_submitReq.getCmdPrefix())) 
-            if (StringUtils.isNotBlank(_app.getJobAttributes().getCmdPrefix()))
-                _submitReq.setCmdPrefix(_app.getJobAttributes().getCmdPrefix());
+            if (StringUtils.isNotBlank(_appJobAttrs.getCmdPrefix()))
+                _submitReq.setCmdPrefix(_appJobAttrs.getCmdPrefix());
         
         // Canonicalize by replacing empty strings with null.
         _submitReq.setMpiCmd(StringUtils.stripToNull(_submitReq.getMpiCmd()));
@@ -1269,8 +1304,8 @@ public final class SubmitContext
         // Either or both may be empty. By the end of this method the
         // job request's subscription's list will be non-null.
         var subscriptions = _submitReq.getSubscriptions(); // force list creation
-        if (_app.getJobAttributes().getSubscriptions() != null) 
-            for (var appSub : _app.getJobAttributes().getSubscriptions()) {
+        if (_appJobAttrs.getSubscriptions() != null)
+            for (var appSub : _appJobAttrs.getSubscriptions()) {
                 ReqSubscribe reqSub ;
                 try {reqSub = new ReqSubscribe(appSub);}
                     catch (Exception e) {
@@ -1293,7 +1328,7 @@ public final class SubmitContext
     private void resolveFileInputs() throws TapisImplException
     {
         // Get the fileInputs from the application definition
-        var jobAttrs = _app.getJobAttributes();
+        var jobAttrs = _appJobAttrs;
         List<AppFileInput> appFileInputs = (jobAttrs == null) ? Collections.emptyList() : jobAttrs.getFileInputs();
         if (appFileInputs == null) appFileInputs = Collections.emptyList();
         var processedAppInputNames = new HashSet<String>(1 + appFileInputs.size() * 2);
@@ -1648,7 +1683,7 @@ public final class SubmitContext
     	if (inputEnvKeys.isEmpty()) return; // no envKeys to merge
     	
     	// Get the current env variable list and the set of environment variable names.
-    	var envList = _submitReq.getParameterSet().getEnvVariables();
+    	var envList = _jobReqParmSet.getEnvVariables();
     	var nameSet = envList.stream().map(x -> x.getKey()).collect(Collectors.toSet());
     	
     	// Add each envKey to the envList as long as the key is not already defined.
@@ -1754,7 +1789,7 @@ public final class SubmitContext
     private void resolveFileInputArrays() throws TapisImplException
     {
         // Get the application's input file definitions.
-        List<AppFileInputArray> appArrays = _app.getJobAttributes().getFileInputArrays();
+        List<AppFileInputArray> appArrays = _appJobAttrs.getFileInputArrays();
         if (appArrays == null) appArrays = Collections.emptyList();
         var processedAppInputNames = new HashSet<String>(1 + appArrays.size() * 2);
         
@@ -2362,12 +2397,12 @@ public final class SubmitContext
                 _macros.put(JobTemplateVariables.ArchiveSystemDir.name(), _submitReq.getArchiveSystemDir());
 
             // ConfigLog values.
-            if (!MacroResolver.needsResolution(_submitReq.getParameterSet().getLogConfig().getStdoutFilename()))
+            if (!MacroResolver.needsResolution(_jobReqParmSet.getLogConfig().getStdoutFilename()))
                 _macros.put(JobTemplateVariables.StdoutFilename.name(), 
-                		    _submitReq.getParameterSet().getLogConfig().getStdoutFilename());
-            if (!MacroResolver.needsResolution(_submitReq.getParameterSet().getLogConfig().getStderrFilename()))
+                		    _jobReqParmSet.getLogConfig().getStdoutFilename());
+            if (!MacroResolver.needsResolution(_jobReqParmSet.getLogConfig().getStderrFilename()))
                 _macros.put(JobTemplateVariables.StderrFilename.name(), 
-                		    _submitReq.getParameterSet().getLogConfig().getStderrFilename());
+                		    _jobReqParmSet.getLogConfig().getStderrFilename());
             
             // Options DTN values.
             if (dtnSystemIsLoaded()) {
@@ -2404,17 +2439,13 @@ public final class SubmitContext
             
             // LogConfig values.
             if (!_macros.containsKey(JobTemplateVariables.StdoutFilename.name())) {
-                _submitReq.getParameterSet().getLogConfig().setStdoutFilename(resolveMacros(
-                	_submitReq.getParameterSet().getLogConfig().getStdoutFilename()));
-                _macros.put(JobTemplateVariables.StdoutFilename.name(), 
-                	_submitReq.getParameterSet().getLogConfig().getStdoutFilename());
-                }
+              _jobReqParmSet.getLogConfig().setStdoutFilename(resolveMacros(_jobReqParmSet.getLogConfig().getStdoutFilename()));
+              _macros.put(JobTemplateVariables.StdoutFilename.name(), _jobReqParmSet.getLogConfig().getStdoutFilename());
+            }
             if (!_macros.containsKey(JobTemplateVariables.StderrFilename.name())) {
-                _submitReq.getParameterSet().getLogConfig().setStderrFilename(resolveMacros(
-                	_submitReq.getParameterSet().getLogConfig().getStderrFilename()));
-                _macros.put(JobTemplateVariables.StderrFilename.name(), 
-                	_submitReq.getParameterSet().getLogConfig().getStderrFilename());
-                }
+              _jobReqParmSet.getLogConfig().setStderrFilename(resolveMacros(_jobReqParmSet.getLogConfig().getStderrFilename()));
+              _macros.put(JobTemplateVariables.StderrFilename.name(), _jobReqParmSet.getLogConfig().getStderrFilename());
+            }
             
             // Optional DTN values.
             if (dtnSystemIsLoaded()) {
@@ -2484,14 +2515,13 @@ public final class SubmitContext
      */
     private void resolveParameterSetMacros() throws TapisImplException
     {
-        // Get the parameter set.
-        var parmset = _submitReq.getParameterSet();
-        if (parmset == null) return;
+        // Make sure we have a parameter set. TODO already validated? Must we have one? Throw exception earlier if not?
+        if (_jobReqParmSet == null) return;
         
         // ---- schedOptions
         // Iterate through the options looking for the ones that might 
         // contain macros we're interested in.
-        var schedOptions = parmset.getSchedulerOptions();
+        var schedOptions = _jobReqParmSet.getSchedulerOptions();
         if (schedOptions != null)
         	for (var argSpec : schedOptions) {
         		var arg = argSpec.getArg();
@@ -2507,7 +2537,7 @@ public final class SubmitContext
         // ---- appArgs
         // Iterate through the options looking for the ones that might 
         // contain macros we're interested in.
-        var appArgs = parmset.getAppArgs();
+        var appArgs = _jobReqParmSet.getAppArgs();
         if (appArgs != null)
         	for (var argSpec : appArgs) {
         		var arg = argSpec.getArg();
@@ -2523,7 +2553,7 @@ public final class SubmitContext
         // ---- containerArgs
         // Iterate through the options looking for the ones that might 
         // contain macros we're interested in.
-        var containerArgs = parmset.getContainerArgs();
+        var containerArgs = _jobReqParmSet.getContainerArgs();
         if (containerArgs != null)
         	for (var argSpec : containerArgs) {
         		var arg = argSpec.getArg();
@@ -2540,7 +2570,7 @@ public final class SubmitContext
         // Iterate through the includes and excludes lists looking for macros.
         // Note curly braces can be delimiters in REGEXs, so conflicts though
         // unlikely might arise.
-        var archiveFilter = parmset.getArchiveFilter();
+        var archiveFilter = _jobReqParmSet.getArchiveFilter();
         if (archiveFilter != null) {
         	if (archiveFilter.getIncludes() != null) {
         		var result = resolveListOfText(archiveFilter.getIncludes());
@@ -2556,7 +2586,7 @@ public final class SubmitContext
         // Get the log configuration which must be non-null by now. We call the
         // simple non-recursive macro substitution method because all macros values
         // should be fully resolved by now and HOST_EVAL is not allowed here.
-        var logConfig = parmset.getLogConfig();
+        var logConfig = _jobReqParmSet.getLogConfig();
         logConfig.setStdoutFilename(replaceMacros(logConfig.getStdoutFilename()));
         logConfig.setStderrFilename(replaceMacros(logConfig.getStderrFilename()));
         validateLogConfig(logConfig);
@@ -2852,44 +2882,69 @@ public final class SubmitContext
         }
     }
 
-    /* ---------------------------------------------------------------------------- */
+    /*
+     * Initial basic validation.
+     *  - Make sure we have non-null _submitReq and _jobReqParmSet
+     */
+  private void initValidate() throws TapisImplException
+  {
+    if (_submitReq == null) {
+      String msg = MsgUtils.getMsg("JOBS_INCOMPLETE_REQ", _job.getUuid(), "Job submit payload");
+      throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
+    if (_jobReqParmSet == null) {
+      String msg = MsgUtils.getMsg("JOBS_INCOMPLETE_REQ", _job.getUuid(), "Job submit parameterSet");
+      throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    }
+  }
+
+  /* ---------------------------------------------------------------------------- */
     /* validateApp:                                                                 */
     /* ---------------------------------------------------------------------------- */
     private void validateApp(TapisApp app) throws TapisImplException
     {
     	// ----- appId
     	JobsApiUtils.hasDangerousCharacters("", "appId", _submitReq.getAppId());
-    	
+
     	// ----- appVersion
     	JobsApiUtils.hasDangerousCharacters("", "appVersion", _submitReq.getAppVersion());
-    	
-    	// ----- DTN directories
+
+      // We must have jobAttributes and parameterSet from the app or it is a fatal condition.
+      _appJobAttrs = app.getJobAttributes();
+      if (_appJobAttrs == null) {
+        String msg = MsgUtils.getMsg("JOBS_INCOMPLETE_APP_JOBATTRS", _job.getUuid(), app.getId());
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+      }
+
+      _appParmSet = _appJobAttrs.getParameterSet();
+      if (_appParmSet == null) {
+        String msg = MsgUtils.getMsg("JOBS_INCOMPLETE_APP_PARMSET", _job.getUuid(), app.getId());
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+      }
+
+      // ----- DTN directories
     	// Should never be null/empty/blank in the app definition.
     	// The default in app defintions is TAPIS_NOT_SET.
-    	if (StringUtils.isBlank(app.getJobAttributes().getDtnSystemInputDir())) {
+    	if (StringUtils.isBlank(_appJobAttrs.getDtnSystemInputDir())) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateApp", "dtnSystemInputDir");
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     	}
-    	if (StringUtils.isBlank(app.getJobAttributes().getDtnSystemOutputDir())) {
+    	if (StringUtils.isBlank(_appJobAttrs.getDtnSystemOutputDir())) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateApp", "dtnSystemOutputDir");
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     	}
-    	
-        // Check that the log configuration is complete if it's provided.  Either both
-        // file names are null or both are provided; it's an error if only 1 is provided.
-        if (app.getJobAttributes() != null && app.getJobAttributes().getParameterSet() != null)
-        {
-        	var appConfig = app.getJobAttributes().getParameterSet().getLogConfig();
-        	if (appConfig != null) {
-        		boolean out = StringUtils.isBlank(appConfig.getStdoutFilename());
-        		boolean err = StringUtils.isBlank(appConfig.getStderrFilename());
-        		if (out ^ err) {
-        			String msg = MsgUtils.getMsg("JOBS_INCOMPLETE_APP_LOGCONFIG", 
-                                             	 _job.getUuid(), app.getId());
-        			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-        		}
-        	}
-        }
+
+      // Check that the log configuration is complete if it's provided.  Either both
+      // file names are null or both are provided; it's an error if only 1 is provided.
+    	var appConfig = _appParmSet.getLogConfig();
+     	if (appConfig != null) {
+    		boolean out = StringUtils.isBlank(appConfig.getStdoutFilename());
+    		boolean err = StringUtils.isBlank(appConfig.getStderrFilename());
+    		if (out ^ err) {
+    			String msg = MsgUtils.getMsg("JOBS_INCOMPLETE_APP_LOGCONFIG", _job.getUuid(), app.getId());
+     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+     		}
+     	}
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -2965,10 +3020,10 @@ public final class SubmitContext
      throws TapisImplException
     {
         // Guard.
-        if (containerArgs == null || containerArgs.isEmpty()) return;
-        
+        var appRuntime = _app.getRuntime();
+        if (containerArgs == null || containerArgs.isEmpty() || appRuntime == null) return;
         // Determine whether we are processing a zip job or not.
-        boolean isZipJob = getApp().getRuntime() == RuntimeEnum.ZIP ? true : false;
+        boolean isZipJob = appRuntime == RuntimeEnum.ZIP ? true : false;
         
         // See if a profile is specified.
         for (var option : containerArgs) {
@@ -2976,16 +3031,15 @@ public final class SubmitContext
         	if (isZipJob) {
         		// ZIP jobs can only specify one container option.
         		if (!Job.TAPIS_ZIP_SAVE.equals(arg)) {
-        			String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", 
-        					                     getApp().getRuntime().name(), option);
+        			String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", appRuntime.name(), option);
         			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         		}
         	  // Only ZIP jobs can specify the zip save option.	
-        	} else if (Job.TAPIS_ZIP_SAVE.equals(arg)) {
-    			String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", 
-	                     getApp().getRuntime().name(), option);
-    			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
-    		}
+        	}
+          else if (Job.TAPIS_ZIP_SAVE.equals(arg)) {
+    			  String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", appRuntime.name(), option);
+    			  throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+    		  }
         }
     }
     
@@ -3097,7 +3151,7 @@ public final class SubmitContext
         // Add the macros to the environment variables passed to the runtime application.
         // The environment variable list is guaranteed to be non-null by this time.  The
         // populated list is then sorted and the whole parameter set serialized.
-        var envVars = _submitReq.getParameterSet().getEnvVariables();
+        var envVars = _jobReqParmSet.getEnvVariables();
         for (var entry : _macros.entrySet()) {
             var kv = new KeyValuePair();
             kv.setKey(Job.TAPIS_ENV_VAR_PREFIX + entry.getKey());
@@ -3105,7 +3159,7 @@ public final class SubmitContext
             envVars.add(kv);
         }
         envVars.sort(new KeyValuePairComparator());
-        _job.setParameterSet(TapisGsonUtils.getGson(false).toJson(_submitReq.getParameterSet()));
+        _job.setParameterSet(TapisGsonUtils.getGson(false).toJson(_jobReqParmSet));
             
         // Tags.
         var tags = new TreeSet<String>();

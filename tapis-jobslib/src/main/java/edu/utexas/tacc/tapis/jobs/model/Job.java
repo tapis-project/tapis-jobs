@@ -207,7 +207,7 @@ public final class Job
     private String   			fileInputs = EMPTY_JSON_ARRAY;
     private JobParameterSet	parameterSet = new JobParameterSet();
     private String              execSystemConstraints;
-    private String              subscriptions = EMPTY_JSON;
+    private List<JobSubscription> subscriptions = EMPTY_JSON;
     
     private int      			blockedCount;
     private String   			remoteJobId;
@@ -521,7 +521,7 @@ public final class Job
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "parameterSet");
             throw new JobException(msg);
         }
-        if (StringUtils.isBlank(subscriptions)) {
+        if (subscriptions == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "subscriptions");
             throw new JobException(msg);
         }
@@ -875,11 +875,11 @@ public final class Job
 		this.execSystemConstraints = execSystemConstraints;
 	}
 
-	public String getSubscriptions() {
+	public List<JobSubscription> getSubscriptions() {
 		return subscriptions;
 	}
 
-	public void setSubscriptions(String subscriptions) {
+	public void setSubscriptions(List<JobSubscription> subscriptions) {
 		this.subscriptions = subscriptions;
 	}
 

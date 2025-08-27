@@ -3083,7 +3083,7 @@ public final class SubmitContext
         // Complex types stored as json.
         _job.setFileInputs(TapisGsonUtils.getGson(false).toJson(_submitReq.getFileInputs()));
         _job.setExecSystemConstraints(_submitReq.getConsolidatedConstraints());
-        _job.setSubscriptions(TapisGsonUtils.getGson(false).toJson(_submitReq.getSubscriptions()));
+        _job.setSubscriptions(_submitReq.getSubscriptions());
         
         // Add the macros to the environment variables passed to the runtime application.
         // The environment variable list is guaranteed to be non-null by this time.  The
@@ -3096,6 +3096,7 @@ public final class SubmitContext
             envVars.add(kv);
         }
         envVars.sort(new KeyValuePairComparator());
+
         _job.setParameterSet(_submitReq.getParameterSet());
             
         // Tags.

@@ -46,7 +46,7 @@
             "properties": {
                 "deliveryMethod":  { 
                     "type": "string", "minLength": 1, "maxLength": 64, 
-                    "enum": [ "WEBHOOK", "EMAIL", "QUEUE", "ACTOR" ]
+                    "enum": [ "WEBHOOK", "EMAIL" ]
                  },
                 "deliveryAddress": { "type": "string", "minLength": 1, "maxLength": 2048 }
             }

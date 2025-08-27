@@ -95,7 +95,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * and will result in a full table scan unless there's another where clause that uses an index.
  * 
  * DON'T USE:
- *  Q2: Select * from jobs where where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
+ *  Q2: Select * from jobs where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
  * 
  * Alternate Approach (not implemented)
  * ------------------------------------
@@ -1387,7 +1387,9 @@ public final class JobsDao
           
           // Tracking ID from request header can be null.
           pstmt.setString(43, job.getTrackingId());             // could be null  
-          
+          // ArchiveMode
+          pstmt.setString(44, job.getArchiveMode().name());
+
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
           if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobs", rows, 1));
@@ -2173,7 +2175,7 @@ public final class JobsDao
 	 throws JobException, TapisNotFoundException
 	{
         // ------------------------- Check Input -------------------------
-        // Exceptions can be throw from here.
+        // Exceptions can be thrown from here.
         if (StringUtils.isBlank(jobUuid)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getTransferInfo", "jobUuid");
             throw new JobException(msg);
@@ -3274,7 +3276,12 @@ public final class JobsDao
 	        // Tracking ID is null unless the X-TAPIS-TRACKING-ID header was set.
 	        String trackingId = rs.getString(70);
 	        if (trackingId != null) obj.setTrackingId(trackingId);
-	    } 
+
+          // Could be null until databases are migrated.
+          String archiveModeStr = rs.getString(71);
+          if (!StringUtils.isBlank(archiveModeStr)) obj.setArchiveMode(Job.ArchiveModeEnum.valueOf(archiveModeStr));
+
+      }
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
 	      throw new TapisJDBCException(msg, e);

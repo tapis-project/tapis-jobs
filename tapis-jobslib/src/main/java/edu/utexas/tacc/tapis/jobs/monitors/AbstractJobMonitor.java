@@ -236,8 +236,8 @@ abstract class AbstractJobMonitor
                     //   long period of time (MonitorPolicy.DEFAULT_CONSECUTIVE_FAILURE_MINUTES = 60 minutes).
                     // The specific reason comes from the policy instance.
                     MonitorPolicy.ReasonCode reasonCode = _policy.getReasonCode();
-                    // Set the job outcome to failed. Note that if archiveOnAppErr is true then archiving will be
-                    // attempted even though the job may still be running.
+                    // Set the job outcome to failed. Note that if archiveOnAppErr is true or archiveMode=ALWAYS
+                    // then archiving will be attempted even though the job may still be running.
                     _jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED);
                     
                     // We want to update the finalMessage field in the jobCtx, which will be used to update the
@@ -354,9 +354,9 @@ abstract class AbstractJobMonitor
             throw e;
         }
         finally {
-            // Make sure the job outcome is set. If we got here via a non-recoverable exception and the outcome
-            // is not set we FAIL the job. Note that if archiveOnAppErr is true then archiving will be attempted
-            // even though the job may still be running.
+            // Make sure the job outcome is set. If we got here via a non-recoverable exception and the outcome is not
+            // set we FAIL the job. Note that if archiveOnAppErr is true  or archiveMode=ALWAYS then archiving will be
+            // attempted even though the job may still be running.
             if (exceptionThrown && !recoverableExceptionThrown && _job.getRemoteOutcome() == null) {
                 // An exception could be thrown from here.
                 try {_jobCtx.getJobsDao().setRemoteOutcome(_job, JobRemoteOutcome.FAILED);}
@@ -539,7 +539,7 @@ abstract class AbstractJobMonitor
         // explicitly specified that archiving should be performed even on failures.
         if (remoteStatus == JobRemoteStatus.DONE)
             _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FINISHED, code);
-        else if (_job.isArchiveOnAppError())
+        else if (_job.isArchiveOnAppError() || Job.ArchiveModeEnum.ALWAYS.equals(_job.getArchiveMode()))
             _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FAILED, code);
         else _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE, code);
         if (_log.isDebugEnabled())

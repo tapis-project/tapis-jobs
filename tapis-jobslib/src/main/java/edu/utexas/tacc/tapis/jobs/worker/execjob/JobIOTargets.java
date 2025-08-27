@@ -53,7 +53,7 @@ public final class JobIOTargets
     /*                                Fields                                  */
     /* ********************************************************************** */
     // The initialized job context.
-    private final Job                 _job;
+    private final Job _job;
     private final TapisSystem         _execSystem;
     private final TapisSystem         _dtnSystem;
 
@@ -70,7 +70,7 @@ public final class JobIOTargets
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public JobIOTargets(Job job, TapisSystem execSystem, TapisSystem dtnSystem) 
+    public JobIOTargets(Job job, TapisSystem execSystem, TapisSystem dtnSystem)
      throws TapisException
     {
     	// Assign arguments.

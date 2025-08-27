@@ -51,7 +51,7 @@ abstract class AbstractJobMonitor
     /* ********************************************************************** */
     protected final MonitorPolicy       _policy;
     protected final JobExecutionContext _jobCtx;
-    protected final Job                 _job;
+    protected final Job _job;
 
     /* ********************************************************************** */
     /*                              Constructors                              */

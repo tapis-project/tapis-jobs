@@ -158,14 +158,14 @@ public class JobRecoverMsg
     /* ---------------------------------------------------------------------- */
     /* create:                                                                */
     /* ---------------------------------------------------------------------- */
-    public static JobRecoverMsg create(Job job, 
-                                       String senderId, 
+    public static JobRecoverMsg create(Job job,
+                                       String senderId,
                                        RecoverConditionCode conditionCode,
-                                       RecoverPolicyType policyType, 
-                                       TreeMap<String,String> policyParameters, 
-                                       JobStatusType successStatus, 
-                                       String statusMessage, 
-                                       RecoverTesterType testerType, 
+                                       RecoverPolicyType policyType,
+                                       TreeMap<String,String> policyParameters,
+                                       JobStatusType successStatus,
+                                       String statusMessage,
+                                       RecoverTesterType testerType,
                                        TreeMap<String,String> testerParms)
     {
         // Create the new job recover message.

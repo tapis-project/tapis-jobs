@@ -30,31 +30,33 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public final class Job
 {
-	// Constants.
-	public static final int DEFAULT_NODE_COUNT = 1;
-	public static final int DEFAULT_CORES_PER_NODE = 1;
-	public static final int DEFAULT_MEM_MB = 100;
-	public static final int DEFAULT_MAX_MINUTES = 10;
-	public static final int MAX_LAST_MESSAGE_LEN = 16384;
-	public static final Boolean DEFAULT_ARCHIVE_ON_APP_ERROR = Boolean.TRUE;
-	public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
-	public static final String EMPTY_JSON = "{}";
-	public static final String EMPTY_JSON_ARRAY = "[]";
-	public static final JsonObject EMPTY_JSON_OBJ = TapisGsonUtils.getGson().fromJson("{}", JsonObject.class);
-	public static final String DEFAULT_SHARED_APP_CTX = "";
-	public static final String NOTES_FIELD = "notes";
-	public static final JsonObject DEFAULT_NOTES = EMPTY_JSON_OBJ;
-	
+  // ************************************************************************
+  // *********************** Constants **************************************
+  // ************************************************************************
+  // Default values
+  public static final int DEFAULT_NODE_COUNT = 1;
+  public static final int DEFAULT_CORES_PER_NODE = 1;
+  public static final int DEFAULT_MEM_MB = 100;
+  public static final int DEFAULT_MAX_MINUTES = 10;
+  public static final int MAX_LAST_MESSAGE_LEN = 16384;
+  public static final Boolean DEFAULT_ARCHIVE_ON_APP_ERROR = Boolean.TRUE;
+  public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
+  public static final String EMPTY_JSON = "{}";
+  public static final String EMPTY_JSON_ARRAY = "[]";
+  public static final JsonObject EMPTY_JSON_OBJ = TapisGsonUtils.getGson().fromJson("{}", JsonObject.class);
+  public static final String DEFAULT_SHARED_APP_CTX = "";
+  public static final JsonObject DEFAULT_NOTES = EMPTY_JSON_OBJ;
+
 	// Default directory assignments.  All paths are relative to their system's 
 	// rootDir unless otherwise noted.  Leading slashes are optional on relative
 	// paths and required on absolute paths.  When the full path names of relative 
 	// paths are constructed, double slashes at the point of concatenation are prevented.
-	public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${JobWorkingDir}/jobs/${JobUUID}";
-	public static final String DEFAULT_EXEC_SYSTEM_EXEC_DIR    = DEFAULT_EXEC_SYSTEM_INPUT_DIR;
-	public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_DIR  = DEFAULT_EXEC_SYSTEM_INPUT_DIR + "/output";
-    public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${JobUUID}/archive";
+  public static final String DEFAULT_EXEC_SYSTEM_INPUT_DIR   = "/${JobWorkingDir}/jobs/${JobUUID}";
+  public static final String DEFAULT_EXEC_SYSTEM_EXEC_DIR    = DEFAULT_EXEC_SYSTEM_INPUT_DIR;
+  public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_DIR  = DEFAULT_EXEC_SYSTEM_INPUT_DIR + "/output";
+  public static final String DEFAULT_ARCHIVE_SYSTEM_DIR      = "/jobs/${JobUUID}/archive";
     
-    // Standard container mountpoints.
+    // Standard container mount points.
     public static final String DEFAULT_EXEC_SYSTEM_INPUT_MOUNTPOINT  = "/TapisInput";
     public static final String DEFAULT_EXEC_SYSTEM_OUTPUT_MOUNTPOINT = "/TapisOutput";
     public static final String DEFAULT_EXEC_SYSTEM_EXEC_MOUNTPOINT   = "/TapisExec";
@@ -65,8 +67,104 @@ public final class Job
     // Tapis-specific scheduler option.
     public static final String TAPIS_PROFILE_KEY = "--tapis-profile";
     public static final String TAPIS_ZIP_SAVE    = "--tapis-zip-save";
-	
-	// Fields
+
+  // Special select strings used for determining the attributes to return in a response
+  public static final String SEL_ALL_ATTRS = "allAttributes";
+  public static final String SEL_SUMMARY_ATTRS = "summaryAttributes";
+
+  // Attribute names, also used as field names in Json
+  public static final String TENANT_FIELD = "tenant";
+  public static final String UUID_FIELD = "uuid";
+  public static final String NAME_FIELD = "name";
+  public static final String OWNER_FIELD = "owner";
+  public static final String DESCRIPTION_FIELD = "description";
+
+  public static final String STATUS_FIELD = "status";
+  public static final String CONDITION_FIELD = "condition";
+  public static final String LAST_MESSAGE_FIELD = "lastMessage";
+  public static final String CREATED_FIELD = "created";
+  public static final String ENDED_FIELD = "ended";
+  public static final String UPDATED_FIELD = "lastUpdated";
+
+  public static final String APP_ID_FIELD = "appId";
+  public static final String APP_VERSION_FIELD = "appVersion";
+
+  public static final String DYN_EXEC_SYS_FIELD = "dynamicExecSystem";
+  public static final String EXECSYS_CONSTRAINTS_FIELD = "execSystemConstraints";
+  public static final String EXECSYSID_FIELD = "execSystemId";
+  public static final String EXECSYSEXECDIR_FIELD = "execSystemExecDir";
+  public static final String EXECSYSINDIR_FIELD = "execSystemInputDir";
+  public static final String EXECSYSOUTDIR_FIELD = "execSystemOutputDir";
+  public static final String EXECSYSLOGICALQ_FIELD = "execSystemLogicalQueue";
+  public static final String DTNSYSID_FIELD = "dtnSystemId";
+  public static final String DTNSYSINDIR_FIELD = "dtnSystemInputDir";
+  public static final String DTNSYSOUTDIR_FIELD = "dtnSystemOutputDir";
+  public static final String ARCHIVESYSID_FIELD = "archiveSystemId";
+  public static final String ARCHIVESYSDIR_FIELD = "archiveSystemDir";
+  public static final String ARCHIVEONAPPERROR_FIELD = "archiveOnAppError";
+// 26
+
+  public static final String NODE_COUNT_FIELD = "nodeCount";
+  public static final String CORES_PER_NODE_FIELD = "coresPerNode";
+  public static final String MEMORY_MB_FIELD = "memoryMB";
+  public static final String MAX_MINUTES_FIELD = "maxMinutes";
+
+  public static final String SUBSCRIPTIONS_FIELD = "subscriptions";
+//  public static final String SUBSCRIPTIONS_DLVRY_ADDR_FIELD = "deliveryAddress";
+  public static final String FILE_INPUTS_FIELD = "fileInputs";
+//  public static final String FILE_INPUTS_SRC_FIELD = "sourceUrl";
+//  public static final String FILE_INPUTS_DST_FIELD = "targetPath";
+  public static final String PARAM_SET_FIELD = "parameterSet";
+//  public static final String APP_ARGS_FIELD = "appArgs";
+//  public static final String CONTAINER_ARGS_FIELD = "containerArgs";
+//  public static final String SCHED_OPTS_FIELD = "schedulerOptions";
+//  public static final String ENV_VARS_FIELD = "envVariables";
+
+  public static final String BLOCKED_CNT_FIELD = "blockedCount";
+  public static final String REMOTE_JOB_ID_FIELD = "remoteJobId";
+  public static final String REMOTE_JOB_ID2_FIELD = "remoteJobId2";
+  public static final String REMOTE_OUTCOME_FIELD = "remoteOutcome";
+  public static final String REMOTE_RESULTINFO_FIELD = "remoteResultInfo";
+  public static final String REMOTE_QUEUE_FIELD = "remoteQueue";
+  public static final String REMOTE_SUBMITTED_FIELD = "remoteSubmitted";
+  public static final String REMOTE_STARTED_FIELD = "remoteStarted";
+  public static final String REMOTE_ENDED_FIELD = "remoteEnded";
+  public static final String REMOTE_SUB_RETRIES_FIELD = "remoteSubmitRetries";
+  public static final String REMOTE_CHECKS_SUCC_FIELD = "remoteChecksSuccess";
+  public static final String REMOTE_CHECKS_FAIL_FIELD = "remoteChecksFailed";
+  public static final String REMOTE_LASTSTAT_FIELD = "remoteLastStatusCheck";
+  public static final String INPUT_TXN_ID_FIELD = "inputTransactionId";
+  public static final String INPUT_CORR_ID_FIELD = "inputCorrelationId";
+  public static final String ARCH_TXN_ID_FIELD = "archiveTransactionId";
+  public static final String ARCH_CORR_ID_FIELD = "archiveCorrelationId";
+//50
+  public static final String STAGE_APP_TXN_ID_FIELD = "stageAppTransactionId";
+  public static final String STAGE_APP_CORR_ID_FIELD = "stageAppCorrelationId";
+  public static final String DTN_INPUT_TXN_ID_FIELD = "dtnInputTransactionId";
+  public static final String DTN_INPUT_CORR_ID_FIELD = "dtnInputCorrelationId";
+  public static final String DTN_OUTPUT_TXN_ID_FIELD = "dtnOutputTransactionId";
+  public static final String DTN_OUTPUT_CORR_ID_FIELD = "dtnOutputCorrelationId";
+  public static final String TAPIS_QUEUE_FIELD = "tapisQueue";
+  public static final String VISIBLE_FIELD = "visible";
+  public static final String CREATEDBY_FIELD = "createdby";
+  public static final String CREATEDBY_TENANT_FIELD = "createdbyTenant";
+  public static final String TAGS_FIELD = "tags";
+  public static final String JOB_TYPE_FIELD = "jobType";
+  public static final String ISMPI_FIELD = "isMpi";
+  public static final String MPI_CMD_FIELD = "mpiCmd";
+  public static final String CMD_PREFIX_FIELD = "cmdPrefix";
+  public static final String SHARED_APP_CTX_FIELD = "sharedAppCtx";
+  public static final String SHARED_APP_CTX_ATTRS_FIELD = "sharedAppCtxAttribs";
+  public static final String TRACKINGID_FIELD = "trackingId";
+  public static final String NOTES_FIELD = "notes";
+//69
+
+  // TODO FROM Apps ???????????????????????????????????????????????????
+  public static final String ENVKEY_FIELD = "envKey";
+  public static final String FILE_INPUT_ARRAYS_TARGET_FIELD = "targetDir";
+  public static final String FILE_INPUT_ARRAYS_SRC_FIELD = "sourceUrls";
+
+  // Fields
     private int      			id;
     private String   			name;
     private String   			owner;

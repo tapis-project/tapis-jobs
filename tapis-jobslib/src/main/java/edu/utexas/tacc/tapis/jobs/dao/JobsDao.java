@@ -188,7 +188,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* getJobs:                                                               */
 	/* ---------------------------------------------------------------------- */
-	public List<Job> getJobs() 
+	public List<Job> getJobs()
 	  throws JobException
 	{
 	    // Initialize result.
@@ -847,8 +847,8 @@ public final class JobsDao
 	/*  all attributes                                                        */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList, 
-			List<OrderBy> orderByList,Integer limit, Integer skip, boolean shared) 
+	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList,
+                                                             List<OrderBy> orderByList, Integer limit, Integer skip, boolean shared)
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -3671,6 +3671,9 @@ public final class JobsDao
         public String owner;
     }
 
+    /*
+     * Use gson.fromJson to convert an SQL PGobject to a JsonObject.
+     */
     private JsonObject convertPGObjToJsonObj(PGobject pgObj) {
       // Convert from sql PGobject to a JsonObject
       if (pgObj == null) return EMPTY_JSON_OBJ;
@@ -3679,4 +3682,3 @@ public final class JobsDao
       return jsonObj;
     }
 }
-    

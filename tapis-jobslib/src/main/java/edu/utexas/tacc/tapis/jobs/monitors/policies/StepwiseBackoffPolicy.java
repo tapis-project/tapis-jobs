@@ -65,7 +65,7 @@ public final class StepwiseBackoffPolicy
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public StepwiseBackoffPolicy(Job job, MonitorPolicyParameters policyParameters) 
+    public StepwiseBackoffPolicy(Job job, MonitorPolicyParameters policyParameters)
      throws JobException 
     {
         // Check input.

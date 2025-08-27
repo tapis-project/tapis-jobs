@@ -77,7 +77,7 @@ public final class DockerRunCmd
     /* generateExecCmd:                                                       */
     /* ---------------------------------------------------------------------- */
     @Override
-    public String generateExecCmd(Job job) 
+    public String generateExecCmd(Job job)
     {
         // The generated wrapper script will contain a docker run command: 
         //

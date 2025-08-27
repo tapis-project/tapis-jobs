@@ -106,7 +106,7 @@ public final class JobFileManager
     /* ********************************************************************** */
     // The initialized job context.
     private final JobExecutionContext _jobCtx;
-    private final Job                 _job;
+    private final Job _job;
     
     // Unpack shared context directory settings.
     private final String              _shareExecSystemInputDirAppOwner;

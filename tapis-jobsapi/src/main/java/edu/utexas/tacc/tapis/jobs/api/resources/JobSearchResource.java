@@ -226,7 +226,7 @@ public class JobSearchResource extends AbstractResource {
       List<JobListDTO> jobSharedSummaryList = new ArrayList<JobListDTO>();
       
       // All Attributes
-      List<Job> jobs = new ArrayList<Job>(); 
+      List<Job> jobs = new ArrayList<Job>();
       List<Job> jobsShared = new ArrayList<Job>();
      
       
@@ -569,7 +569,7 @@ public class JobSearchResource extends AbstractResource {
      List<JobListDTO> jobSharedSummaryList = new ArrayList<JobListDTO>();
      
      // All Attributes
-     List<Job> jobs = new ArrayList<Job>(); 
+     List<Job> jobs = new ArrayList<Job>();
      List<Job> jobsShared = new ArrayList<Job>();
     
      

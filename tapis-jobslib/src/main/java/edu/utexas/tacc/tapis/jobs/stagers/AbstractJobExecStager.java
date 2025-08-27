@@ -50,7 +50,7 @@ public abstract class AbstractJobExecStager
     /* ********************************************************************** */
     // Input parameters
     protected final JobExecutionContext _jobCtx;
-    protected final Job                 _job;
+    protected final Job _job;
     
     // The buffer used to build command file content. 
     protected final StringBuilder       _cmdBuilder;

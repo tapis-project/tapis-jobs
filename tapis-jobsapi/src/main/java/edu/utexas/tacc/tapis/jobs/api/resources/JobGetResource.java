@@ -36,6 +36,16 @@ import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static edu.utexas.tacc.tapis.jobs.model.Job.APP_ID_FIELD;
+import static edu.utexas.tacc.tapis.jobs.model.Job.APP_VERSION_FIELD;
+import static edu.utexas.tacc.tapis.jobs.model.Job.NAME_FIELD;
+import static edu.utexas.tacc.tapis.jobs.model.Job.OWNER_FIELD;
+import static edu.utexas.tacc.tapis.jobs.model.Job.STATUS_FIELD;
+import static edu.utexas.tacc.tapis.jobs.model.Job.UUID_FIELD;
+
 @Path("/")
 public class JobGetResource 
  extends AbstractResource
@@ -45,7 +55,11 @@ public class JobGetResource
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobGetResource.class);
-    
+
+  // TODO Top level summary attributes to be included by default in some cases.
+  public static final List<String> SUMMARY_ATTRS =
+        new ArrayList<>(List.of(UUID_FIELD, NAME_FIELD, STATUS_FIELD, APP_ID_FIELD, APP_VERSION_FIELD, OWNER_FIELD));
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */

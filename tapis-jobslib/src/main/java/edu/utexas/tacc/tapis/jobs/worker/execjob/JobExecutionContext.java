@@ -67,7 +67,7 @@ public final class JobExecutionContext
     /*                                Fields                                  */
     /* ********************************************************************** */
     // The job to run.
-    private final Job                _job;
+    private final Job _job;
     private JobSharedAppCtx          _jobSharedAppCtx;
     
 	// Cached dao's used throughout this file and by clients.
@@ -96,7 +96,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     /* constructor:                                                           */
     /* ---------------------------------------------------------------------- */
-    public JobExecutionContext(Job job, JobsDao jobDao) 
+    public JobExecutionContext(Job job, JobsDao jobDao)
     {
         // Jobs and their dao's cannot be null.
         if (job == null) {

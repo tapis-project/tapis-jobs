@@ -822,7 +822,7 @@ public final class JobParmSetMarshaller
     		
     		// Make sure the name has the right format using the right charset.
     		if (!_envKeyPattern.matcher(name).matches()) {
-    			String msg = JobUtils.getMsg("JOBS_INVALID_ENV_VAR_CHAR", name);
+    			String msg = MsgUtils.getMsg("TAPIS_INVALID_ENV_VAR_CHAR", name);
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
     		

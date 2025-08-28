@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -258,7 +259,7 @@ public final class JobEventsDao
           try {if (!usingCallerConn && conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("JOBS_CREATE_JOB_EVENT", jobEvent.getEvent().name(), 
+          String msg = JobUtils.getMsg("JOBS_CREATE_JOB_EVENT", jobEvent.getEvent().name(),
                                        jobEvent.getJobUuid(), e.getMessage());
           throw new JobException(msg, e);
       }

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.recover;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +67,7 @@ public class RecoverPolicyFactory
             case CONSTANT_BACKOFF:
                 return new ConstantBackoffPolicy(jobRecovery);
             default:
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_UNKNOWN_POLICYTYPE",  
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_UNKNOWN_POLICYTYPE",
                                              policyType, jobRecovery.getId(),
                                              jobRecovery.getTenantId());
                 _log.error(msg);

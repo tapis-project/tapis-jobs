@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
 @Test(groups={"unit"})
-public class MacroResovlerTest3 
+public class MacroResolverTest3
 {
     private static final Pattern _pattern = MacroResolver._envVarPattern;
     //private static final Pattern _pattern = Pattern.compile("(\\$?[a-zA-Z_][a-zA-Z0-9_]*)\\s*(,\\s*(\\S+)\\s*)?");

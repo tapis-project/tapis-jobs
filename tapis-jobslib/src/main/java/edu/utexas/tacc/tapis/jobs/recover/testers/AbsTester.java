@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.recover.testers;
 
 import java.util.concurrent.ExecutionException;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +92,7 @@ public abstract class AbsTester
     {
         // We currently support two authentication methods. Anything else is an error
         if (authMethod != AuthMethod.PASSWORD_AUTH && authMethod != AuthMethod.PUBLICKEY_AUTH) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_UNKNOWN_SSH_AUTHN", authMethod.name());
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_UNKNOWN_SSH_AUTHN", authMethod.name());
             throw new JobRecoveryAbortException(msg);
         }
         
@@ -100,13 +101,13 @@ public abstract class AbsTester
         try {system = getSystem(username, _jobRecovery.getTenantId(), systemId, sharedAppCtx);}
             catch (TapisRecoverableException e) {
                 // Record problem.
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_TEST_SETUP_ERROR", _jobRecovery.getId(), e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_TEST_SETUP_ERROR", _jobRecovery.getId(), e.getMessage());
                 _log.warn(msg);
                 return null;  // Try again later.
             }
             catch (Exception e) {
                 // Fatal unhandled error
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_TEST_FATAL_ERROR", _jobRecovery.getId(), e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_TEST_FATAL_ERROR", _jobRecovery.getId(), e.getMessage());
                 throw new JobRecoveryAbortException(msg, e);
             }
         
@@ -124,7 +125,7 @@ public abstract class AbsTester
             return null;
         } catch (Exception e) {
             // Fatal unhandled error
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_TEST_CONN_FATAL_ERROR", _jobRecovery.getId(), system.getId(),
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_TEST_CONN_FATAL_ERROR", _jobRecovery.getId(), system.getId(),
                                          e.getMessage());
             throw new JobRecoveryAbortException(msg, e);
         }

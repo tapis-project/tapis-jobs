@@ -9,6 +9,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -161,7 +162,7 @@ public final class JobBlockedDao
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", e.getMessage());
           throw new JobException(msg, e);
       }
       finally {
@@ -210,14 +211,14 @@ public final class JobBlockedDao
           // succeeded.  
           //
           // See last commit before 12/6/2018 for debug code that queries existing record.
-          String msg = MsgUtils.getMsg("JOBS_DUPLICATE_BLOCKED_WARN", blocked.getJobUuid(),
+          String msg = JobUtils.getMsg("JOBS_DUPLICATE_BLOCKED_WARN", blocked.getJobUuid(),
                        blocked.getRecoveryId(), blocked.getCreated().toString(), blocked.getSuccessStatus(), 
                        blocked.getStatusMessage().substring(0, Math.min(35, blocked.getStatusMessage().length())),
                        e.getMessage());
           _log.warn(msg, e);
       }
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_CREATE_BLOCKED_ERROR", blocked.getJobUuid(), 
+          String msg = JobUtils.getMsg("JOBS_CREATE_BLOCKED_ERROR", blocked.getJobUuid(), 
                                        blocked.getRecoveryId(), e.getMessage());
           _log.error(msg, e);
           throw e;
@@ -241,7 +242,7 @@ public final class JobBlockedDao
   {
       // ------------------------- Tracing -----------------------------
       if (_log.isDebugEnabled()) {
-          String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETING_BLOCKED_JOB", jobUuid);
+          String msg = JobUtils.getMsg("JOBS_RECOVERY_DELETING_BLOCKED_JOB", jobUuid);
           _log.debug(msg);
       }
 
@@ -274,7 +275,7 @@ public final class JobBlockedDao
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
           
-          String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETE_BLOCKED_JOB", jobUuid, e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_RECOVERY_DELETE_BLOCKED_JOB", jobUuid, e.getMessage());
           throw new JobException(msg, e);
       }
       finally {

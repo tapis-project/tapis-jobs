@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
 @Test(groups={"unit"})
-public class MacroResovlerTest2 
+public class MacroResolverTest2
 {
     // Initialize fake macro definitions.
     private final HashMap<String,String> _macroMap = initMacroMap();

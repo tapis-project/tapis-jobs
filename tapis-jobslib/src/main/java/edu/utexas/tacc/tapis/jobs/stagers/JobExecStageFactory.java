@@ -6,6 +6,7 @@ import edu.utexas.tacc.tapis.jobs.stagers.docker.DockerStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularity.SingularityRunSlurmStager;
 import edu.utexas.tacc.tapis.jobs.stagers.singularity.SingularityRunStager;
 import edu.utexas.tacc.tapis.jobs.stagers.zip.ZipStager;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -45,7 +46,7 @@ public final class JobExecStageFactory
                 case SINGULARITY -> new SingularityRunStager(jobCtx);
                 case ZIP         -> new ZipStager(jobCtx, null /*schedulerType*/);
                 default -> {
-                    String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
+                    String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
                                                  "JobExecStageFactory");
                     throw new JobException(msg);
                 }
@@ -59,7 +60,7 @@ public final class JobExecStageFactory
             
             // Double check that a scheduler is assigned.
             if (scheduler == null) {
-                String msg = MsgUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(), 
+                String msg = JobUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(),
                                               jobCtx.getJob().getUuid());
                 throw new JobException(msg);
             }
@@ -70,14 +71,14 @@ public final class JobExecStageFactory
                 case SINGULARITY -> getBatchSingularityStager(jobCtx, scheduler);
                 case ZIP         -> getBatchZipStager(jobCtx, scheduler);
                 default -> {
-                    String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
+                    String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
                                                  "JobExecStageFactory");
                     throw new JobException(msg);
                 }
             };
         }
         else {
-            String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobExecStageFactory");
+            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobExecStageFactory");
             throw new JobException(msg);
         }
         
@@ -92,7 +93,7 @@ public final class JobExecStageFactory
      throws TapisException
     {
         // Not yet supported
-        String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
+        String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                      scheduler + "(DOCKER)",
                                      "JobExecStageFactory");
         throw new JobException(msg);
@@ -110,7 +111,7 @@ public final class JobExecStageFactory
             case SLURM -> new SingularityRunSlurmStager(jobCtx, scheduler);
         
             default -> {
-                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
+                String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(SINGULARITY)", 
                                              "JobExecStageFactory");
                 throw new JobException(msg);
@@ -131,7 +132,7 @@ public final class JobExecStageFactory
             case SLURM -> new ZipStager(jobCtx, scheduler);
 
             default -> {
-                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
+                String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(ZIP)",
                                              "JobExecStageFactory");
                 throw new JobException(msg);

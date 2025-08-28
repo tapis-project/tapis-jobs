@@ -5,6 +5,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicyParameters;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.StepwiseBackoffPolicy;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -62,7 +63,7 @@ public class JobMonitorFactory
                 case SINGULARITY -> new SingularityRunMonitor(jobCtx, policy);
                 case ZIP         -> new ZipNativeMonitor(jobCtx, policy);
                 default -> {
-                    String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
+                    String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
                                                  "JobMonitorFactory");
                     throw new JobException(msg);
                 }
@@ -76,7 +77,7 @@ public class JobMonitorFactory
             
             // Doublecheck that a scheduler is assigned.
             if (scheduler == null) {
-                String msg = MsgUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(), 
+                String msg = JobUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(), 
                                               jobCtx.getJob().getUuid());
                 throw new JobException(msg);
             }
@@ -87,14 +88,14 @@ public class JobMonitorFactory
                 case SINGULARITY -> getBatchMonitor(jobCtx, policy, scheduler);
                 case ZIP         -> getBatchMonitor(jobCtx, policy, scheduler);
                 default -> {
-                    String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
+                    String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
                                                  "JobMonitorFactory");
                     throw new JobException(msg);
                 }
             };
         }
         else {
-            String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobMonitorFactory");
+            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobMonitorFactory");
             throw new JobException(msg);
         }
         
@@ -114,7 +115,7 @@ public class JobMonitorFactory
             case SLURM -> null; // not implemented
             
             default -> {
-                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
+                String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler.name(), "JobMonitorFactory");
                 throw new JobException(msg);
             }
@@ -136,7 +137,7 @@ public class JobMonitorFactory
             case SLURM -> new SlurmMonitor(jobCtx, policy);
         
             default -> {
-                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
+                String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler.name(), "JobMonitorFactory");
                 throw new JobException(msg);
             }

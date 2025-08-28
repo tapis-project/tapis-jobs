@@ -421,7 +421,7 @@ public final class JobFileManager
         
         // Is there anything to transfer?
         if (transferId.equals(NO_FILE_INPUTS)) return;
-        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+        _log.info(JobUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
                                   _job.getStatus().name(), transferId, corrId));
         
         // Block until the transfer is complete. If the transfer fails because of
@@ -467,7 +467,7 @@ public final class JobFileManager
         
         // Is there anything to transfer?
         if (transferId.equals(NO_FILE_INPUTS)) return;
-        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+        _log.info(JobUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
                                   _job.getStatus().name(), transferId, corrId));
 
         // Block until the transfer is complete. If the transfer fails because of
@@ -578,7 +578,7 @@ public final class JobFileManager
         else cmd = String.format(ZIP_UNTAR_CMD_FMT, execDir, quotedArchiveAbsolutePath);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), host, cmd));
+            _log.debug(JobUtils.getMsg("JOBS_ZIP_EXTRACT_CMD", _job.getUuid(), host, cmd));
 
         // Run the command to extract the app archive
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
@@ -587,11 +587,11 @@ public final class JobFileManager
 
         // Log exit code and result
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_EXTRACT_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
+            _log.debug(JobUtils.getMsg("JOBS_ZIP_EXTRACT_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
 
         // If non-zero exit code consider it a failure. Throw non-recoverable exception.
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_EXTRACT_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
+            String msg = JobUtils.getMsg("JOBS_ZIP_EXTRACT_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
     }
@@ -615,13 +615,13 @@ public final class JobFileManager
         if (containerImage.startsWith("/")) return;
 
         // Figure out the name of the zip file.
-        String msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_RM", jobUuid, containerImage);
+        String msg = JobUtils.getMsg("JOBS_ZIP_CONTAINER_RM", jobUuid, containerImage);
         _log.debug(msg);
         // Not a path, so should be a URL in a format supported by Files service. Validate it.
         Matcher matcher = JobFileInput.URL_PATTERN.matcher(containerImage);
         if (!matcher.find())
         {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", jobUuid, containerImage);
+            msg = JobUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", jobUuid, containerImage);
             throw new JobException(msg);
         }
         // Extract and normalize the path in the URL. If no path set then use /
@@ -632,7 +632,7 @@ public final class JobFileManager
         // Do simple validation of app archive file name.
         if (StringUtils.isBlank(zipFileName) || "/".equals(zipFileName))
         {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, containerImage, zipFileName);
+            msg = JobUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, containerImage, zipFileName);
             throw new JobException(msg);
         }
 
@@ -658,7 +658,7 @@ public final class JobFileManager
         String cmd = String.format("command -V %s", command);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_CHECK_CMD", _job.getUuid(), host, cmd));
+            _log.debug(JobUtils.getMsg("JOBS_CHECK_CMD", _job.getUuid(), host, cmd));
 
         // Run the command to check
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
@@ -667,11 +667,11 @@ public final class JobFileManager
 
         // Log exit code and result
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_CHECK_CMD_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
+            _log.debug(JobUtils.getMsg("JOBS_CHECK_CMD_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
 
         // If non-zero exit code consider it a failure. Throw non-recoverable exception.
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_CHECK_CMD_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
+            String msg = JobUtils.getMsg("JOBS_CHECK_CMD_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
     }
@@ -696,7 +696,7 @@ public final class JobFileManager
         String cmd = String.format(ZIP_SETEXEC_CMD_FMT, execDir, setAppExecScript);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_CMD", _job.getUuid(), host, cmd));
+            _log.debug(JobUtils.getMsg("JOBS_ZIP_SETEXEC_CMD", _job.getUuid(), host, cmd));
 
         // Run the command to extract the app archive
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
@@ -705,11 +705,11 @@ public final class JobFileManager
 
         // Log exit code and result
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_SETEXEC_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
+            _log.debug(JobUtils.getMsg("JOBS_ZIP_SETEXEC_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
 
         // If non-zero exit code consider it a failure. Throw non-recoverable exception.
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
+            String msg = JobUtils.getMsg("JOBS_ZIP_SETEXEC_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
         // We expect the output to be a single line to the app executable to run, but sometimes extraneous text
@@ -736,7 +736,7 @@ public final class JobFileManager
         String cmd = String.format(ZIP_FILE_RM_FROM_EXECDIR_FMT, execDir, fileName);
         // Log the command we are about to issue.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_FILE_RM_CMD", _job.getUuid(), host, cmd));
+            _log.debug(JobUtils.getMsg("JOBS_ZIP_FILE_RM_CMD", _job.getUuid(), host, cmd));
 
         // Run the command to remove the file
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
@@ -745,11 +745,11 @@ public final class JobFileManager
 
         // Log exit code and result
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_ZIP_FILE_RM_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
+            _log.debug(JobUtils.getMsg("JOBS_ZIP_FILE_RM_EXIT", _job.getUuid(), host, cmd, exitStatus, result));
 
         // If non-zero exit code consider it a failure. Throw an exception.
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_FILE_RM_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
+            String msg = JobUtils.getMsg("JOBS_ZIP_FILE_RM_ERROR", _job.getUuid(), host, cmd, exitStatus, result);
             throw new TapisException(msg);
         }
     }
@@ -894,7 +894,7 @@ public final class JobFileManager
         }
 
         // Debugging.
-        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(),
+        _log.info(JobUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(),
                 _job.getStatus().name(), transferId, corrId));
 
         // Block until the transfer is complete. If the transfer fails because of
@@ -1605,11 +1605,11 @@ public final class JobFileManager
             _job.setCondition(JobConditionCode.JOB_FILES_SERVICE_ERROR);
             if (e instanceof TapisClientException) {
                 var e1 = (TapisClientException) e;
-                String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
+                String msg = JobUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
                                              e1.getCode(), e1.getMessage());
                 throw new TapisImplException(msg, e1, e1.getCode());
             } else {
-                String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
+                String msg = JobUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "input", _job.getUuid(),
                                              0, e.getMessage());
                 throw new TapisImplException(msg, e, 0);
             }
@@ -1623,7 +1623,7 @@ public final class JobFileManager
         }
         if (transferId == null) {
         	_job.setCondition(JobConditionCode.JOB_FILES_SERVICE_ERROR);
-            String msg = MsgUtils.getMsg("JOBS_NO_TRANSFER_ID", "input", _job.getUuid());
+            String msg = JobUtils.getMsg("JOBS_NO_TRANSFER_ID", "input", _job.getUuid());
             throw new JobException(msg);
         }
         
@@ -1648,7 +1648,7 @@ public final class JobFileManager
     	if (!_jobCtx.useDtnInput()) {
     		_job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
     		var cond = TapisImplException.Condition.INTERNAL_SERVER_ERROR;
-            String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "moveInput", _job.getUuid(),
+            String msg = JobUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "moveInput", _job.getUuid(),
                                          500, cond.name());
             throw new TapisImplException(msg, cond);
     	}
@@ -1672,7 +1672,7 @@ public final class JobFileManager
         }
     	
         // Debugging.
-        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+        _log.info(JobUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
                                   _job.getStatus().name(), transferId, corrId));
         
     	// Monitor the move's completion.
@@ -1700,7 +1700,7 @@ public final class JobFileManager
     	if (!_jobCtx.useDtnOutput()) {
     		_job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
         	var cond = TapisImplException.Condition.INTERNAL_SERVER_ERROR;
-            String msg = MsgUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "moveOutput", _job.getUuid(),
+            String msg = JobUtils.getMsg("JOBS_CREATE_TRANSFER_ERROR", "moveOutput", _job.getUuid(),
                                          500, cond.name());
             throw new TapisImplException(msg, cond);
     	}
@@ -1727,7 +1727,7 @@ public final class JobFileManager
         }
         
         // Debugging.
-        _log.info(MsgUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
+        _log.info(JobUtils.getMsg("JOBS_FILE_TRANSFER_INFO", _job.getUuid(), 
                                   _job.getStatus().name(), transferId, corrId));
         
     	// Monitor the move's completion.

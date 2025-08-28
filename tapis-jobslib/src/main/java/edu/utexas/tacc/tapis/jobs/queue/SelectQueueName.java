@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,7 +98,7 @@ public final class SelectQueueName
         // Make sure we select some queue.
         if (selectedQueueName == null) {
             String defaultQueue = JobQueueManager.getDefaultQueue();
-            _log.error(MsgUtils.getMsg("JOBS_QUEUE_FILTER_NONE", job.getTenant(), job.getName(), defaultQueue));
+            _log.error(JobUtils.getMsg("JOBS_QUEUE_FILTER_NONE", job.getTenant(), job.getName(), defaultQueue));
             
             // Select the default queue.
             selectedQueueName = defaultQueue;
@@ -127,7 +128,7 @@ public final class SelectQueueName
         boolean matched = false;
         try {matched = SelectorFilter.match(jobQueue.getFilter(), properties);}
           catch (JobQueueFilterException e) {
-            String msg = MsgUtils.getMsg("JOBS_QUEUE_FILTER_EVAL_ERROR", 
+            String msg = JobUtils.getMsg("JOBS_QUEUE_FILTER_EVAL_ERROR", 
                                          jobQueue.getName() + " filter failed: " + e.getMessage()); 
             _log.error(msg, e);
         }

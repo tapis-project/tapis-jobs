@@ -138,7 +138,7 @@ public class JobRecoverMsg
             throw new JobInputException(msg);
         }
         if (policyType == null) {
-            String msg = MsgUtils.getMsg("TAPISE_NULL_PARAMETER", "validate", "policyType");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validate", "policyType");
             throw new JobInputException(msg);
         }
         if (policyParameters == null) {
@@ -183,7 +183,7 @@ public class JobRecoverMsg
         if (successStatus == null) 
             throw new IllegalArgumentException(MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "JobRecoverMsg", "successStatus"));
         if (StringUtils.isBlank(statusMessage)) 
-            throw new IllegalArgumentException(MsgUtils.getMsg("TAPISE_NULL_PARAMETER", "JobRecoverMsg", "statusMessage"));
+            throw new IllegalArgumentException(MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "JobRecoverMsg", "statusMessage"));
         if (testerType == null) 
             throw new IllegalArgumentException(MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "JobRecoverMsg", "testerType"));
         

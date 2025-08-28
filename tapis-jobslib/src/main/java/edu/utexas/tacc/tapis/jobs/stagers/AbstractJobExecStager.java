@@ -84,7 +84,7 @@ public abstract class AbstractJobExecStager
         } else if (SchedulerTypeEnum.SLURM.equals(schedulerType)) {
             _jobScheduler = new SlurmScheduler(jobCtx);
         } else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", schedulerType,
+            String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", schedulerType,
                                          AbstractJobExecStager.class.getSimpleName());
             throw new JobException(msg);
         }

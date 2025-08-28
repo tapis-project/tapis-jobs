@@ -1,7 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.api;
 
-import static edu.utexas.tacc.tapis.client.shared.Utils.DEFAULT_SELECT_ALL;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -145,7 +143,7 @@ final class DBMigrationSharedAppCtx
 		try {
 			jobsUpdate = conn.prepareStatement(UPDATE);
 		} catch (Exception e) {
-			String msg = MsgUtils.getMsg("DB_JOBS_UPDATE_SHAREDAPPCTX_CONNECTION_ERROR",e.getMessage());
+			String msg = MsgUtils.getMsg("JOBS_DBUPDATE_SHAREDAPPCTX_CONNECTION_ERROR",e.getMessage());
 			_log.error(msg,e);
 			return; // Not much we can do.
 		}
@@ -163,7 +161,7 @@ final class DBMigrationSharedAppCtx
 			int totalRowsUpdated = 0;
 			for(int k = 0; k < rows.length; k++) {
 				if(rows[k] != 1) {
-					_log.debug(MsgUtils.getMsg("DB_UPDATE_JOB_SHAREDAPP_CTX_FAILURE", "jobs", rows[k]));
+					_log.debug(MsgUtils.getMsg("JOBS_DBUPDATE_JOB_SHAREDAPP_CTX_FAILURE", "jobs", rows[k]));
 				} else totalRowsUpdated = totalRowsUpdated + 1;
 			}
 	        if (totalRowsUpdated < expectedRowsUpdate ) {

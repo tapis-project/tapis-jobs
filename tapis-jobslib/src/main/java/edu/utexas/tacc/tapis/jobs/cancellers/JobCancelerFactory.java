@@ -1,7 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.cancellers;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
@@ -39,7 +37,7 @@ public class JobCancelerFactory {
                 case SINGULARITY -> new SingularityRunCanceler(jobCtx);
                 case ZIP         -> new ZipNativeCanceler(jobCtx);
                 default -> {
-                    String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
+                    String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
                                                  "JobCancelerFactory");
                     throw new JobException(msg);
                 }
@@ -63,14 +61,14 @@ public class JobCancelerFactory {
                 case DOCKER      -> getBatchDockerCanceler(jobCtx, scheduler);
                 case SINGULARITY -> getBatchSingularityCanceler(jobCtx, scheduler);
                 default -> {
-                    String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
+                    String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
                                                  "JobCancelerFactory");
                     throw new JobException(msg);
                 }
             };
         }
         else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", jobType, "JobCancelerFactory");
+            String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobCancelerFactory");
             throw new JobException(msg);
         }
 		return canceler;
@@ -89,7 +87,7 @@ public class JobCancelerFactory {
             case SLURM -> null; // not implemented
             
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler.name(), "JobCancelerFactory");
                 throw new JobException(msg);
             }
@@ -110,7 +108,7 @@ public class JobCancelerFactory {
             case SLURM -> new SlurmCanceler(jobCtx);
         
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler.name(), "JobCancelerFactory");
                 throw new JobException(msg);
             }

@@ -389,7 +389,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         }
@@ -408,7 +408,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -477,7 +477,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         	
@@ -505,7 +505,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -582,7 +582,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         	
@@ -602,7 +602,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -723,7 +723,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         }
@@ -746,7 +746,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -865,7 +865,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         	
@@ -885,7 +885,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -984,7 +984,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         	
@@ -1008,7 +1008,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = MsgUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {

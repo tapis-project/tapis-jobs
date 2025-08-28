@@ -1,7 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
@@ -40,7 +38,7 @@ public class JobLauncherFactory
                 case SINGULARITY -> new SingularityRunLauncher(jobCtx);
                 case ZIP         -> new ZipLauncher(jobCtx, null);
                 default -> {
-                    String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
+                    String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
                                                  "JobLauncherFactory");
                     throw new JobException(msg);
                 }
@@ -65,7 +63,7 @@ public class JobLauncherFactory
                 case SINGULARITY -> getBatchSingularityLauncher(jobCtx, scheduler);
                 case ZIP         -> getBatchZipLauncher(jobCtx, scheduler);
                 default -> {
-                    String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                    String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                                  scheduler + "(" + runtime +")", 
                                                  "JobLauncherFactory");
                     throw new JobException(msg);
@@ -73,7 +71,7 @@ public class JobLauncherFactory
             };
         }
         else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", jobType, "JobLauncherFactory");
+            String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobLauncherFactory");
             throw new JobException(msg);
         }
 
@@ -93,7 +91,7 @@ public class JobLauncherFactory
             case SLURM -> null;  // at least 1 case is required.
             
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(DOCKER)", 
                                              "JobLauncherFactory");
                 throw new JobException(msg);
@@ -102,7 +100,7 @@ public class JobLauncherFactory
         
         // Make sure we always return a non-null launcher.
         if (launcher == null) {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+            String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                           scheduler + "(DOCKER)", 
                                          "JobLauncherFactory");
             throw new JobException(msg);
@@ -123,7 +121,7 @@ public class JobLauncherFactory
             case SLURM -> new SingularityRunSlurmLauncher(jobCtx);
         
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(SINGULARITY)", 
                                              "JobLauncherFactory");
                 throw new JobException(msg);
@@ -145,7 +143,7 @@ public class JobLauncherFactory
             case SLURM -> new ZipLauncher(jobCtx, scheduler);
 
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                String msg = MsgUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(ZIP)",
                                               "JobLauncherFactory");
                 throw new JobException(msg);

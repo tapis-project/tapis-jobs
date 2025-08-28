@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.util.HashMap;
 
+import edu.utexas.tacc.tapis.shared.utils.MacroResolver;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

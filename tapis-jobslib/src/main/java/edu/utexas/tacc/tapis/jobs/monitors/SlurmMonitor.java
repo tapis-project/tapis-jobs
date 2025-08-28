@@ -10,10 +10,10 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.SlurmStatusType;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 /** Slurm job monitoring class.
  *
@@ -253,7 +253,7 @@ public final class SlurmMonitor
         {
            // ----------------- Active Job -------------------
            // Parse the active command's response. 
-           String lastLineInResponse = JobUtils.getLastLine(trimmedResponse);
+           String lastLineInResponse = TapisUtils.getLastLine(trimmedResponse);
            var matcher = _spaceDelimited.matcher(lastLineInResponse);
            var matches = matcher.matches();
            if (!matches) {

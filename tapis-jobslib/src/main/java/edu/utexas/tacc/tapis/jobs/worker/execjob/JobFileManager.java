@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -524,7 +525,7 @@ public final class JobFileManager
             scpClient.uploadBytesToFile(content.getBytes(), destPath, mod, null);
         } 
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("TAPIS_SFTP_CMD_ERROR", 
+            String msg = JobUtils.getMsg("JOBS_SFTP_CMD_ERROR",
                                          _jobCtx.getExecutionSystem().getId(),
                                          _jobCtx.getExecutionSystem().getHost(),
                                          _jobCtx.getExecutionSystem().getEffectiveUserId(),

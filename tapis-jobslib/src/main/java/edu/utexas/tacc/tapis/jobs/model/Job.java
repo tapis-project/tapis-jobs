@@ -5,11 +5,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
-
 import com.google.gson.JsonObject;
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.gson.reflect.TypeToken;
+import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;

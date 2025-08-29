@@ -4,6 +4,7 @@ import static edu.utexas.tacc.tapis.shared.utils.TapisUtils.alwaysSingleQuote;
 
 import java.util.concurrent.ThreadLocalRandom;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +94,7 @@ abstract class AbstractJobLauncher
             if (_hostThrottles.record(host)) return;
         } catch (Exception e) {
             // Abort throttling if we hit an error.
-            String msg = MsgUtils.getMsg("JOB_HOST_RETRIEVAL_ERROR", _job.getUuid());
+            String msg = JobUtils.getMsg("JOBS_HOST_RETRIEVAL_ERROR", _job.getUuid());
             _log.error(msg);
             return;
         }
@@ -105,7 +106,7 @@ abstract class AbstractJobLauncher
         
         // Log the delay.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_DELAYED_LAUNCH", _job.getUuid(), skewMs, host));
+            _log.debug(JobUtils.getMsg("JOBS_DELAYED_LAUNCH", _job.getUuid(), skewMs, host));
         
         // Delay for the randomized period.
         try {Thread.sleep(skewMs);} catch (InterruptedException e) {}

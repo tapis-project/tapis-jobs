@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.launchers;
 
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,7 @@ public final class DockerNativeLauncher
         
         // Log the command we are about to issue.
         if (_log.isDebugEnabled()) 
-            _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
+            _log.debug(JobUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(),
                                        _job.getUuid(), cmd));
         
         // Start the container.
@@ -72,7 +73,7 @@ public final class DockerNativeLauncher
             String temp = result.trim();
             if (temp.length() == 64 && _nonEmptyAlphaNumeric.matcher(temp).matches()) {
                 if (_log.isWarnEnabled()) {
-                    String msg = MsgUtils.getMsg("JOBS_LAUNCH_EXITCODE_FIXUP", getClass().getSimpleName(), 
+                    String msg = JobUtils.getMsg("JOBS_LAUNCH_EXITCODE_FIXUP", getClass().getSimpleName(), 
                                                  _job.getUuid(), exitStatus);
                     _log.warn(msg);
                 }
@@ -88,14 +89,14 @@ public final class DockerNativeLauncher
             if (StringUtils.isBlank(cid)) cid = UNKNOWN_CONTAINER_ID;
                else cid = extractCID(cid);
             if (_log.isDebugEnabled()) {
-                String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
+                String msg = JobUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
                                              _job.getUuid(), cid, exitStatus);
                 _log.debug(msg);
             }
         } else {
             // Our one chance at launching the container failed with a non-communication
             // error, which we assume is unrecoverable so we abort the job now.
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
+            String msg = JobUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                                          _job.getUuid(), cmd, result, exitStatus);
             throw new TapisException(msg);
         }

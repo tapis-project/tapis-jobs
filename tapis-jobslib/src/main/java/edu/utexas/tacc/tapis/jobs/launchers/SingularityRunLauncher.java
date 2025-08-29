@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,7 @@ public final class SingularityRunLauncher
         
         // Log the command we are about to issue.
         if (_log.isDebugEnabled()) 
-            _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
+            _log.debug(JobUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(),
                                        _job.getUuid(), cmd));
         
         // Get the command object.
@@ -66,14 +67,14 @@ public final class SingularityRunLauncher
         
         // Let's see what happened.
         if (exitCode != 0) {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
+            String msg = JobUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                                          _job.getUuid(), cmd, result, exitCode);
             throw new JobException(msg);
         }
 
         // Note success.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
+            String msg = JobUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
                                          _job.getUuid(), result, exitCode);
             _log.debug(msg);
         }
@@ -81,7 +82,7 @@ public final class SingularityRunLauncher
         // -------------------- Get PID -----------------------------
         // We have a problem if the result is not the pid.
         if (StringUtils.isBlank(result)) {
-            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RUN_NO_PID_ERROR", getClass().getSimpleName(), 
+            String msg = JobUtils.getMsg("JOBS_SINGULARITY_RUN_NO_PID_ERROR", getClass().getSimpleName(), 
                                          _job.getUuid(), cmd);
             throw new JobException(msg);
         }
@@ -90,7 +91,7 @@ public final class SingularityRunLauncher
         String pid = result.trim();
         try {Integer.valueOf(pid);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_SINGULARITY_RUN_INVALID_PID_ERROR", getClass().getSimpleName(), 
+                String msg = JobUtils.getMsg("JOBS_SINGULARITY_RUN_INVALID_PID_ERROR", getClass().getSimpleName(), 
                                              _job.getUuid(), cmd, pid);
                 throw new JobException(msg, e);
             }

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.worker;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -55,7 +56,7 @@ abstract class JobWorkerThread
       
     // Announce our arrival.
     if (_log.isInfoEnabled())
-      _log.info(MsgUtils.getMsg("JOBS_THREAD_STARTING", 
+      _log.info(JobUtils.getMsg("JOBS_THREAD_STARTING",
                                 Thread.currentThread().getName(),
                                 Thread.currentThread().getId(),
                                 _worker.getParms().name, _qname));
@@ -71,7 +72,7 @@ abstract class JobWorkerThread
     if (_log.isInfoEnabled()) {
       String msg = "JOBS_THREAD_STOPPING";
       if (Thread.currentThread().isInterrupted()) msg = "JOBS_THREAD_INTERRUPTED";
-      _log.info(MsgUtils.getMsg(msg, 
+      _log.info(JobUtils.getMsg(msg,
                                 Thread.currentThread().getName(),
                                 Thread.currentThread().getId(),
                                 _worker.getParms().name, _qname));

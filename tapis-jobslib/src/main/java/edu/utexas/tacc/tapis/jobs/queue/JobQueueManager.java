@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.queue;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +77,7 @@ public final class JobQueueManager
       // Create the queues needed by most if not all applications.
       try {createStandardQueues();}
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_INIT_ERROR");
+          String msg = JobUtils.getMsg("JOBS_QMGR_INIT_ERROR");
           throw new TapisRuntimeException(msg, e);
       }
       
@@ -84,7 +85,7 @@ public final class JobQueueManager
       // instance creation even in the face of failures.
       try {createStandardJobQueues();}
       catch (Exception e) {
-        String msg = MsgUtils.getMsg("JOBS_QMGR_INIT_ERROR");
+        String msg = JobUtils.getMsg("JOBS_QMGR_INIT_ERROR");
         throw new TapisRuntimeException(msg, e);
       }
       
@@ -92,7 +93,7 @@ public final class JobQueueManager
       // instance creation even in the face of failures. 
       try {createSubmitQueues();}
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_INIT_ERROR");
+          String msg = JobUtils.getMsg("JOBS_QMGR_INIT_ERROR");
           throw new TapisRuntimeException(msg, e);
       }
   }
@@ -293,12 +294,12 @@ public final class JobQueueManager
         
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", exchangeName, routingKey);
+            String msg = JobUtils.getMsg("JOBS_QMGR_POST", exchangeName, routingKey);
             _log.debug(msg);
         }
       }
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_PUBLISH_ERROR", exchangeName,  
+          String msg = JobUtils.getMsg("JOBS_QMGR_PUBLISH_ERROR", exchangeName,  
                                        getOutConnectionName(), channel.getChannelNumber(), 
                                        e.getMessage());
           throw new JobQueueException(msg, e);
@@ -318,7 +319,7 @@ public final class JobQueueManager
             else channel.close();
         } 
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", channel.getChannelNumber(), 
+            String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", channel.getChannelNumber(), 
                                          e.getMessage());
             _log.error(msg, e);
           }
@@ -457,7 +458,7 @@ public final class JobQueueManager
       Channel channel = null;
       try {channel = getNewOutChannel();}
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_Q_UNBIND_ERROR", "topic", 
+          String msg = JobUtils.getMsg("JOBS_QMGR_Q_UNBIND_ERROR", "topic", 
                                        queue, bindingKey, exchange, e.getMessage());
           _log.error(msg, e);
           return;
@@ -466,7 +467,7 @@ public final class JobQueueManager
       // Unbind.
       try {channel.queueUnbind(queue, exchange, bindingKey);}
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_Q_UNBIND_ERROR", "topic", 
+          String msg = JobUtils.getMsg("JOBS_QMGR_Q_UNBIND_ERROR", "topic", 
                                        queue, bindingKey, exchange, e.getMessage());
           _log.error(msg, e);
       }
@@ -474,7 +475,7 @@ public final class JobQueueManager
       // Close the just created channel.
       try {channel.close();} 
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
+          String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
                                        channel.getChannelNumber(), e.getMessage());
           _log.warn(msg, e);
       }
@@ -571,7 +572,7 @@ public final class JobQueueManager
           if (channel != null)
             try {channel.close();} 
                 catch (Exception e1) {
-                    String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
+                    String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
                                                  channel.getChannelNumber(), e1.getMessage());
                     _log.warn(msg, e1);
                 }
@@ -611,7 +612,7 @@ public final class JobQueueManager
               if (!exchangeCreated) {
                   try {channel.exchangeDeclare(exchangeName, "direct", durable, autodelete, exchangeArgs);}
                       catch (Exception e) {
-                          String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_ERROR", exchangeName, 
+                          String msg = JobUtils.getMsg("JOBS_QMGR_XCHG_ERROR", exchangeName, 
                                                         getOutConnectionName(), channel.getChannelNumber(), 
                                                         e.getMessage());
                           throw new TapisQueueException(msg, e);
@@ -628,7 +629,7 @@ public final class JobQueueManager
           if (channel != null)
             try {channel.close();} 
                 catch (Exception e1) {
-                    String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
+                    String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
                                                  channel.getChannelNumber(), e1.getMessage());
                     _log.warn(msg, e1);
                 }
@@ -658,7 +659,7 @@ public final class JobQueueManager
       // Create a temporary channel.
       try {channel = getNewOutChannel();}
         catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_OUT_CHANNEL_ERROR");
+          String msg = JobUtils.getMsg("JOBS_QMGR_OUT_CHANNEL_ERROR");
           throw new JobException(msg, e);
         }
     
@@ -670,12 +671,12 @@ public final class JobQueueManager
         
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_POST", exchangeName, queueName);
+            String msg = JobUtils.getMsg("JOBS_QMGR_POST", exchangeName, queueName);
             _log.debug(msg);
         }
       }
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QMGR_PUBLISH_ERROR", exchangeName, 
+          String msg = JobUtils.getMsg("JOBS_QMGR_PUBLISH_ERROR", exchangeName, 
                                        getOutConnectionName(), channel.getChannelNumber(), 
                                        e.getMessage());
           throw new JobQueueException(msg, e);
@@ -695,7 +696,7 @@ public final class JobQueueManager
             else channel.close();
         } 
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", channel.getChannelNumber(), 
+            String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", channel.getChannelNumber(), 
                                          e.getMessage());
             _log.error(msg, e);
           }

@@ -45,7 +45,7 @@ public class SingularityRunCanceler extends AbstractJobCanceler{
             JobUtils.killJob(runCmd, _job.getUuid(), _job.getRemoteJobId(), _jobCtx );
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_SINGULARITY_CLEAN_UP_ERROR", _job.getUuid(),
+            String msg = JobUtils.getMsg("JOBS_SINGULARITY_CLEAN_UP_ERROR", _job.getUuid(),
                                          _job.getRemoteJobId());
             _log.error(msg, e);
         }

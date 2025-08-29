@@ -72,7 +72,7 @@ GIT_COMMIT_LBL=$(awk '{print $2}' $BUILD_DIRT1/classes/git.info)
 
 TAG_BRANCH1="${REPO}/${SVC1}:${BRANCH_NAME}"
 TAG_BRANCH2="${REPO}/${SVC2}:${BRANCH_NAME}"
-TAG_BRANCH3="${REPO}/${SVC3}:${BRANCH_NAME}"
+TAG_BRANCH3="${REPO}/${SVC3TAG}:${BRANCH_NAME}"
 
 export BUILD_TIME1="$(awk '{print $1}' ${BUILD_DIRT1}/classes/build.time)"
 export BUILD_TIME2="$(awk '{print $1}' ${BUILD_DIRT2}/classes/build.time)"
@@ -137,7 +137,7 @@ rm ${BUILD_DIR2}/${SVC2_JAR}
 
 # Build image for jobsworker
 echo "======================================================================"
-echo "Building local image for service ${SVC3} using primary tag: $TAG_BRANCH3"
+echo "Building local image for service ${SVC3TAG} using primary tag: $TAG_BRANCH3"
 echo "======================================================================"
 # Move to the build directory
 cd $BUILD_DIR3 || exit

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.recover.policies;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public final class ConstantBackoffPolicyParameters
         if (value != null) {
             try {_waitTime = Long.valueOf(value);}
                 catch (Exception e) {
-                    String msg = MsgUtils.getMsg("JOB_RECOVERY_BAD_POLICY_PARM", 
+                    String msg = JobUtils.getMsg("JOBS_RECOVERY_BAD_POLICY_PARM",
                                                  "waitTime", value, e.getMessage());
                     _log.error(msg, e);
                 }
@@ -77,7 +78,7 @@ public final class ConstantBackoffPolicyParameters
         if (value != null) {
             try {_maxTries = Integer.valueOf(value);}
                 catch (Exception e) {
-                    String msg = MsgUtils.getMsg("JOB_RECOVERY_BAD_POLICY_PARM", 
+                    String msg = JobUtils.getMsg("JOBS_RECOVERY_BAD_POLICY_PARM",
                                                  "maxTries", value, e.getMessage());
                     _log.error(msg, e);
                 }

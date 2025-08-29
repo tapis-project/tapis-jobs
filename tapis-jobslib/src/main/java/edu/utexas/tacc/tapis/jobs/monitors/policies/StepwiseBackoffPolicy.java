@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,7 +179,7 @@ public final class StepwiseBackoffPolicy
         try {Thread.sleep(INITIAL_QUEUED_MILLIS);} 
             catch (InterruptedException e) {
                 if (_log.isDebugEnabled()) {
-                    String msg = MsgUtils.getMsg("JOBS_MONITOR_INTERRUPTED", _job.getUuid(), 
+                    String msg = JobUtils.getMsg("JOBS_MONITOR_INTERRUPTED", _job.getUuid(),
                                                  getClass().getSimpleName());
                     _log.debug(msg);
                 }
@@ -416,7 +417,7 @@ public final class StepwiseBackoffPolicy
         JobExecutionContext jobCtx = _job.getJobCtx();
         if (jobCtx == null) {
             // This should never happen.
-            _log.warn(MsgUtils.getMsg("JOBS_NO_CONTEXT", _job.getUuid()));
+            _log.warn(JobUtils.getMsg("JOBS_NO_CONTEXT", _job.getUuid()));
             return false;
         }
         
@@ -425,7 +426,7 @@ public final class StepwiseBackoffPolicy
             if (jobCtx.getJob().getJobType() == JobType.BATCH) return true;;
         }
         catch (Exception e) {
-            _log.error(MsgUtils.getMsg("JOBS_EXEC_SYSTEM_RETRIEVAL_ERROR", _job.getExecSystemId(),
+            _log.error(JobUtils.getMsg("JOBS_EXEC_SYSTEM_RETRIEVAL_ERROR", _job.getExecSystemId(),
                                        _job.getTenant(), _job.getUuid(), e));
         }
         

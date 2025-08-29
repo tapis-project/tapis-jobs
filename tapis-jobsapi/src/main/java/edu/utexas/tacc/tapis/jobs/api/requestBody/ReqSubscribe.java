@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
@@ -45,7 +46,7 @@ public class ReqSubscribe
                     deliveryTargets.add(target);
                 }
         } catch (Exception e) {
-            var msg = MsgUtils.getMsg("JOBS_INITIALIZATION_ERROR", e.getMessage());
+            var msg = JobUtils.getMsg("JOBS_INITIALIZATION_ERROR", e.getMessage());
             throw new JobException(msg);
         }
         

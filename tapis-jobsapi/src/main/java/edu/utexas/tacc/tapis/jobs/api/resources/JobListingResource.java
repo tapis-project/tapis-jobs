@@ -20,6 +20,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,7 +146,7 @@ extends AbstractResource
 		// Get the listType. Default Type is  MY_JOBS  
 		// Validate the listType query parameter
 		if(!EnumUtils.isValidEnum(JobListType.class, listType)) {
-			String msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR", threadContext.getOboTenantId(),threadContext.getOboUser(), listType);
+			String msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR", threadContext.getOboTenantId(),threadContext.getOboUser(), listType);
 			_log.error(msg);
 			return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
 		}
@@ -282,7 +283,7 @@ extends AbstractResource
 		}
 
 		if(jobList.isEmpty()) {
-			String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+			String msg =  JobUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
 			RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
 			return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,r)).build();
 		}
@@ -295,7 +296,7 @@ extends AbstractResource
 
 		return Response.status(Status.OK).entity(TapisRestUtils
 				.createSuccessResponse(
-						MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
+						JobUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
 	}
 }
 

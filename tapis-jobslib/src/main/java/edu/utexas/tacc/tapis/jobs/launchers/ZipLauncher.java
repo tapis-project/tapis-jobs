@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.launchers;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.schedulers.JobScheduler;
 import edu.utexas.tacc.tapis.jobs.schedulers.SlurmScheduler;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -67,7 +68,7 @@ public final class ZipLauncher
         
         // Log the command we are about to issue.
         if (_log.isDebugEnabled()) 
-            _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
+            _log.debug(JobUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(),
                                        _job.getUuid(), cmd));
         
         // Run the command to launch the job
@@ -75,14 +76,14 @@ public final class ZipLauncher
         int exitStatus = runCmd.execute(cmd);
         String result  = runCmd.getOutAsTrimmedString();
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
+            String msg = JobUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                                           _job.getUuid(), cmd, result, exitStatus);
             throw new JobException(msg);
         }
 
         // Note success.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(),
+            String msg = JobUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(),
                     _job.getUuid(), result, exitStatus);
             _log.debug(msg);
         }
@@ -97,13 +98,13 @@ public final class ZipLauncher
             pid = result.trim().replaceAll("\\n", "");
             if (StringUtils.isBlank(pid)) pid = UNKNOWN_PROCESS_ID;
             if (_log.isDebugEnabled()) {
-                String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(),
+                String msg = JobUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(),
                         _job.getUuid(), result, exitStatus);
                 _log.debug(msg);
             }
             // If PID is not a number then it is an error. A pid must be a positive integer.
             if (!DIGITS_ONLY.matcher(pid).matches()) {
-                String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
+                String msg = JobUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                         _job.getUuid(), cmd, result, exitStatus);
                 throw new TapisException(msg);
             }

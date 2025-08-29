@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response.Status;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppArgSpec;
@@ -346,7 +347,7 @@ public final class JobParmSetMarshaller
     		// be null, but double checking confirms this.
     		var value = reqKv.getValue();
     		if (value == null || TAPIS_ENV_VAR_UNSET.equals(value)) {
-                String msg = MsgUtils.getMsg("JOBS_MISSING_ENV_VALUE", reqKv.getKey(), value);
+                String msg = JobUtils.getMsg("JOBS_MISSING_ENV_VALUE", reqKv.getKey(), value);
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
 
@@ -599,7 +600,7 @@ public final class JobParmSetMarshaller
         var names = new HashSet<String>(2*appList.size()+1);
         for (var appArg : appList)
             if (!names.add(appArg.getName())) {
-                String msg = MsgUtils.getMsg("JOBS_DUPLICATE_NAMED_ARG", 
+                String msg = JobUtils.getMsg("JOBS_DUPLICATE_NAMED_ARG", 
                                              "application definition", appArg.getName());
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
@@ -621,7 +622,7 @@ public final class JobParmSetMarshaller
             var name = reqArg.getName();
             if (StringUtils.isBlank(name)) continue;
             if (!names.add(name)) {
-                String msg = MsgUtils.getMsg("JOBS_DUPLICATE_NAMED_ARG", "job request", name);
+                String msg = JobUtils.getMsg("JOBS_DUPLICATE_NAMED_ARG", "job request", name);
                 throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
             }
         }
@@ -675,7 +676,7 @@ public final class JobParmSetMarshaller
     	  return;
     	
     	// Bail out, we detected a change in the actionable part of the argument definition. 
-        String msg = MsgUtils.getMsg("JOBS_FIXED_ARG_ERROR", reqArg.getName(), "job", "application", 
+        String msg = JobUtils.getMsg("JOBS_FIXED_ARG_ERROR", reqArg.getName(), "job", "application", 
         		                     argType.name().toLowerCase());
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     }
@@ -721,7 +722,7 @@ public final class JobParmSetMarshaller
     	  return;
     	
     	// Bail out, we detected a change in the actionable part of the system env variable definition. 
-        String msg = MsgUtils.getMsg("JOBS_FIXED_ENV_VAR_ERROR", appKv.getKey(), "application", "system");
+        String msg = JobUtils.getMsg("JOBS_FIXED_ENV_VAR_ERROR", appKv.getKey(), "application", "system");
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     }
     
@@ -763,7 +764,7 @@ public final class JobParmSetMarshaller
     	  return;
     	
     	// Bail out, we detected a change in the actionable part of the system env variable definition. 
-        String msg = MsgUtils.getMsg("JOBS_FIXED_ENV_VAR_ERROR", fixedAppKv.getKey(), "job request", "application");
+        String msg = JobUtils.getMsg("JOBS_FIXED_ENV_VAR_ERROR", fixedAppKv.getKey(), "job request", "application");
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     }
     
@@ -814,20 +815,20 @@ public final class JobParmSetMarshaller
     	for (var name : list) {
     		// Reserved keys are not allowed.
     		if (name.startsWith(TAPIS_ENV_VAR_PREFIX)) {
-    			String msg = MsgUtils.getMsg("JOBS_RESERVED_ENV_VAR", name, 
+    			String msg = JobUtils.getMsg("JOBS_RESERVED_ENV_VAR", name, 
                                              TAPIS_ENV_VAR_PREFIX, "job request");
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
     		
     		// Make sure the name has the right format using the right charset.
     		if (!_envKeyPattern.matcher(name).matches()) {
-    			String msg = MsgUtils.getMsg("JOBS_INVALID_ENV_VAR_CHAR", name);
+    			String msg = MsgUtils.getMsg("TAPIS_INVALID_ENV_VAR_CHAR", name);
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
     		
     		// Duplicates are not allowed.
     		if (!names.add(name)) {
-    			String msg = MsgUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "job request", name);
+    			String msg = JobUtils.getMsg("JOBS_DUPLICATE_ENV_VAR", "job request", name);
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
     	}
@@ -842,7 +843,7 @@ public final class JobParmSetMarshaller
     	// FIXED variables must specify a concrete value.
     	if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.FIXED) {
     		if (TAPIS_ENV_VAR_UNSET.equals(sysKv.getValue())) {
-    			String msg = MsgUtils.getMsg("JOBS_INVALID_FIXED_ENV_VAR", "system", sysKv.getKey(),
+    			String msg = JobUtils.getMsg("JOBS_INVALID_FIXED_ENV_VAR", "system", sysKv.getKey(),
     					                     sysKv.getValue(), "concrete");
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
@@ -851,7 +852,7 @@ public final class JobParmSetMarshaller
     	// REQUIRED variables must specify a concrete value.
     	if (sysKv.getInputMode() == edu.utexas.tacc.tapis.systems.client.gen.model.KeyValueInputModeEnum.REQUIRED) {
     		if (!TAPIS_ENV_VAR_UNSET.equals(sysKv.getValue())) {
-    			String msg = MsgUtils.getMsg("JOBS_INVALID_REQUIRED_ENV_VAR", "system", sysKv.getKey(),
+    			String msg = JobUtils.getMsg("JOBS_INVALID_REQUIRED_ENV_VAR", "system", sysKv.getKey(),
     					                     sysKv.getValue(), TAPIS_ENV_VAR_UNSET);
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
@@ -867,7 +868,7 @@ public final class JobParmSetMarshaller
     	// FIXED variables must specify a concrete value.
     	if (appKv.getInputMode() == edu.utexas.tacc.tapis.apps.client.gen.model.KeyValueInputModeEnum.FIXED) {
     		if (TAPIS_ENV_VAR_UNSET.equals(appKv.getValue())) {
-    			String msg = MsgUtils.getMsg("JOBS_INVALID_FIXED_ENV_VAR", "application", appKv.getKey(),
+    			String msg = JobUtils.getMsg("JOBS_INVALID_FIXED_ENV_VAR", "application", appKv.getKey(),
     					                     appKv.getValue(), "concrete");
     			throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     		}
@@ -1077,7 +1078,7 @@ public final class JobParmSetMarshaller
                     continue; // no further processing needed for removed args
                 }
                 else {
-                    String msg = MsgUtils.getMsg("JOBS_MISSING_ARG", elem._jobArg.getName(), argType);
+                    String msg = JobUtils.getMsg("JOBS_MISSING_ARG", elem._jobArg.getName(), argType);
                     throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
                 }
             

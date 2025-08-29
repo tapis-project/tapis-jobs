@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,7 +109,7 @@ public class ZipNativeMonitor
         // Return code was non-zero. Assume process is done.
         // Log the result for debug and get the exitCode
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_ZIP_STATUS_EXIT", _job.getUuid(), host, cmd, rc, result);
+            String msg = JobUtils.getMsg("JOBS_ZIP_STATUS_EXIT", _job.getUuid(), host, cmd, rc, result);
             _log.debug(msg);
         }
         _exitCode = readExitCodeFile(runCmd);

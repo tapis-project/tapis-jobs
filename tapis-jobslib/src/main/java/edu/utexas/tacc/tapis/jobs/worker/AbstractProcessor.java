@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.worker;
 import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -130,7 +131,7 @@ abstract class AbstractProcessor
   {
     // Tracing.
     if (_log.isDebugEnabled()) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_EXCHANGE_READER", _jobWorker.getParms().name,
+        String msg = JobUtils.getMsg("JOBS_QUEUE_EXCHANGE_READER", _jobWorker.getParms().name,
                                      Thread.currentThread().getName(), TapisUtils.toString(p));
         _log.debug(msg);
     }
@@ -141,7 +142,7 @@ abstract class AbstractProcessor
       try {_channel = getChannel(p._exchangeName, p._exchangeType, p._queueName, p._bindingKeys);}
         catch (Exception e) {
           // This error terminates this thread.
-          String msg = MsgUtils.getMsg("JOBS_WORKER_CHANNEL_INIT_ERROR", 
+          String msg = JobUtils.getMsg("JOBS_WORKER_CHANNEL_INIT_ERROR", 
                                        _jobWorker.getParms().name,
                                        p._queueName, 
                                        e.getMessage());
@@ -158,7 +159,7 @@ abstract class AbstractProcessor
       if (_channel != null && _channel.isOpen())
         try {_channel.close();}
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
+            String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
                 _channel.getChannelNumber(), e.getMessage());
             _log.error(msg, e);
           }
@@ -188,7 +189,7 @@ abstract class AbstractProcessor
   {
     // Tracing.
     if (_log.isDebugEnabled()) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_EXCHANGE_READER", _jobWorker.getParms().name,
+        String msg = JobUtils.getMsg("JOBS_QUEUE_EXCHANGE_READER", _jobWorker.getParms().name,
                                      Thread.currentThread().getName(), TapisUtils.toString(p));
         _log.debug(msg);
     }
@@ -199,7 +200,7 @@ abstract class AbstractProcessor
       try {_channel = getJobSpecificChannel(p._exchangeName, p._exchangeType, p._queueName, p._bindingKeys);}
         catch (Exception e) {
           // This error terminates this thread.
-          String msg = MsgUtils.getMsg("JOBS_WORKER_CHANNEL_INIT_ERROR", 
+          String msg = JobUtils.getMsg("JOBS_WORKER_CHANNEL_INIT_ERROR", 
                                        _jobWorker.getParms().name,
                                        p._queueName, 
                                        e.getMessage());
@@ -216,7 +217,7 @@ abstract class AbstractProcessor
       if (_channel != null && _channel.isOpen())
         try {_channel.close();}
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
+            String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_CLOSE_ERROR", 
                 _channel.getChannelNumber(), e.getMessage());
             _log.error(msg, e);
           }
@@ -275,7 +276,7 @@ abstract class AbstractProcessor
       final int prefetchCount = 1;
       try {channel.basicQos(prefetchCount);}
           catch (IOException e) {
-              String msg = MsgUtils.getMsg("JOBS_WORKER_CHANNEL_PREFETCH_ERROR", 
+              String msg = JobUtils.getMsg("JOBS_WORKER_CHANNEL_PREFETCH_ERROR", 
                               _jobWorker.getParms().name, 
                               channel.getChannelNumber(), e.getMessage());
               _log.error(msg, e);
@@ -288,7 +289,7 @@ abstract class AbstractProcessor
       try {channel.exchangeDeclare(exchangeName, exchangeType.getType(), durable, autodelete, 
                                    qmgr.getExchangeArgs());}
         catch (IOException e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_ERROR", exchangeName, 
+            String msg = JobUtils.getMsg("JOBS_QMGR_XCHG_ERROR", exchangeName, 
                                           qmgr.getInConnectionName(), channel.getChannelNumber(), 
                                           e.getMessage());
             _log.error(msg, e);
@@ -301,7 +302,7 @@ abstract class AbstractProcessor
       try {channel.queueDeclare(_queueName, durable, exclusive, autoDelete, null);}
           catch (IOException e) {
               String qtype = (exchangeType == BuiltinExchangeType.TOPIC) ? "topic" : "queue";
-              String msg = MsgUtils.getMsg("JOBS_QMGR_Q_DECLARE_ERROR", qtype, 
+              String msg = JobUtils.getMsg("JOBS_QMGR_Q_DECLARE_ERROR", qtype, 
                                            _queueName, qmgr.getInConnectionName(), 
                                            channel.getChannelNumber(), e.getMessage());
               _log.error(msg, e);
@@ -317,7 +318,7 @@ abstract class AbstractProcessor
           }
           catch (IOException e) {
               String qtype = (exchangeType == BuiltinExchangeType.TOPIC) ? "topic" : "queue";
-              String msg = MsgUtils.getMsg("JOBS_QMGR_Q_BIND_ERROR", qtype, _queueName, 
+              String msg = JobUtils.getMsg("JOBS_QMGR_Q_BIND_ERROR", qtype, _queueName, 
                                            lastBindingKey, qmgr.getInConnectionName(), 
                                            channel.getChannelNumber(), e.getMessage());
               _log.error(msg, e);
@@ -328,7 +329,7 @@ abstract class AbstractProcessor
       if (channel != null) {
         try {channel.abort(AMQP.CHANNEL_ERROR, e.getMessage());} 
           catch (Exception e1){
-            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_ABORT_ERROR", 
+            String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_ABORT_ERROR", 
                                          channel.getChannelNumber(), e1.getMessage());
             _log.warn(msg, e1);
           }
@@ -380,7 +381,7 @@ abstract class AbstractProcessor
       final int prefetchCount = 1;
       try {channel.basicQos(prefetchCount);}
           catch (IOException e) {
-              String msg = MsgUtils.getMsg("JOBS_WORKER_CHANNEL_PREFETCH_ERROR", 
+              String msg = JobUtils.getMsg("JOBS_WORKER_CHANNEL_PREFETCH_ERROR", 
                               _jobWorker.getParms().name, 
                               channel.getChannelNumber(), e.getMessage());
               _log.error(msg, e);
@@ -391,7 +392,7 @@ abstract class AbstractProcessor
       try {qmgr.createAndBindAutoDeleteTopic(channel, exchangeName, queueName, bindingKeys[0]);}
           catch (Exception e) {
               // There's no point in continuing if we can't read the queue.
-              String msg = MsgUtils.getMsg("JOBS_QUEUE_JOB_SPECIFIC_THREAD_BIND", Thread.currentThread().getName(),
+              String msg = JobUtils.getMsg("JOBS_QUEUE_JOB_SPECIFIC_THREAD_BIND", Thread.currentThread().getName(),
                               _jobWorker.getParms().name, queueName, exchangeName, bindingKeys[0], e.getMessage());
               _log.error(msg, e);
               throw new JobQueueException(msg, e);
@@ -401,7 +402,7 @@ abstract class AbstractProcessor
       if (channel != null) {
         try {channel.abort(AMQP.CHANNEL_ERROR, e.getMessage());} 
           catch (Exception e1){
-            String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_ABORT_ERROR", 
+            String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_ABORT_ERROR", 
                                          channel.getChannelNumber(), e1.getMessage());
             _log.warn(msg, e1);
           }
@@ -465,7 +466,7 @@ abstract class AbstractProcessor
         final boolean multipleAck = false;
         try {_channel.basicAck(delivery.envelope.getDeliveryTag(), multipleAck);}
           catch (IOException e) {
-            String msg = MsgUtils.getMsg("JOBS_THREAD_ACK_ERROR",
+            String msg = JobUtils.getMsg("JOBS_THREAD_ACK_ERROR",
                                          Thread.currentThread().getName(),
                                          Thread.currentThread().getId(),
                                          _jobWorker.getParms().name,
@@ -480,7 +481,7 @@ abstract class AbstractProcessor
         final boolean requeue = false;
         try {_channel.basicReject(delivery.envelope.getDeliveryTag(), requeue);} 
           catch (IOException e) {
-            String msg = MsgUtils.getMsg("JOBS_THREAD_REJECT_ERROR",
+            String msg = JobUtils.getMsg("JOBS_THREAD_REJECT_ERROR",
                                          Thread.currentThread().getName(),
                                          Thread.currentThread().getId(),
                                          _jobWorker.getParms().name,
@@ -526,7 +527,7 @@ abstract class AbstractProcessor
         // Queue the response locally.
         try {_deliveryQueue.put(delivery);}
           catch (InterruptedException e) {
-            String msg = MsgUtils.getMsg("JOBS_THREAD_CONSUMER_INTERRUPTED",
+            String msg = JobUtils.getMsg("JOBS_THREAD_CONSUMER_INTERRUPTED",
                                           Thread.currentThread().getName(),
                                           Thread.currentThread().getId(),
                                           _jobWorker.getParms().name, 
@@ -559,7 +560,7 @@ abstract class AbstractProcessor
         consumerTag = _channel.basicConsume(_queueName, autoack, _consumer);
     }
     catch (Exception e) {
-      String msg = MsgUtils.getMsg("JOBS_THREAD_CONSUMER_START_ERROR",
+      String msg = JobUtils.getMsg("JOBS_THREAD_CONSUMER_START_ERROR",
                                    Thread.currentThread().getName(),
                                    Thread.currentThread().getId(),
                                    _jobWorker.getParms().name,

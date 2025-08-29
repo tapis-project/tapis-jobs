@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.worker;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +108,7 @@ class CmdTopicProcessor
     
     // Make sure we got some message type.
     if (cmdMsg.msgType == null) {
-        String msg = MsgUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", "null", getProcessorName());
+        String msg = JobUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", "null", getProcessorName());
         _log.error(msg);
         return false;
     }
@@ -145,7 +146,7 @@ class CmdTopicProcessor
     }
     catch (Exception e) {
         if (body.length() > JSON_DUMP_LEN) body = body.substring(0, JSON_DUMP_LEN - 1);
-        String msg = MsgUtils.getMsg("JOBS_WORKER_MSG_PROCESSING_ERROR", getProcessorName(), 
+        String msg = JobUtils.getMsg("JOBS_WORKER_MSG_PROCESSING_ERROR", getProcessorName(), 
                                      body, e.getMessage());
         _log.error(msg, e);
         ack = false;
@@ -161,7 +162,7 @@ class CmdTopicProcessor
   {
       // To get here we must of sent a message type that this processor
       // is not expected to handle.
-      String msg = MsgUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", cmd.msgType.name(), 
+      String msg = JobUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", cmd.msgType.name(), 
                                    getProcessorName());
       _log.error(msg);
       return false;
@@ -177,7 +178,7 @@ class CmdTopicProcessor
   {
       // Trace command.
       if (_log.isDebugEnabled())
-          _log.debug(MsgUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
+          _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
       
       // Check worker id if one was specified.  If specified and
@@ -186,7 +187,7 @@ class CmdTopicProcessor
       if ((cmd.workerUuid != null) && 
           !cmd.workerUuid.equals(_jobWorker.getUUID().toString())) {
           if (_log.isDebugEnabled())
-              _log.debug(MsgUtils.getMsg("JOBS_WORKER_IGNORE_CMD", 
+              _log.debug(JobUtils.getMsg("JOBS_WORKER_IGNORE_CMD", 
                                          _jobWorker.getParms().name, 
                                          cmd.msgType.name(), cmd.workerUuid));
           return true;
@@ -207,7 +208,7 @@ class CmdTopicProcessor
   {
       // Trace command.
       if (_log.isDebugEnabled())
-          _log.debug(MsgUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
+          _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
            
       return true;
@@ -220,7 +221,7 @@ class CmdTopicProcessor
   {
       // Trace command.
       if (_log.isDebugEnabled())
-          _log.debug(MsgUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
+          _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
       
       // TODO:  process cmd
@@ -235,7 +236,7 @@ class CmdTopicProcessor
   {
       // Trace command.
       if (_log.isDebugEnabled())
-          _log.debug(MsgUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
+          _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
       
       // TODO:  process cmd

@@ -9,9 +9,11 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
-## 1.9.1 - 2025-08-25
+## 1.9.1 - 2025-08-29
 
-Enhancement and bug fix.
+Enhancement, incremental improvements and bug fix.
+
+Log messages specific to Jobs service moved from shared catalog to a local catalog in the repository.
 
 ### New features:
 - Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.

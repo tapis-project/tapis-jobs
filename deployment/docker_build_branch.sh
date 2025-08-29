@@ -148,7 +148,7 @@ cp $BUILD_DIRT3/${SVC3_JAR} $BUILD_DIR3
 
 echo "**** Building docker image: $TAG_BRANCH3"
 docker build -f Dockerfile --build-arg VER=$VER --build-arg GIT_COMMIT=$GIT_COMMIT --build-arg BUILD_TIME=$BUILD_TIME \
-    -t "${TAG_UNIQ3}" .
+    -t "${TAG_BRANCH3}" .
 
 echo "**** Removing jar from Docker build context"
 rm ${BUILD_DIR3}/${SVC3_JAR}

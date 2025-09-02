@@ -17,11 +17,11 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response.Status;
-
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
@@ -48,6 +48,7 @@ import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEn
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.jobs.model.submit.LogConfig;
 import edu.utexas.tacc.tapis.jobs.queue.SelectQueueName;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -69,6 +70,8 @@ import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
 import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
+
+import static edu.utexas.tacc.tapis.jobs.model.Job.DEFAULT_NOTES;
 
 /* This class orchestrates the job submission process, which includes incorporating
  * and validating file, application and system information.  
@@ -3017,14 +3020,25 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* validateNotes:                                                               */
     /* ---------------------------------------------------------------------------- */
-    private void validateNotes() throws TapisImplException
+    private void validateNotes()
     {
-        // See if there are any notes in the request or, if not, the app.
-        Object notes = _submitReq.getNotes();
-        if (notes == null) notes = _app.getNotes();
-        
-        // This utility method can throw exceptions with correctly assigned response codes.
-        _submitReq.setNotesAsString(JobsApiUtils.convertInputObjectToString(notes));
+      // Set notes in submit request using following precedence:
+      //  - Notes from job submit
+      //  - Notes from app
+      //  - Default notes (empty json)
+      Object notes = _submitReq.getNotes();
+      if (notes == null) {
+        // Check notes from App
+        if (_app.getNotes() != null) {
+          // Convert from string to JsonObject
+          JsonObject jo = TapisGsonUtils.getGson().fromJson(_app.getNotes().toString(), JsonObject.class);
+          notes = jo;
+        } else {
+          // Final fallback
+          notes = DEFAULT_NOTES;
+        }
+      }
+      _submitReq.setNotes(notes);
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -3133,7 +3147,7 @@ public final class SubmitContext
         }
         
         // Notes always has a well-formed json string representation of a json object.
-        _job.setNotes(_submitReq.getNotesAsString()); 
+        _job.setNotes(_submitReq.getNotes());
         
         // Assign tapisQueue now that the job object is completely initialized.
         _job.setTapisQueue(new SelectQueueName().select(_job));

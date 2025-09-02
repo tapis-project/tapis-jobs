@@ -5,11 +5,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
-
 import com.google.gson.JsonObject;
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.gson.reflect.TypeToken;
+import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
@@ -152,7 +150,7 @@ public final class Job
     
     private String              trackingId;
     
-    private String              notes = EMPTY_JSON; // Should never be null.
+    private Object              notes = DEFAULT_NOTES; // Should never be null.
     
     // ------ Runtime-only fields that do not get saved in the database ------
     // -----------------------------------------------------------------------
@@ -471,7 +469,7 @@ public final class Job
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "jobType");
             throw new JobException(msg);
         }
-        if (StringUtils.isBlank(notes)) {
+        if (notes == null) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateForExecution", "notes");
             throw new JobException(msg);
         }
@@ -1083,11 +1081,12 @@ public final class Job
 	public void setTrackingId(String trackingId) {
 		this.trackingId = trackingId;
 	}
-    public String getNotes() {
+
+    public Object getNotes() {
         return notes;
     }
 
-    public void setNotes(String notes) {
+    public void setNotes(Object notes) {
         if (notes != null) this.notes = notes;
     }
 

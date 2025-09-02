@@ -9,19 +9,17 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
-## 1.9.1 - 2025-08-22
+## 1.9.1 - 2025-08-29
 
-Enhancement and bug fix.
-WIP: item 4 below, return top level notes attr as json rather than a string with json embedded.
-WMA group prefers we do all these conversions at once.
+Enhancement, incremental improvements and bug fix.
+WIP: already done: return top level notes attr as json rather than a string with json embedded.
 Other attrs to convert: parameterSet, subscriptions, fileInputs,
 The others will take longer than the work on notes.
 
+Log messages specific to Jobs service moved from shared catalog to a local catalog in the repository.
+
 ### New features:
 - Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
-4. When fetching a job via the getJob endpoint the json type for the attribute *notes* has been
-   changed from type *string* to type *object*. Previously, the *notes* attribute was returned as a
-   string with embedded json. Now it is returned as a standard json structured object.
 4. TODO: When fetching a job via the getJob endpoint the json type for some of the complex attributes are returned as strings
    with embedded json. The attributes treated this way are *fileInputs*, *parameterSet*, *subscriptions* and *notes*.
    These attributes are now returned as json type *object* instead of type *string*. So now the data will be returned

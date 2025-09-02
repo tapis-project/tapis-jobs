@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.monitors;
 
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,10 +11,10 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.JobRemoteStatus;
 import edu.utexas.tacc.tapis.jobs.monitors.parsers.SlurmStatusType;
 import edu.utexas.tacc.tapis.jobs.monitors.policies.MonitorPolicy;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 /** Slurm job monitoring class.
  *
@@ -102,7 +103,7 @@ public final class SlurmMonitor
     {
         // Sanity check--we can't do much without the remote job id.
         if (StringUtils.isBlank(_job.getRemoteJobId())) {
-            String msg = MsgUtils.getMsg("JOBS_MISSING_REMOTE_JOB_ID", _job.getUuid());
+            String msg = JobUtils.getMsg("JOBS_MISSING_REMOTE_JOB_ID", _job.getUuid());
             throw new JobException(msg);
         }
         
@@ -120,7 +121,7 @@ public final class SlurmMonitor
         // Substitute the actual remote id.
         cmd = cmd.replace(PLACEHOLDER, _job.getRemoteJobId());
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_MONITOR_COMMAND", _job.getUuid(), 
+            _log.debug(JobUtils.getMsg("JOBS_MONITOR_COMMAND", _job.getUuid(), 
                                        _jobCtx.getExecutionSystem().getHost(), 
                                        _jobCtx.getExecutionSystem().getPort(), cmd));
         
@@ -142,7 +143,7 @@ public final class SlurmMonitor
         var trimmedResponse = result.trim();
         if (StringUtils.isBlank(trimmedResponse))
         {
-          _log.warn(MsgUtils.getMsg("JOBS_MONITOR_NO_RESPONSE"));
+          _log.warn(JobUtils.getMsg("JOBS_MONITOR_NO_RESPONSE"));
           return JobRemoteStatus.EMPTY;
         }
 
@@ -152,7 +153,7 @@ public final class SlurmMonitor
         // If the state info is missing, the job isn't running (or so we think).
         if (StringUtils.isEmpty(_parsedStatusResponse.getRemoteJobState()))
         {
-          String msg = MsgUtils.getMsg("JOBS_MONITOR_NO_STATUS", getClass().getSimpleName(),
+          String msg = JobUtils.getMsg("JOBS_MONITOR_NO_STATUS", getClass().getSimpleName(),
                                        _job.getUuid(), _job.getRemoteJobId());
           _log.warn(msg);
           return JobRemoteStatus.EMPTY;
@@ -169,14 +170,14 @@ public final class SlurmMonitor
         catch (Exception e)
         {
           // Conversion failed. Log a warning and include the response for debugging
-          String msg = MsgUtils.getMsg("JOBS_MONITOR_RESP_PARSE_ERR", getClass().getSimpleName(), _job.getUuid(),
+          String msg = JobUtils.getMsg("JOBS_MONITOR_RESP_PARSE_ERR", getClass().getSimpleName(), _job.getUuid(),
                                        _job.getRemoteJobId(), firstStatusWord, trimmedResponse);
           _log.warn(msg);
           return JobRemoteStatus.EMPTY;
         }
 
         // Log the result
-        String msg = MsgUtils.getMsg("JOBS_MONITOR_RESULT", _job.getUuid(), _job.getRemoteJobId(),
+        String msg = JobUtils.getMsg("JOBS_MONITOR_RESULT", _job.getUuid(), _job.getRemoteJobId(),
                                      statusType.getCode(), statusType.name());
         _log.debug(msg);
 
@@ -195,7 +196,7 @@ public final class SlurmMonitor
         // If the job is in an unrecoverable state, throw the exception so the job is cleaned up.
         // The job condition is also set if the status is unrecoverable.
         if (statusType.isUnrecoverable()) {
-            msg = MsgUtils.getMsg("JOBS_MONITOR_UNRECOVERABLE_RESPONSE",
+            msg = JobUtils.getMsg("JOBS_MONITOR_UNRECOVERABLE_RESPONSE",
                                   getClass().getSimpleName(), _parsedStatusResponse.getRemoteJobId(),
                                   statusType.name(), _parsedStatusResponse.getRemoteJobExitCode(), _job.getUuid());
             _log.warn(msg);
@@ -208,7 +209,7 @@ public final class SlurmMonitor
         
         // Failures.  The job condition is also set if the status is failed.
         if (statusType.isFailed()) {
-            msg = MsgUtils.getMsg("JOBS_MONITOR_FAILURE_RESPONSE",
+            msg = JobUtils.getMsg("JOBS_MONITOR_FAILURE_RESPONSE",
                                   getClass().getSimpleName(), _parsedStatusResponse.getRemoteJobId(),
                                   statusType.name(), _parsedStatusResponse.getRemoteJobExitCode(), _job.getUuid());
             _log.warn(msg);
@@ -221,7 +222,7 @@ public final class SlurmMonitor
 
         // We shouldn't get here since all slurm states are accounted for 
         // in the above conditionals, but if we do get here we note it.
-        msg = MsgUtils.getMsg("JOBS_MONITOR_UNKNOWN_RESPONSE", getClass().getSimpleName(),
+        msg = JobUtils.getMsg("JOBS_MONITOR_UNKNOWN_RESPONSE", getClass().getSimpleName(),
                               _parsedStatusResponse.getRemoteJobId(),
                               _parsedStatusResponse.getRemoteJobState().toUpperCase(), _job.getUuid());
         _log.warn(msg);
@@ -253,12 +254,12 @@ public final class SlurmMonitor
         {
            // ----------------- Active Job -------------------
            // Parse the active command's response. 
-           String lastLineInResponse = JobUtils.getLastLine(trimmedResponse);
+           String lastLineInResponse = TapisUtils.getLastLine(trimmedResponse);
            var matcher = _spaceDelimited.matcher(lastLineInResponse);
            var matches = matcher.matches();
            if (!matches) {
                if (_log.isDebugEnabled()) {
-                   String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", lastLineInResponse);
+                   String msg = JobUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", lastLineInResponse);
                    _log.debug(msg);
                }
                return EMPTY_PARSED_RESP;
@@ -266,7 +267,7 @@ public final class SlurmMonitor
            var groupCount = matcher.groupCount();
            if (groupCount != 3) {
                if (_log.isDebugEnabled()) {
-                   String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", lastLineInResponse);
+                   String msg = JobUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", lastLineInResponse);
                    _log.debug(msg);
                }
                return EMPTY_PARSED_RESP;
@@ -287,7 +288,7 @@ public final class SlurmMonitor
           var parts = _pipeSplitter.split(lastLineInResponse);
           if (parts.length < 3) {
               if (_log.isDebugEnabled()) {
-                  String msg = MsgUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", lastLineInResponse);
+                  String msg = JobUtils.getMsg("JOBS_MONITOR_INVALID_RESPONSE", lastLineInResponse);
                   _log.debug(msg);
               }
               return EMPTY_PARSED_RESP;
@@ -313,7 +314,7 @@ public final class SlurmMonitor
     private void updateFinalMessage(ParsedStatusResponse parsedResponse) {
         String rc = StringUtils.isBlank(parsedResponse.getRemoteJobExitCode()) ?
                                         "unknown" : parsedResponse.getRemoteJobExitCode();
-        String finalMessage = MsgUtils.getMsg("JOBS_USER_APP_FAILURE",
+        String finalMessage = JobUtils.getMsg("JOBS_USER_APP_FAILURE",
                                               parsedResponse.getRemoteJobId(),
                                               parsedResponse.getRemoteJobState(),
                                               rc); 

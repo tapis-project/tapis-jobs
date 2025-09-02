@@ -80,7 +80,7 @@ public final class JobRecoveryDao
         // Make sure we have a well-formed recovery object.
         try {jobRecovery.validate();}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_INPUT_ERROR", e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_INPUT_ERROR", e.getMessage());
                 throw new JobException(msg, e);
             }
         
@@ -110,7 +110,7 @@ public final class JobRecoveryDao
           // Firewall against incomplete recovery objects.  We make sure there is NO WAY that
           // a recovery job object can be placed on the internal queue without a valid id.
           if (recoveryId <= 0) {
-              String msg = MsgUtils.getMsg("JOBS_BAD_RECOVERY_ID_ASSIGNMENT", jobRecovery.getTenantId(), 
+              String msg = JobUtils.getMsg("JOBS_BAD_RECOVERY_ID_ASSIGNMENT", jobRecovery.getTenantId(), 
                                            jobRecovery.getConditionCode().name(), 
                                            jobRecovery.getTesterHash(), recoveryId, 
                                            (existingRecovery == null ? "NEW" : "EXISTING"));
@@ -143,7 +143,7 @@ public final class JobRecoveryDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_CREATE_ERROR", jobRecovery.getTesterType().name(), 
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_CREATE_ERROR", jobRecovery.getTesterType().name(), 
                                          jobRecovery.getBlockedJobs().get(0).getJobUuid(), e.getMessage());
             throw JobUtils.tapisify(e, msg);
         }
@@ -206,7 +206,7 @@ public final class JobRecoveryDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", "tenantId", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", "tenantId", e.getMessage());
             _log.error(msg, e);
             throw new JobException(msg, e);
         }
@@ -240,7 +240,7 @@ public final class JobRecoveryDao
     {
         // ------------------------- Tracing -----------------------------
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETING_BLOCKED_JOB", jobUuid);
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_DELETING_BLOCKED_JOB", jobUuid);
             _log.debug(msg);
         }
 
@@ -273,7 +273,7 @@ public final class JobRecoveryDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETE_BLOCKED_JOB", jobUuid, e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_DELETE_BLOCKED_JOB", jobUuid, e.getMessage());
             _log.error(msg, e);
             throw new JobException(msg, e);
         }
@@ -306,7 +306,7 @@ public final class JobRecoveryDao
     {
         // ------------------------- Tracing -----------------------------
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETING_RECOVERY_RECORD", recoveryId, tenantId);
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_DELETING_RECOVERY_RECORD", recoveryId, tenantId);
             _log.debug(msg);
         }
 
@@ -340,7 +340,7 @@ public final class JobRecoveryDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETE_ERROR", recoveryId, tenantId, e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_DELETE_ERROR", recoveryId, tenantId, e.getMessage());
             throw new JobException(msg, e);
         }
         finally {
@@ -398,7 +398,7 @@ public final class JobRecoveryDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_SELECT_ALL_ERROR", e.getMessage());
             throw new JobException(msg, e);
         }
         finally {
@@ -473,7 +473,7 @@ public final class JobRecoveryDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_UPDATE_ATTEMPTS", jobRecovery.getId(),
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_UPDATE_ATTEMPTS", jobRecovery.getId(),
                                          jobRecovery.getNumAttempts(), jobRecovery.getNextAttempt(), 
                                          e.getMessage());
             throw new JobException(msg, e);
@@ -526,7 +526,7 @@ public final class JobRecoveryDao
             return populateRecovery(rs);
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_ERROR", tenantId, 
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_SELECT_ERROR", tenantId, 
                                          testerHash, e.getMessage());
             _log.error(msg, e);
             throw e;
@@ -577,7 +577,7 @@ public final class JobRecoveryDao
             if (rs.next()) newRecoveryId = rs.getInt(1);
              else {
                  // We were not able to retrieve the id generated for the new recovery record.
-                 String msg = MsgUtils.getMsg("JOBS_RECOVERY_ID_ERROR", newRecovery.getTenantId(), 
+                 String msg = JobUtils.getMsg("JOBS_RECOVERY_ID_ERROR", newRecovery.getTenantId(), 
                                               newRecovery.getConditionCode().name(), 
                                               newRecovery.getTesterHash());
                  throw new JobException(msg);
@@ -586,19 +586,19 @@ public final class JobRecoveryDao
             // Double check that we got a valid id. If this fails, we don't have the 
             // new record's id, so we don't have a way to reference it. Big problem. 
             if (newRecoveryId <= 0) {
-                String msg = MsgUtils.getMsg("JOBS_BAD_RECOVERY_ID", newRecovery.getTenantId(), 
+                String msg = JobUtils.getMsg("JOBS_BAD_RECOVERY_ID", newRecovery.getTenantId(), 
                                              newRecovery.getConditionCode().name(), 
                                              newRecovery.getTesterHash(), newRecoveryId);
                 throw new JobException(msg);
             }
             
             // Always log the new record's auto-generated id.
-            _log.info(MsgUtils.getMsg("JOBS_RECOVERY_ID_GENERATED", newRecovery.getTenantId(), 
+            _log.info(JobUtils.getMsg("JOBS_RECOVERY_ID_GENERATED", newRecovery.getTenantId(), 
                                       newRecovery.getConditionCode().name(), 
                                       newRecovery.getTesterHash(), newRecoveryId));
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_INSERT_ERROR", newRecovery.getTenantId(), 
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_INSERT_ERROR", newRecovery.getTenantId(), 
                                          newRecovery.getConditionCode().name(), e.getMessage());
             _log.error(msg, e);
             throw e;
@@ -639,7 +639,7 @@ public final class JobRecoveryDao
             }
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_UPDATE_ERROR", id, 
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_UPDATE_ERROR", id, 
                                          e.getMessage());
             _log.error(msg, e);
             throw e;

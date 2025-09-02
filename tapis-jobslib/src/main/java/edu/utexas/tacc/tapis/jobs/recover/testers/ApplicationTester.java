@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.recover.testers;
 
 import java.util.Map;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +78,7 @@ public final class ApplicationTester
        boolean available; 
        try {available = appsClient.isEnabled(_appName, _appVersion);}
        catch (Exception e) {
-               String msg = MsgUtils.getMsg("JOBS_RECOVERY_DB_ACCESS", _jobRecovery.getId(), 
+               String msg = JobUtils.getMsg("JOBS_RECOVERY_DB_ACCESS", _jobRecovery.getId(),
                                             "SystemDao", e.getMessage());
                throw new JobRecoveryAbortException(msg, e);
          }

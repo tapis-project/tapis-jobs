@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.schedulers;
 
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -195,7 +196,7 @@ public class SlurmOptions
             var m = _optionPattern.matcher(opt.getArg());
             boolean matches = m.matches();
             if (!matches) {
-                String msg = MsgUtils.getMsg("JOBS_SCHEDULER_ARG_PARSE_ERROR", "slurm", opt.getArg());
+                String msg = JobUtils.getMsg("JOBS_SCHEDULER_ARG_PARSE_ERROR", "slurm", opt.getArg());
                 throw new JobException(msg);
             }
 
@@ -208,7 +209,7 @@ public class SlurmOptions
 
             // The option should always exist.
             if (StringUtils.isBlank(option)) {
-                String msg = MsgUtils.getMsg("JOBS_SCHEDULER_ARG_PARSE_ERROR", "slurm", opt.getArg());
+                String msg = JobUtils.getMsg("JOBS_SCHEDULER_ARG_PARSE_ERROR", "slurm", opt.getArg());
                 throw new JobException(msg);
             }
 
@@ -612,7 +613,7 @@ public class SlurmOptions
             case "--time":
             case "-t":
                 String tapisArg = getTapisArg(option);
-                String msg1 = MsgUtils.getMsg("JOBS_SCHEDULER_SUBSUMED_ARG", "slurm", option, tapisArg);
+                String msg1 = JobUtils.getMsg("JOBS_SCHEDULER_SUBSUMED_ARG", "slurm", option, tapisArg);
                 throw new JobException(msg1);
                 
                 
@@ -627,7 +628,7 @@ public class SlurmOptions
                 //
                 //  --mem, --nodes (-N), --ntasks (-n), --partition (-p), --time (-t)
                 //
-                String msg2 = MsgUtils.getMsg("JOBS_SCHEDULER_UNSUPPORTED_ARG", "slurm", option);
+                String msg2 = JobUtils.getMsg("JOBS_SCHEDULER_UNSUPPORTED_ARG", "slurm", option);
                 throw new JobException(msg2);
         }
     }
@@ -810,7 +811,7 @@ public class SlurmOptions
                 String value = SystemsClient.getSchedulerHiddenOptionValue(opt);
                 if (StringUtils.isNotBlank(value)) _skipList.add(value);
                 else {
-                    String msg = MsgUtils.getMsg("JOBS_SCHEDULER_NO_HIDDEN_OPTION_VALUE",
+                    String msg = JobUtils.getMsg("JOBS_SCHEDULER_NO_HIDDEN_OPTION_VALUE",
                             profile.getOwner(), _jobCtx.getJob().getTenant(),
                             profile.getName(), opt.name());
                     _log.error(msg);

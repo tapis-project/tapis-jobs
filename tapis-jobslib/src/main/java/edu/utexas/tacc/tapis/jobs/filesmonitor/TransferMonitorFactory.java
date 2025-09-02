@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.filesmonitor;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
@@ -21,7 +22,7 @@ public final class TransferMonitorFactory
         if (_pollingAvailable)     return new PollingMonitor();
         
         // Houston, we have a compile-time problem.
-        String msg = MsgUtils.getMsg("JOBS_NO_TRANSFER_MONITOR");
+        String msg = JobUtils.getMsg("JOBS_NO_TRANSFER_MONITOR");
         throw new TapisRuntimeException(msg);
     }
 }

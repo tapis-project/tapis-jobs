@@ -151,7 +151,7 @@ public class JobsApiUtils
             } 
         } catch (Exception e) {
             // The only possible exception is the string to enum conversion.
-            var msg = MsgUtils.getMsg("JOBS_UNKNOWN_ENUM", "DeliveryMethod", lastDeliveryMethod, jobUuid);
+            var msg = JobUtils.getMsg("JOBS_UNKNOWN_ENUM", "DeliveryMethod", lastDeliveryMethod, jobUuid);
             throw new JobException(msg, e);
         }
         notifReq.setDeliveryTargets(notifTargets);
@@ -276,7 +276,7 @@ public class JobsApiUtils
     	try {PathSanitizer.detectControlChars(value);}
         catch (Exception e) {
         	var sanitized = PathSanitizer.replaceControlChars(value, '?');
-        	var msg = MsgUtils.getMsg("JOBS_INVALID_CHAR_DETECTED", objectName, fieldName, 
+        	var msg = JobUtils.getMsg("JOBS_INVALID_CHAR_DETECTED", objectName, fieldName, 
         			                  sanitized, e.getMessage());
         	throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
@@ -301,7 +301,7 @@ public class JobsApiUtils
        
         // Invalid character found.
         var sanitized = PathSanitizer.replaceControlChars(value, '?');
-        var msg = MsgUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", objectName, fieldName, sanitized);
+        var msg = JobUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", objectName, fieldName, sanitized);
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     }
 

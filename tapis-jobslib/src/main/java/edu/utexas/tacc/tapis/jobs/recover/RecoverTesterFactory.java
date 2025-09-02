@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.recover;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +101,7 @@ public class RecoverTesterFactory
             default:
             {
                 // This can only happen if we forget to support a new tester type.
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_UNKNOWN_TESTERTYPE", 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_UNKNOWN_TESTERTYPE",
                                              testerType, jobRecovery.getId(), 
                                              jobRecovery.getTenantId());
                 _log.error(msg);

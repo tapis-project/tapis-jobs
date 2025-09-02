@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -242,7 +243,7 @@ abstract class AbstractJobMonitor
                     
                     // We want to update the finalMessage field in the jobCtx, which will be used to update the
                     // lastMessage field in the db.
-                    String finalMessage = MsgUtils.getMsg("JOBS_EARLY_TERMINATION", reasonCode.name());
+                    String finalMessage = JobUtils.getMsg("JOBS_EARLY_TERMINATION", reasonCode.name());
                     _jobCtx.setFinalMessage(finalMessage);
                     
                     if (MonitorPolicy.ReasonCode.TIME_EXPIRED.equals(reasonCode))
@@ -261,7 +262,7 @@ abstract class AbstractJobMonitor
                     }
 
                     // Signal that this job is kaput.
-                    String msg = MsgUtils.getMsg("JOBS_MONITOR_EARLY_TERMINATION", getClass().getSimpleName(),
+                    String msg = JobUtils.getMsg("JOBS_MONITOR_EARLY_TERMINATION", getClass().getSimpleName(),
                                                  _job.getUuid(), reasonCode.name(), _job.getRemoteOutcome().name());
                     throw new JobException(msg);
                 }
@@ -275,7 +276,7 @@ abstract class AbstractJobMonitor
                 {
                   if (_log.isDebugEnabled())
                   {
-                    String msg = MsgUtils.getMsg("JOBS_MONITOR_INTERRUPTED", _job.getUuid(), getClass().getSimpleName());
+                    String msg = JobUtils.getMsg("JOBS_MONITOR_INTERRUPTED", _job.getUuid(), getClass().getSimpleName());
                     _log.debug(msg);
                   }
                 }
@@ -368,7 +369,7 @@ abstract class AbstractJobMonitor
                 // Record the outcome. The remote status parameter reflects the last value set, which could be null.
                 if (_log.isDebugEnabled()) {
                     String outcome = _job.getRemoteOutcome() == null ? "null" : _job.getRemoteOutcome().name();
-                    String msg = MsgUtils.getMsg("JOBS_MONITOR_FINISHED", getClass().getSimpleName(),
+                    String msg = JobUtils.getMsg("JOBS_MONITOR_FINISHED", getClass().getSimpleName(),
                                                  _job.getUuid(), remoteStatus, outcome, null);
                     _log.debug(msg);
                 }
@@ -416,7 +417,7 @@ abstract class AbstractJobMonitor
     			if (i >= CHANNEL_ERROR_RETRIES) throw e;
     			
     			// Log intention to retry.
-    			_log.debug(MsgUtils.getMsg("JOBS_MONITOR_RECONNECTING", 
+    			_log.debug(JobUtils.getMsg("JOBS_MONITOR_RECONNECTING", 
     					                   _job.getUuid(), _job.getExecSystemId()));
     			
     			// Close the current connection and try to reconnect.
@@ -491,7 +492,7 @@ abstract class AbstractJobMonitor
             queueManager.postRecoveryQueue(jobCancelRecoverMsg);
 
           } catch (JobException e) {
-            String msg = MsgUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid);
+            String msg = JobUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid);
             _log.error(msg, e);
           }
     }
@@ -544,7 +545,7 @@ abstract class AbstractJobMonitor
         else _jobCtx.getJobsDao().setRemoteOutcomeAndResult(_job, JobRemoteOutcome.FAILED_SKIP_ARCHIVE, code);
         if (_log.isDebugEnabled())
         {
-          String msg = MsgUtils.getMsg("JOBS_MONITOR_FINISHED", getClass().getSimpleName(), _job.getUuid(),
+          String msg = JobUtils.getMsg("JOBS_MONITOR_FINISHED", getClass().getSimpleName(), _job.getUuid(),
                                        remoteStatus.name(), _job.getRemoteOutcome().name(), code);
           _log.debug(msg);
         }

@@ -4,6 +4,7 @@ import java.util.Map;
 
 import javax.jms.InvalidSelectorException;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.activemq.command.ActiveMQTextMessage;
 import org.apache.activemq.filter.BooleanExpression;
 import org.apache.activemq.filter.MessageEvaluationContext;
@@ -39,7 +40,7 @@ public class SelectorFilter
         // time it gets here, but we want to avoid NPEs no matter what. 
         // Empty and blank strings trigger normal exception handling below.
         if (filter == null) {
-            String msg = MsgUtils.getMsg("JOBS_QUEUE_EMPTY_FILTER");;
+            String msg = JobUtils.getMsg("JOBS_QUEUE_EMPTY_FILTER");;
             _log.error(msg);
             throw new JobQueueFilterException(msg);
         }
@@ -63,7 +64,7 @@ public class SelectorFilter
                 msg += innermsg;
                 if (!msg.isEmpty()) msg += "]";
             }
-            _log.error(MsgUtils.getMsg("JOBS_QUEUE_FILTER_PARSE_ERROR", msg), e);
+            _log.error(JobUtils.getMsg("JOBS_QUEUE_FILTER_PARSE_ERROR", msg), e);
             throw new JobQueueFilterException(msg, e);
         }
         
@@ -105,7 +106,7 @@ public class SelectorFilter
         if (properties != null)
             try {message.setProperties(properties);}
              catch (Exception e) {
-                 String msg = MsgUtils.getMsg("JOBS_QUEUE_FILTER_VALUE_ERROR", e.getMessage());
+                 String msg = JobUtils.getMsg("JOBS_QUEUE_FILTER_VALUE_ERROR", e.getMessage());
                  _log.error(msg, e);
                  throw new JobQueueFilterException(msg + " (" + e.getMessage() + ")");
              }
@@ -118,7 +119,7 @@ public class SelectorFilter
         boolean result = false;
         try {result = expr.matches(ctx);}
          catch (Exception e) {
-             String msg = MsgUtils.getMsg("JOBS_QUEUE_FILTER_EVAL_ERROR", e.getMessage());
+             String msg = JobUtils.getMsg("JOBS_QUEUE_FILTER_EVAL_ERROR", e.getMessage());
              _log.error(msg, e);
              throw new JobQueueFilterException(msg + " (" + e.getMessage() + ")", e);
          }

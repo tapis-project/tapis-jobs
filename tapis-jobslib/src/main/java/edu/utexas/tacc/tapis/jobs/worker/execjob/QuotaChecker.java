@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +92,7 @@ public final class QuotaChecker
         if (curJobs >= maxJobs) 
         {
             // Recoverable error.
-            String msg = MsgUtils.getMsg("JOBS_QUOTA_MAX_JOBS", _job.getUuid(),
+            String msg = JobUtils.getMsg("JOBS_QUOTA_MAX_JOBS", _job.getUuid(),
                                          execSys.getTenant(), execSys.getId(),
                                          maxJobs);
             _log.warn(msg);
@@ -102,7 +103,7 @@ public final class QuotaChecker
         
         // Tracing.
         if (_log.isDebugEnabled()) 
-            _log.debug(MsgUtils.getMsg("JOBS_CURRENT_SYSTEM_JOBS", _job.getUuid(),
+            _log.debug(JobUtils.getMsg("JOBS_CURRENT_SYSTEM_JOBS", _job.getUuid(),
                        execSys.getTenant(), execSys.getId(), curJobs));
     }
     
@@ -125,7 +126,7 @@ public final class QuotaChecker
         if (curJobsForUser >= maxJobsPerUser) 
         {
             // Recoverable error.
-            String msg = MsgUtils.getMsg("JOBS_QUOTA_MAX_USER_JOBS", _job.getUuid(),
+            String msg = JobUtils.getMsg("JOBS_QUOTA_MAX_USER_JOBS", _job.getUuid(),
                                          execSys.getTenant(), execSys.getId(),
                                          maxJobsPerUser, _job.getOwner());
             _log.warn(msg);
@@ -136,7 +137,7 @@ public final class QuotaChecker
         
         // Tracing.
         if (_log.isDebugEnabled()) 
-            _log.debug(MsgUtils.getMsg("JOBS_CURRENT_SYSTEM_USER_JOBS", _job.getUuid(),
+            _log.debug(JobUtils.getMsg("JOBS_CURRENT_SYSTEM_USER_JOBS", _job.getUuid(),
                        execSys.getTenant(), execSys.getId(), curJobsForUser, 
                        _job.getOwner()));
     }
@@ -166,7 +167,7 @@ public final class QuotaChecker
         if (curQueueJobs >= maxQueueJobs) 
         {
             // Recoverable error.
-            String msg = MsgUtils.getMsg("JOBS_QUOTA_MAX_QUEUE_JOBS", _job.getUuid(),
+            String msg = JobUtils.getMsg("JOBS_QUOTA_MAX_QUEUE_JOBS", _job.getUuid(),
                                          execSys.getTenant(), execSys.getId(),
                                          maxQueueJobs, logicalQueue.getName());
             _log.warn(msg);
@@ -177,7 +178,7 @@ public final class QuotaChecker
         
         // Tracing.
         if (_log.isDebugEnabled()) 
-            _log.debug(MsgUtils.getMsg("JOBS_CURRENT_SYSTEM_QUEUE_JOBS", _job.getUuid(),
+            _log.debug(JobUtils.getMsg("JOBS_CURRENT_SYSTEM_QUEUE_JOBS", _job.getUuid(),
                        execSys.getTenant(), execSys.getId(), curQueueJobs, 
                        logicalQueue.getName()));
     }
@@ -209,7 +210,7 @@ public final class QuotaChecker
         if (curUserQueueJobs >= maxUserQueueJobs) 
         {
             // Recoverable error.
-            String msg = MsgUtils.getMsg("JOBS_QUOTA_MAX_USER_QUEUE_JOBS", _job.getUuid(),
+            String msg = JobUtils.getMsg("JOBS_QUOTA_MAX_USER_QUEUE_JOBS", _job.getUuid(),
                                          execSys.getTenant(), execSys.getId(),
                                          maxUserQueueJobs, _job.getOwner(), logicalQueue.getName());
             _log.warn(msg);
@@ -220,7 +221,7 @@ public final class QuotaChecker
         
         // Tracing.
         if (_log.isDebugEnabled()) 
-            _log.debug(MsgUtils.getMsg("JOBS_CURRENT_SYSTEM_USER_QUEUE_JOBS", _job.getUuid(),
+            _log.debug(JobUtils.getMsg("JOBS_CURRENT_SYSTEM_USER_QUEUE_JOBS", _job.getUuid(),
                        execSys.getTenant(), execSys.getId(), curUserQueueJobs, 
                        _job.getOwner(), logicalQueue.getName()));
     }

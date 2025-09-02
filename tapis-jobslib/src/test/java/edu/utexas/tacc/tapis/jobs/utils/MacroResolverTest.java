@@ -3,13 +3,14 @@ package edu.utexas.tacc.tapis.jobs.utils;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 
+import edu.utexas.tacc.tapis.shared.utils.MacroResolver;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 
 @Test(groups={"unit"})
-public class MacroResovlerTest 
+public class MacroResolverTest
 {
     // Initialize fake macro definitions.
     private final HashMap<String,String> _macroMap = initMacroMap();

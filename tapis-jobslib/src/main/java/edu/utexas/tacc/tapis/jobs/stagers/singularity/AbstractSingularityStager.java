@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.stagers.singularity;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +137,7 @@ abstract class AbstractSingularityStager
             var m = _optionPattern.matcher(opt.getArg());
             boolean matches = m.matches();
             if (!matches) {
-                String msg = MsgUtils.getMsg("JOBS_CONTAINER_ARG_PARSE_ERROR", "singularity", opt.getArg());
+                String msg = JobUtils.getMsg("JOBS_CONTAINER_ARG_PARSE_ERROR", "singularity", opt.getArg());
                 throw new JobException(msg);
             }
             
@@ -149,7 +150,7 @@ abstract class AbstractSingularityStager
             
             // The option should always exist.
             if (StringUtils.isBlank(option)) {
-                String msg = MsgUtils.getMsg("JOBS_CONTAINER_ARG_PARSE_ERROR", "singularity", opt.getArg());
+                String msg = JobUtils.getMsg("JOBS_CONTAINER_ARG_PARSE_ERROR", "singularity", opt.getArg());
                 throw new JobException(msg);
             }
             
@@ -365,7 +366,7 @@ abstract class AbstractSingularityStager
                 //
                 //   --pidfile, --env
                 //
-                String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", "singularity", option);
+                String msg = JobUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", "singularity", option);
                 throw new JobException(msg);
         }
     }

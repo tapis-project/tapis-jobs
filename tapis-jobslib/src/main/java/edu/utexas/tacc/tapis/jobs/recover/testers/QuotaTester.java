@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.recover.testers;
 
 import java.util.Map;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +98,7 @@ extends AbsTester
            }
        } 
        catch (Exception e) {
-           String msg = MsgUtils.getMsg("JOBS_RECOVERY_QUOTA_TEST_ERROR", 
+           String msg = JobUtils.getMsg("JOBS_RECOVERY_QUOTA_TEST_ERROR",
                                         _jobRecovery.getId(), _tenantId, _systemId,
                                         _jobOwner, _execSystemLogicalQueue, e.getMessage());
            _log.error(msg, e);

@@ -4,6 +4,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.stagers.AbstractJobExecStager;
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobFileManager;
@@ -265,19 +266,19 @@ public class ZipStager
         // If it starts with "/" then it should an absolute path, else it should be a URL
         if (_containerImage.startsWith("/")) {
             // Process as an absolute path
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "PATH", _containerImage);
+            msg = JobUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "PATH", _containerImage);
             _log.debug(msg);
             _zipFullPath = FilenameUtils.normalize(_containerImage);
             _zipFileName = Path.of(_zipFullPath).getFileName().toString();
         }
         else {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "URL", _containerImage);
+            msg = JobUtils.getMsg("JOBS_ZIP_CONTAINER", jobUuid, "URL", _containerImage);
             _log.debug(msg);
             // Not a path, so should be a URL in a format supported by Files service. Validate it.
             Matcher matcher = JobFileInput.URL_PATTERN.matcher(_containerImage);
             if (!matcher.find())
             {
-                msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", jobUuid, _containerImage);
+                msg = JobUtils.getMsg("JOBS_ZIP_CONTAINER_URL_INVALID", jobUuid, _containerImage);
                 throw new JobException(msg);
             }
             _containerImageIsUrl = true;
@@ -293,7 +294,7 @@ public class ZipStager
         // Do simple validation of app archive file name.
         if (StringUtils.isBlank(_zipFileName) || "/".equals(_zipFileName))
         {
-            msg = MsgUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, _containerImage, _zipFileName);
+            msg = JobUtils.getMsg("JOBS_ZIP_CONTAINER_FILENAME_ERR", jobUuid, _containerImage, _zipFileName);
             throw new JobException(msg);
         }
 

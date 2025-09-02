@@ -19,6 +19,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,7 +152,7 @@ public class JobOutputListingResource extends AbstractResource{
        }
        
        if (job == null) {
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid, threadContext.getOboTenantId());
+           String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid, threadContext.getOboTenantId());
            _log.warn(msg);
            ResultName missingName = new ResultName();
            missingName.name = jobUuid;
@@ -160,10 +161,10 @@ public class JobOutputListingResource extends AbstractResource{
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
            
        } else if(!job.isVisible()) {
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+           String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
            _log.warn(msg);
            return Response.status(Status.NOT_FOUND).
-             entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE",jobUuid,threadContext.getOboTenantId()))).build();
+             entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE",jobUuid,threadContext.getOboTenantId()))).build();
        }
         
        // ------------------------- Check the Job's status -----------------------------
@@ -173,7 +174,7 @@ public class JobOutputListingResource extends AbstractResource{
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED",
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_NOT_TERMINATED",
     			   jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()),r)).build();
        }
        
@@ -218,7 +219,7 @@ public class JobOutputListingResource extends AbstractResource{
        // Success.
        RespGetJobOutputList r = new RespGetJobOutputList(filesList,srchParms.getLimit(),srchParms.getSkip());
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),
+               JobUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),
             		   threadContext.getOboTenantId()), r)).build();
      }
      

@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -129,7 +130,7 @@ final class QueueReaderParameters
       
       // Allow alphanumerics plus [_.-].
       if (!pattern.matcher(name).matches()) {
-          String msg = MsgUtils.getMsg("JOBS_WORKER_INVALID_CHAR", "name", name);
+          String msg = JobUtils.getMsg("JOBS_WORKER_INVALID_CHAR", "name", name);
           _log.error(msg);
           throw new JobInputException(msg);
       }

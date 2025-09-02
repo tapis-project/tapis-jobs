@@ -1,7 +1,10 @@
 package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.lang.reflect.Constructor;
+import java.text.MessageFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +39,10 @@ public final class JobUtils
     /* ********************************************************************** */
     // Tracing.
     private static final Logger _log = LoggerFactory.getLogger(JobUtils.class);
-    
+
+    // Location of message bundle files
+    private static final String MESSAGE_BUNDLE = "edu.utexas.tacc.tapis.jobs.JobMessages";
+
     // Job subscription category wildcard character.
     public static final String EVENT_CATEGORY_WILDCARD = "*";
     
@@ -171,8 +177,7 @@ public final class JobUtils
     {
         // We have a problem if the result is not the slurm id.
         if (StringUtils.isBlank(output)) {
-            String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_NO_RESULT",  
-                                         job.getUuid(), cmd);
+            String msg = JobUtils.getMsg("JOBS_SLURM_SBATCH_NO_RESULT", job.getUuid(), cmd);
             throw new JobException(msg);
         }
         
@@ -196,8 +201,7 @@ public final class JobUtils
         	// Grab the slurm id.
         	int groupCount = m.groupCount();
         	if (groupCount < 1) {
-        		String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",  
-                                         	 job.getUuid(), output);
+        		String msg = JobUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT", job.getUuid(), output);
         		throw new JobException(msg);
         	} 
         	
@@ -208,36 +212,13 @@ public final class JobUtils
         
         // Did we find the result line?
     	if (slurmId == null) {
-    		String msg = MsgUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT",  
-                                     	 job.getUuid(), output);
+    		String msg = JobUtils.getMsg("JOBS_SLURM_SBATCH_INVALID_RESULT", job.getUuid(), output);
     		throw new JobException(msg);
     	}
     	
         return slurmId;
     }
     
-    /* ---------------------------------------------------------------------------- */
-    /* getLastLine:                                                                 */
-    /* ---------------------------------------------------------------------------- */
-    /** Get all characters after the last newline character is a string.  The string
-     * must be non-null and must already be trimmed of leading and trailing whitespace.
-     * This method is useful in stripping the banner information from the output of
-     * remote commands. 
-     * 
-     * @param s the remote result string
-     * @return the last line of the string
-     */
-    public static String getLastLine(String s)
-    {
-        // The input is a non-null, trimmed string so
-        // a non-negative index must be at least one
-        // character from the end of the string.
-        int index = s.lastIndexOf('\n');
-        if (index < 0) return s;
-        return s.substring(index + 1);
-    }
-
-
     /* ---------------------------------------------------------------------------- */
     /* getNotificationsClient:                                                      */
     /* ---------------------------------------------------------------------------- */
@@ -280,7 +261,7 @@ public final class JobUtils
      *     jobs.<jobEventCategoryFilter>.*
      *     jobs.*.*   // when ALL category is used
      *     
-     * @param jobEventType the 2nd component in a job subscription type filter
+     * @param filter the 2nd component in a job subscription type filter
      * @return the 3 part type filter string
      */
     public static String makeNotifTypeFilter(JobEventCategoryFilter filter, String detail)
@@ -460,7 +441,7 @@ public final class JobUtils
 
         // If job not yet launched then no pid so nothing to do. Log message.
         if (StringUtils.isBlank(jobRemoteJobId)) {
-            msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_NO_PID", jobUUID, execSysId, host);
+            msg = JobUtils.getMsg("JOBS_CANCEL_KILL_NO_PID", jobUUID, execSysId, host);
             _log.debug(msg);
             return;
         }
@@ -475,7 +456,7 @@ public final class JobUtils
             result = runCmd.getOutAsTrimmedString();
             if (rc != 0) {
                 // Initial pkill may not have worked. Log a message and try the backup kill command
-                msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR1", jobUUID, execSysId, host, cmd, rc, result);
+                msg = JobUtils.getMsg("JOBS_CANCEL_KILL_ERROR1", jobUUID, execSysId, host, cmd, rc, result);
                 _log.debug(msg);
                 cmd = String.format(JobExecutionUtils.KILL_9_CMD_FMT, jobRemoteJobId);
                 rc = runCmd.execute(cmd);
@@ -484,19 +465,80 @@ public final class JobUtils
                 // Message returned by kill command might look something like this:
                 //  "bash: line 0: kill: (2264066) - No such process"
                 if (rc != 0) {
-                    msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR1", jobUUID, execSysId, host, cmd, rc, result);
+                    msg = JobUtils.getMsg("JOBS_CANCEL_KILL_ERROR1", jobUUID, execSysId, host, cmd, rc, result);
                     _log.debug(msg);
                     return;
                 }
             }
         }
         catch (Exception e) {
-            msg = MsgUtils.getMsg("JOBS_CANCEL_KILL_ERROR2", jobUUID, execSysId, host);
+            msg = JobUtils.getMsg("JOBS_CANCEL_KILL_ERROR2", jobUUID, execSysId, host);
             _log.error(msg, e);
             return;
         }
         // Record the successful cancel of the process.
         if (_log.isDebugEnabled())
-            _log.debug(MsgUtils.getMsg("JOBS_CANCEL_KILLED",jobUUID, host, cmd, rc, result));
+            _log.debug(JobUtils.getMsg("JOBS_CANCEL_KILLED",jobUUID, host, cmd, rc, result));
     }
+
+  // =============================================
+  // ============   Log messaging ================
+  // =============================================
+  /**
+   * Get a localized message using the specified key and parameters. Locale is null.
+   * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+   * @param key message key
+   * @param parms message parameters
+   * @return localized message
+   */
+  public static String getMsg(String key, Object... parms)
+  {
+    return getMsg(key, null, parms);
+  }
+
+  /**
+   * Get a localized message using the specified locale, key and parameters.
+   * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+   * @param locale - Locale to use when building message. If null use default locale
+   * @param key - Key used to lookup message in properties file.
+   * @param parms - Parameters for template variables in message
+   * @return Resulting message
+   */
+  public static String getMsg(String key, Locale locale, Object... parms)
+  {
+    String msgValue = null;
+
+    if (locale == null) locale = Locale.getDefault();
+
+    ResourceBundle bundle = null;
+    try { bundle = ResourceBundle.getBundle(MESSAGE_BUNDLE, locale); }
+    catch (Exception e)
+    {
+      _log.error("Unable to find resource message bundle: " + MESSAGE_BUNDLE, e);
+    }
+    if (bundle != null) try { msgValue = bundle.getString(key); }
+    catch (Exception e)
+    {
+      _log.error("Unable to find key: " + key + " in resource message bundle: " + MESSAGE_BUNDLE, e);
+    }
+
+    if (msgValue != null)
+    {
+      // No problems. If needed fill in any placeholders in the message.
+      if (parms != null && parms.length > 0) msgValue = MessageFormat.format(msgValue, parms);
+    }
+    else
+    {
+      // There was a problem. Build a message with as much info as we can give.
+      StringBuilder sb = new StringBuilder("Key: ").append(key).append(" not found in bundle: ").append(MESSAGE_BUNDLE);
+      if (parms != null && parms.length > 0)
+      {
+        sb.append("Parameters:[");
+        for (Object parm : parms) {sb.append(parm.toString()).append(",");}
+        sb.append("]");
+      }
+      msgValue = sb.toString();
+    }
+    return msgValue;
+  }
 }

@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,7 +164,7 @@ public final class RecoveryReader
         QueueReaderParameters parms = null;
         try {parms = new QueueReaderParameters(args);}
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_START_ERROR", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_START_ERROR", e.getMessage());
             _log.error(msg, e);
             throw e;
           }
@@ -182,7 +183,7 @@ public final class RecoveryReader
     {
       // Announce our arrival.
       if (_log.isInfoEnabled()) 
-          _log.info(MsgUtils.getMsg("JOBS_READER_STARTED", _parms.name, 
+          _log.info(JobUtils.getMsg("JOBS_READER_STARTED", _parms.name, 
                                     _queueName, getBindingKey()));
       
       // Get our service tokens.
@@ -196,7 +197,7 @@ public final class RecoveryReader
       
       // Announce our termination.
       if (_log.isInfoEnabled()) 
-          _log.info(MsgUtils.getMsg("JOBS_READER_STOPPED", _parms.name, 
+          _log.info(JobUtils.getMsg("JOBS_READER_STOPPED", _parms.name, 
                                     _queueName, getBindingKey()));
     }
     
@@ -261,7 +262,7 @@ public final class RecoveryReader
       
       // Make sure we got some message type.
       if (recoverMsg.getMsgType() == null) {
-          String msg = MsgUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", "null", getName());
+          String msg = JobUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", "null", getName());
           _log.error(msg);
           return false;
       }
@@ -291,7 +292,7 @@ public final class RecoveryReader
       catch (TapisRuntimeException e) {
           // A fatal error has occurred, we're shutting down 
           // this program by exiting the main thread.
-          String msg = MsgUtils.getMsg("JOBS_RECOVERY_RUNTIME_ERROR", _parms.name, e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_RECOVERY_RUNTIME_ERROR", _parms.name, e.getMessage());
           _log.error(msg, e);
           throw e;
       }
@@ -303,7 +304,7 @@ public final class RecoveryReader
       }
       catch (Exception e) {
           if (body.length() > JSON_DUMP_LEN) body = body.substring(0, JSON_DUMP_LEN - 1);
-          String msg = MsgUtils.getMsg("JOBS_WORKER_MSG_PROCESSING_ERROR", getName(), 
+          String msg = JobUtils.getMsg("JOBS_WORKER_MSG_PROCESSING_ERROR", getName(), 
                                        body, e.getMessage());
           _log.error(msg, e);
           ack = false;
@@ -391,7 +392,7 @@ public final class RecoveryReader
             String url = parms.getTenantBaseUrl();
             tenantMap = TenantManager.getInstance(url).getTenants();
         } catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
             throw new JobException(msg, e);
         }
         if (!tenantMap.isEmpty()) {
@@ -399,7 +400,7 @@ public final class RecoveryReader
             for (String tenant : tenantMap.keySet()) msg += "  " + tenant + "\n";
             _log.info(msg);
         } else {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
             throw new JobException(msg);
         }
         
@@ -410,7 +411,7 @@ public final class RecoveryReader
                                            parms.getServicePassword());
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
             throw new JobException(msg, e);
         }
         // Print site info.
@@ -488,7 +489,7 @@ public final class RecoveryReader
     private void shutdown()
     {
         // Tracing. 
-        _log.info(MsgUtils.getMsg("JOBS_RECOVERY_SIGNALING_SHUTDOWN", 
+        _log.info(JobUtils.getMsg("JOBS_RECOVERY_SIGNALING_SHUTDOWN", 
                                  Thread.currentThread().getName()));
       
        // Interrupt the recovery manager thread
@@ -545,7 +546,7 @@ public final class RecoveryReader
             catch (Exception e) {
                 // Double fault, what a mess.  The job will be left in 
                 // a non-terminal state and not on any queue.  It's a zombie.
-                String msg = MsgUtils.getMsg("JOBS_WORKER_ZOMBIE_ERROR", 
+                String msg = JobUtils.getMsg("JOBS_WORKER_ZOMBIE_ERROR", 
                                               _parms.name, jobUuid, tenantId);
                 _log.error(msg, e);
                 try {
@@ -576,13 +577,13 @@ public final class RecoveryReader
         try {jobStatus = _jobsDao.getStatusByUUID(message.getJobUuid());}
             catch (TapisDBConnectionException e) {
                 // For now we consider failing to get a db connection fatal.
-                String msg = MsgUtils.getMsg("JOBS_READER_FATAL_DB_ERROR", getName(),
+                String msg = JobUtils.getMsg("JOBS_READER_FATAL_DB_ERROR", getName(),
                                              getQueueName(), message.getTenantId(), e.getMessage());
                 _log.error(msg, e);
                 throw new TapisRuntimeException(msg, e);
             }
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_INPUT_ERROR", e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_INPUT_ERROR", e.getMessage());
                 _log.error(msg, e);
                 
                 // Let's try to fail this job since we can't recover it.
@@ -591,7 +592,7 @@ public final class RecoveryReader
                 return false;
             }
         if (jobStatus != JobStatusType.BLOCKED) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_NOT_BLOCKED", message.getJobUuid(),
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_NOT_BLOCKED", message.getJobUuid(),
                                          jobStatus);
             _log.error(msg);
             return false;
@@ -601,7 +602,7 @@ public final class RecoveryReader
         JobRecovery jobRecovery = null;
         try {jobRecovery = new JobRecovery(message);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_INPUT_ERROR", e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_INPUT_ERROR", e.getMessage());
                 _log.error(msg, e);
                 
                 // Let's try to fail this job since we can't recover it.
@@ -616,13 +617,13 @@ public final class RecoveryReader
         try {_recoveryDao.addJobRecovery(jobRecovery);}
             catch (TapisDBConnectionException e) {
                 // For now we consider failing to get a db connection fatal.
-                String msg = MsgUtils.getMsg("JOBS_READER_FATAL_DB_ERROR", getName(),
+                String msg = JobUtils.getMsg("JOBS_READER_FATAL_DB_ERROR", getName(),
                                              getQueueName(), message.getTenantId() , e.getMessage());
                 _log.error(msg, e);
                 throw new TapisRuntimeException(msg, e);
             }
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_INPUT_ERROR", e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_INPUT_ERROR", e.getMessage());
                 _log.error(msg, e);
                 
                 // Let's try to fail this job since we can't recover it.
@@ -638,7 +639,7 @@ public final class RecoveryReader
         // Firewall against incomplete recovery objects.  We make sure there is NO WAY that
         // a recovery job object can be placed on the internal queue without a valid id.
         if (jobRecovery.getId() <= 0) {
-            String msg = MsgUtils.getMsg("JOBS_BAD_RECOVERY_ID", jobRecovery.getTenantId(), 
+            String msg = JobUtils.getMsg("JOBS_BAD_RECOVERY_ID", jobRecovery.getTenantId(), 
                                          jobRecovery.getConditionCode().name(), 
                                          jobRecovery.getTesterHash(), jobRecovery.getId());
             _log.error(msg);
@@ -655,7 +656,7 @@ public final class RecoveryReader
             catch (Exception e) {
                 // This shouldn't happen since we are using
                 // an unbounded linked queue, but just in case.
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_INTERNAL_QUEUE_ERROR", e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_INTERNAL_QUEUE_ERROR", e.getMessage());
                 _log.error(msg, e);
                 var cond = JobConditionCode.JOB_INTERNAL_ERROR;
                 failJob(message.getJobUuid(), message.getTenantId(), msg, cond);                
@@ -705,7 +706,7 @@ public final class RecoveryReader
     private boolean processMsg(RecoverMsg message)
     {
         // To get here,  we must have sent a message type that this processor is not expected to handle.
-        String msg = MsgUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", message.getMsgType().name(), 
+        String msg = JobUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", message.getMsgType().name(), 
                                      getName());
         _log.error(msg);
         return false;

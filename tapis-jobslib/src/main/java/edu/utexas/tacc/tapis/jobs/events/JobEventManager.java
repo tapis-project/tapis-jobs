@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.events;
 import java.sql.Connection;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -578,7 +579,7 @@ public final class JobEventManager
         // Error already logged.
         try {JobQueueManager.getInstance().postEventQueue(jobEvent);}
             catch (Exception e) {
-            	String msg = MsgUtils.getMsg("JOBS_EVENT_POST_ERROR", 
+            	String msg = JobUtils.getMsg("JOBS_EVENT_POST_ERROR",
             			        jobEvent.getEvent().name(),  
             			        JobQueueManagerNames.getEventQueueName());
             	_log.warn(msg, e);

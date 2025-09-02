@@ -30,7 +30,7 @@ public final class SingularityRunSlurmCmd
     /* generateExecCmd:                                                       */
     /* ---------------------------------------------------------------------- */
     @Override
-    public String generateExecCmd(Job job)
+    public String generateExecCmd(Job job) 
     {
         // The generated singularity run command text:
         //

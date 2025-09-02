@@ -19,12 +19,12 @@ public interface TransferMonitor
      * @param postEvent post an event when a terminal state is reached
      * @throws TapisException when the transfer does not complete successfully
      */
-    void monitorTransfer(Job job, String transferId, String corrId, boolean postEvent)
+    void monitorTransfer(Job job, String transferId, String corrId, boolean postEvent) 
       throws TapisException;
     
     /** Default implementation of above method specifies events are posted by default.
      */
-    default void monitorTransfer(Job job, String transferId, String corrId)
+    default void monitorTransfer(Job job, String transferId, String corrId) 
      throws TapisException
     {
     	monitorTransfer(job, transferId, corrId, true);

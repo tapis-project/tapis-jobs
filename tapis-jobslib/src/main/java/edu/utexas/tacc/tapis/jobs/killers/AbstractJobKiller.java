@@ -22,7 +22,7 @@ public abstract class AbstractJobKiller
     /*                                 Fields                                 */
     /* ********************************************************************** */
     protected final JobExecutionContext _jobCtx;
-    protected final Job _job;
+    protected final Job                 _job;
 
     /* ********************************************************************** */
     /*                              Constructors                              */

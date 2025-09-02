@@ -327,7 +327,7 @@ public final class JobsImpl
     /* getJobSearchAllAttributesByUsername:                                   */
     /* ---------------------------------------------------------------------- */
     public List<Job>  getJobSearchAllAttributesByUsername(String user, String tenant, List<String>searchList,
-                                                          List<OrderBy> orderByList, Integer limit, Integer skip, boolean shared)
+    		List<OrderBy> orderByList, Integer limit,Integer skip, boolean shared) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -413,7 +413,7 @@ public final class JobsImpl
     /* getJobSearchAllAttributesByUsernameUsingSqlSearchStr:                  */
     /* ---------------------------------------------------------------------- */
     public List<Job>  getJobSearchAllAttributesByUsernameUsingSqlSearchStr(String user, String tenant,
-                                                                           String sqlSearchStr , List<OrderBy> orderByList, Integer limit, Integer skip, boolean sharedWithMe)
+    		String sqlSearchStr , List<OrderBy> orderByList, Integer limit,Integer skip, boolean sharedWithMe) 
      throws TapisImplException
     {
         // ----- Check input.
@@ -450,7 +450,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobByUuid:                                                          */
     /* ---------------------------------------------------------------------- */
-    public Job getJobByUuid(String jobUuid, String user, String tenant)
+    public Job getJobByUuid(String jobUuid, String user, String tenant) 
      throws TapisImplException
     {  
     	
@@ -509,8 +509,8 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobByUuid:                                                          */
     /* ---------------------------------------------------------------------- */
-    public Job getJobByUuid(String jobUuid, String user, String tenant,
-                            String jobResourceShareType, String privilege)
+    public Job getJobByUuid(String jobUuid, String user, String tenant, 
+                            String jobResourceShareType, String privilege) 
      throws TapisImplException
     {  
     	
@@ -690,10 +690,10 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobOutputList:                                                      */
     /* ---------------------------------------------------------------------- */
-    public List<FileInfo> getJobOutputList(Job job, String tenant, String user,
-                                           String pathName, int limit, int skip,
-                                           String jobResourceShareType, String privilege,
-                                           boolean recursiveFlag)
+    public List<FileInfo> getJobOutputList(Job job, String tenant, String user, 
+                                           String pathName, int limit, int skip, 
+    		                               String jobResourceShareType, String privilege,
+    		                               boolean recursiveFlag) 
      throws TapisImplException
     {
         // ----- Get the job output files list.
@@ -761,7 +761,7 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* getJobOutputDownloadInfo:                                              */
     /* ---------------------------------------------------------------------- */
-    public JobOutputInfo  getJobOutputDownloadInfo(Job job, String tenant, String user, String pathName)
+    public JobOutputInfo  getJobOutputDownloadInfo(Job job, String tenant, String user, String pathName) 
      throws TapisImplException
     {
         // ----- Download Info for the job output files.

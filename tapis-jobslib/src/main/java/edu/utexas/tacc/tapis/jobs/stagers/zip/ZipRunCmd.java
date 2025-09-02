@@ -56,7 +56,7 @@ public final class ZipRunCmd
     /* generateExecCmd:                                                       */
     /* ---------------------------------------------------------------------- */
     @Override
-    public String generateExecCmd(Job job)
+    public String generateExecCmd(Job job) 
     {
         // Generate the command that will launch either tapisjob_app.sh or the executable from the manifest file.
         // tapisjob.env contains all environment variables

@@ -172,7 +172,7 @@ public final class JobUtils
      * @return the id slurm assigned to this job
      * @throws JobException if the slurm id cannot be recovered
      */
-    public static String getSlurmId(Job job, String output, String cmd)
+    public static String getSlurmId(Job job, String output, String cmd) 
      throws JobException
     {
         // We have a problem if the result is not the slurm id.

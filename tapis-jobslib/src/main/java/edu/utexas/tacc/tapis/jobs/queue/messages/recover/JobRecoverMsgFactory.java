@@ -46,7 +46,7 @@ public final class JobRecoverMsgFactory
      * @param msg a explanatory message
      * @return a recovery message to be queue on the recovery queue
      */
-    public static JobRecoverMsg getJobRecoverMsg(RecoveryConfiguration config,
+    public static JobRecoverMsg getJobRecoverMsg(RecoveryConfiguration config, 
                                                  Job job, String senderId, String msg)
     {
         return getJobRecoverMsg(config, job, senderId, msg, null, null);
@@ -66,7 +66,7 @@ public final class JobRecoverMsgFactory
      * @param testerParameters extra tester data passed to the recovery mananger
      * @return a recovery message to be queue on the recovery queue
      */
-    public static JobRecoverMsg getJobRecoverMsg(RecoveryConfiguration config,
+    public static JobRecoverMsg getJobRecoverMsg(RecoveryConfiguration config, 
                                                  Job job, String senderId, String msg,
                                                  TreeMap<String,String> policyParameters,
                                                  TreeMap<String,String> testerParameters)

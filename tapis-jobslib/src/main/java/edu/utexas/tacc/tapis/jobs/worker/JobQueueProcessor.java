@@ -847,7 +847,7 @@ final class JobQueueProcessor
    * @param e the exception
    * @throws TapisException a new db error or the possibly wrapped original exception
    */
-  private void handleException(Job job, Exception e, BlockedJobActivity activity)
+  private void handleException(Job job, Exception e, BlockedJobActivity activity) 
    throws TapisException
   {
       // Assign blocked activity in recoverable exceptions.
@@ -1089,7 +1089,7 @@ final class JobQueueProcessor
     private final Job _job;
     
     // Constructor
-    JobTopicThread(String workerThreadName, Job job)
+    JobTopicThread(String workerThreadName, Job job) 
     {
       // Initialize superclass.
       super(_jobWorker.getJobThreadGroup(), createJobThreadName(workerThreadName), _jobWorker,  

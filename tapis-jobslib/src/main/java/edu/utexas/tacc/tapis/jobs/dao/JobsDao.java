@@ -3096,7 +3096,7 @@ public final class JobsDao
 	          throw new TapisException(msg);
 		}
 		
-		if (StringUtils.isBlank(job.getSubscriptions())) {
+		if (job.getSubscriptions() == null) {
 	          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateNewJob", "notifications");
 	          throw new TapisException(msg);
 		}

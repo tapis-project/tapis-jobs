@@ -173,7 +173,7 @@ public final class PollingMonitor
      * @throws TapisImplException unrecoverable error
      * @throws TapisServiceConnectionException recoverable error
      */
-    private TransferTask getTransferTask(Job job, String transferId,
+    private TransferTask getTransferTask(Job job, String transferId, 
                                          FilesClient filesClient) 
      throws TapisImplException, TapisServiceConnectionException
     {

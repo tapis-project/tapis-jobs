@@ -25,7 +25,7 @@ public final class JobEventData
     /* ---------------------------------------------------------------------- */
     /* getTransferEventData:                                                  */
     /* ---------------------------------------------------------------------- */
-    static String getTransferEventData(Job job, String msg,
+    static String getTransferEventData(Job job, String msg, 
                                        TransferStatusEnum transferStatus,
                                        String transactionId)
     {
@@ -58,7 +58,7 @@ public final class JobEventData
     /* ---------------------------------------------------------------------- */
     /* getNewStatusEventData:                                                 */
     /* ---------------------------------------------------------------------- */
-    static String getNewStatusEventData(Job job, String msg, JobStatusType newStatus,
+    static String getNewStatusEventData(Job job, String msg, JobStatusType newStatus, 
                                         JobStatusType oldStatus)
     {
         if (newStatus != null && newStatus.isTerminal()) {
@@ -91,8 +91,8 @@ public final class JobEventData
     /* ---------------------------------------------------------------------- */
     /* getSubmitSubscriptionEventData:                                        */
     /* ---------------------------------------------------------------------- */
-    static String getSubmitSubscriptionEventData(Job job, String msg,
-                                                 SubscriptionActions action,
+    static String getSubmitSubscriptionEventData(Job job, String msg, 
+                                                 SubscriptionActions action, 
                                                  int numSubscriptions)
     {
         var d = new JobSubscriptionData();

@@ -26,7 +26,7 @@ public final class QuotaChecker
     /* ********************************************************************** */
     // The initialized job context.
     private final JobExecutionContext _jobCtx;
-    private final Job _job;
+    private final Job                 _job;
     
     /* ********************************************************************** */
     /*                              Constructors                              */

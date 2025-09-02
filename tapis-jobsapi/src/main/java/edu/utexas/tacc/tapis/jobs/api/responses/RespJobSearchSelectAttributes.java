@@ -17,8 +17,8 @@ import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultListMetadata;
 
 public final class RespJobSearchSelectAttributes extends RespAbstract{
 		public List<JsonObject> result; 
-		public RespJobSearchSelectAttributes(List<Job> jobList, List<String>selectList, int limit,
-                                         String orderBy, int skip, String startAfter, int totalCount) {
+		public RespJobSearchSelectAttributes(List<Job> jobList, List<String>selectList,  int limit, 
+				String orderBy, int skip, String startAfter, int totalCount) {
 			result = new ArrayList<>();
 		    if(jobList != null) {
 				for (Job job : jobList)
@@ -37,7 +37,7 @@ public final class RespJobSearchSelectAttributes extends RespAbstract{
 		    metadata = meta;
 		  }
 		
-		public JsonObject addDisplayAttributes(Job job, List<String>selectList) {
+		public JsonObject addDisplayAttributes(Job job,List<String>selectList) {	
 			String json = "";
 	        String uuid = "";
 	        JsonObject jObj = null;

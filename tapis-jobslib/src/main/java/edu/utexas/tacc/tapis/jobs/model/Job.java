@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.model;
 
 import java.lang.reflect.Type;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -205,7 +206,7 @@ public final class Job
     private String   			fileInputs = EMPTY_JSON_ARRAY;
     private JobParameterSet	parameterSet = new JobParameterSet();
     private String              execSystemConstraints;
-    private List<JobSubscription> subscriptions = EMPTY_JSON;
+    private List<JobSubscription> subscriptions = new ArrayList<>();
     
     private int      			blockedCount;
     private String   			remoteJobId;

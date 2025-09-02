@@ -44,7 +44,7 @@ abstract class AbstractJobLauncher
     /*                                 Fields                                 */
     /* ********************************************************************** */
     protected final JobExecutionContext _jobCtx;
-    protected final Job _job;
+    protected final Job                 _job;
     
     // Map of host name to throttle entries used to control the number of launch 
     // issued to a host within a time window.

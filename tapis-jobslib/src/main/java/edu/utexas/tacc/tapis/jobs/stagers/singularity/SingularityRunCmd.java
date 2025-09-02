@@ -28,7 +28,7 @@ public final class SingularityRunCmd
     /* generateExecCmd:                                                       */
     /* ---------------------------------------------------------------------- */
     @Override
-    public String generateExecCmd(Job job)
+    public String generateExecCmd(Job job) 
     {
         // The generated wrapper script will contain a singularity run command:
         //

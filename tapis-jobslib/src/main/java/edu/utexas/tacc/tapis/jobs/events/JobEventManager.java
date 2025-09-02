@@ -112,7 +112,7 @@ public final class JobEventManager
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordStatusEvent(Job job, JobStatusType newStatus,
+    public JobEvent recordStatusEvent(Job job, JobStatusType newStatus, 
                                       JobStatusType oldStatus, Connection conn)
      throws TapisException
     {
@@ -151,7 +151,7 @@ public final class JobEventManager
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordStagingInputsEvent(Job job, TransferStatusEnum transferStatus,
+    public JobEvent recordStagingInputsEvent(Job job, TransferStatusEnum transferStatus, 
                                              String transactionId)
      throws TapisException
     {
@@ -194,7 +194,7 @@ public final class JobEventManager
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordArchivingEvent(Job job, TransferStatusEnum transferStatus,
+    public JobEvent recordArchivingEvent(Job job, TransferStatusEnum transferStatus, 
                                          String transactionId)
      throws TapisException
     {

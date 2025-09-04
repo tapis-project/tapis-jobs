@@ -4,6 +4,7 @@
 package edu.utexas.tacc.tapis.jobs.gen.jooq;
 
 
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.FlywaySchemaHistory;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.JobBlocked;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.JobEvents;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.JobQueues;
@@ -18,15 +19,16 @@ import org.jooq.impl.Internal;
 
 
 /**
- * A class modelling indexes of tables in public.
+ * A class modelling indexes of tables in tapis_jobs.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Indexes {
 
     // -------------------------------------------------------------------------
     // INDEX definitions
     // -------------------------------------------------------------------------
 
+    public static final Index FLYWAY_SCHEMA_HISTORY_S_IDX = Internal.createIndex(DSL.name("flyway_schema_history_s_idx"), FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, new OrderField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.SUCCESS }, false);
     public static final Index JOB_BLOCKED_JOB_UUID_IDX = Internal.createIndex(DSL.name("job_blocked_job_uuid_idx"), JobBlocked.JOB_BLOCKED, new OrderField[] { JobBlocked.JOB_BLOCKED.JOB_UUID }, true);
     public static final Index JOB_BLOCKED_RECOVERY_ID_IDX = Internal.createIndex(DSL.name("job_blocked_recovery_id_idx"), JobBlocked.JOB_BLOCKED, new OrderField[] { JobBlocked.JOB_BLOCKED.RECOVERY_ID }, false);
     public static final Index JOB_EVENTS_CREATED_IDX = Internal.createIndex(DSL.name("job_events_created_idx"), JobEvents.JOB_EVENTS, new OrderField[] { JobEvents.JOB_EVENTS.CREATED }, false);
@@ -39,6 +41,7 @@ public class Indexes {
     public static final Index JOB_RECOVERY_NEXT_ATTEMPT_IDX = Internal.createIndex(DSL.name("job_recovery_next_attempt_idx"), JobRecovery.JOB_RECOVERY, new OrderField[] { JobRecovery.JOB_RECOVERY.NEXT_ATTEMPT.desc() }, false);
     public static final Index JOB_RECOVERY_TENANT_HASH_IDX = Internal.createIndex(DSL.name("job_recovery_tenant_hash_idx"), JobRecovery.JOB_RECOVERY, new OrderField[] { JobRecovery.JOB_RECOVERY.TENANT_ID, JobRecovery.JOB_RECOVERY.TESTER_HASH }, true);
     public static final Index JOB_RESUBMIT_JOB_UUID_IDX = Internal.createIndex(DSL.name("job_resubmit_job_uuid_idx"), JobResubmit.JOB_RESUBMIT, new OrderField[] { JobResubmit.JOB_RESUBMIT.JOB_UUID }, true);
+    public static final Index JOB_TRACKING_ID_IDX = Internal.createIndex(DSL.name("job_tracking_id_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.TRACKING_ID }, false);
     public static final Index JOBS_APP_ID_IDX = Internal.createIndex(DSL.name("jobs_app_id_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.APP_ID, Jobs.JOBS.TENANT }, false);
     public static final Index JOBS_ARCHIVE_SYSTEM_IDX = Internal.createIndex(DSL.name("jobs_archive_system_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.ARCHIVE_SYSTEM_ID }, false);
     public static final Index JOBS_CREATED_IDX = Internal.createIndex(DSL.name("jobs_created_idx"), Jobs.JOBS, new OrderField[] { Jobs.JOBS.CREATED }, false);

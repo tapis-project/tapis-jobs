@@ -4,12 +4,14 @@
 package edu.utexas.tacc.tapis.jobs.gen.jooq;
 
 
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.FlywaySchemaHistory;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.JobBlocked;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.JobEvents;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.JobQueues;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.JobRecovery;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.JobResubmit;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.Jobs;
+import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.FlywaySchemaHistoryRecord;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobBlockedRecord;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobEventsRecord;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobQueuesRecord;
@@ -26,15 +28,16 @@ import org.jooq.impl.Internal;
 
 /**
  * A class modelling foreign key relationships and constraints of tables in
- * public.
+ * tapis_jobs.
  */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+@SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Keys {
 
     // -------------------------------------------------------------------------
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final UniqueKey<FlywaySchemaHistoryRecord> FLYWAY_SCHEMA_HISTORY_PK = Internal.createUniqueKey(FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, DSL.name("flyway_schema_history_pk"), new TableField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.INSTALLED_RANK }, true);
     public static final UniqueKey<JobBlockedRecord> JOB_BLOCKED_PKEY = Internal.createUniqueKey(JobBlocked.JOB_BLOCKED, DSL.name("job_blocked_pkey"), new TableField[] { JobBlocked.JOB_BLOCKED.ID }, true);
     public static final UniqueKey<JobEventsRecord> JOB_EVENTS_PKEY = Internal.createUniqueKey(JobEvents.JOB_EVENTS, DSL.name("job_events_pkey"), new TableField[] { JobEvents.JOB_EVENTS.ID }, true);
     public static final UniqueKey<JobQueuesRecord> JOB_QUEUES_PKEY = Internal.createUniqueKey(JobQueues.JOB_QUEUES, DSL.name("job_queues_pkey"), new TableField[] { JobQueues.JOB_QUEUES.ID }, true);

@@ -17,6 +17,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,7 +109,9 @@ public class JobStatusResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -152,7 +155,7 @@ public class JobStatusResource
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        
        } else if(!jobstatus.getVisible()) {
-    	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+    	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
        	   _log.warn(msg);
        	   ResultName missingName = new ResultName();
        	   missingName.name = jobUuid;
@@ -168,6 +171,6 @@ public class JobStatusResource
     	   resultStatus.setCondition(jobstatus.getCondition().name());
        RespGetJobStatus r = new RespGetJobStatus(resultStatus);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_STATUS_RETRIEVED", jobUuid), r)).build();
+               JobUtils.getMsg("JOBS_STATUS_RETRIEVED", jobUuid), r)).build();
      }
 }

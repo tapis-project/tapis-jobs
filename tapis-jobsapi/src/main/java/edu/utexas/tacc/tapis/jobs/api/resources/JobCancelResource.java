@@ -17,6 +17,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +105,9 @@ public class JobCancelResource extends AbstractResource {
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -122,7 +125,7 @@ public class JobCancelResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;
        var jobsImpl = JobsImpl.getInstance();
@@ -158,27 +161,27 @@ public class JobCancelResource extends AbstractResource {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           String msg = MsgUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid);
+           String msg = JobUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid);
            _log.warn(msg);
     	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(
-                   MsgUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), r)).build();
+                   JobUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), r)).build();
        }
        
        //------------------------- Cancel the Job  -----------------------------
        // initiate the cancellation.
        if (!jobsImpl.doCancelJob(jobUuid, threadContext))
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid))).build();
+                   entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_QMGR_POST_CANCEL", jobUuid))).build();
                        
        // ---------------------------- Success -------------------------------
        // Success.
        JobCancelDisplay cancelMsg = new JobCancelDisplay();
-       String msg = MsgUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED", jobUuid);
+       String msg = JobUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED", jobUuid);
        cancelMsg.setMessage(msg);
        
        RespCancelJob r = new RespCancelJob(cancelMsg); 
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED_DETAILS", jobUuid),r)).build();
+               JobUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED_DETAILS", jobUuid),r)).build();
      }
      
      

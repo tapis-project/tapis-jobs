@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
 import java.util.ArrayList;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,11 +101,11 @@ public final class JobExecutionContext
     {
         // Jobs and their dao's cannot be null.
         if (job == null) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "JobExecutionContext", "job");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "JobExecutionContext", "job");
             throw new TapisRuntimeException(msg);
         }
         if (jobDao == null) {
-            String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "JobExecutionContext", "jobDao");
+            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "JobExecutionContext", "jobDao");
             throw new TapisRuntimeException(msg);
         }
         _job = job;
@@ -358,7 +359,7 @@ public final class JobExecutionContext
                     }
                    
                 // Create the informative message.
-                String msg = MsgUtils.getMsg("JOBS_SSH_SYSTEM_ERROR", 
+                String msg = JobUtils.getMsg("JOBS_SSH_SYSTEM_ERROR",
                                              _executionSystem.getId(),
                                              _executionSystem.getHost(),
                                              _executionSystem.getEffectiveUserId(),
@@ -420,13 +421,13 @@ public final class JobExecutionContext
                     if ((e instanceof TapisClientException) && 
                         ((TapisClientException)e).getCode() == 404) 
                     { 
-                        String msg = MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_NOT_FOUND",
+                        String msg = JobUtils.getMsg("JOBS_SCHEDULER_PROFILE_NOT_FOUND",
                                 _job.getOwner(), _job.getTenant(), profileName);
                         throw new JobException(msg, e);
                     }
                 
                     // All other error cases.
-                    String msg = MsgUtils.getMsg("JOBS_SCHEDULER_PROFILE_ACCESS_ERROR",
+                    String msg = JobUtils.getMsg("JOBS_SCHEDULER_PROFILE_ACCESS_ERROR",
                                 _job.getOwner(), _job.getTenant(), profileName, e.getMessage());
                     throw new JobException(msg, e);
                 }
@@ -450,7 +451,7 @@ public final class JobExecutionContext
             
             // Log the action.
             if (_log.isInfoEnabled())
-               _log.info(MsgUtils.getMsg("JOBS_SSH_CLOSE_CONN", 
+               _log.info(JobUtils.getMsg("JOBS_SSH_CLOSE_CONN", 
                                          _job.getUuid(), _job.getExecSystemId()));
         }
     }
@@ -509,7 +510,7 @@ public final class JobExecutionContext
                 break;
             default:
                 // This should not happen.  Log it and move on.
-                String msg = MsgUtils.getMsg("JOBS_CMD_MSG_ERROR", _job.getUuid(), cmdMsg.msgType.name(),
+                String msg = JobUtils.getMsg("JOBS_CMD_MSG_ERROR", _job.getUuid(), cmdMsg.msgType.name(),
                                              cmdMsg.senderId, cmdMsg.correlationId);
                 _log.error(msg);
         }
@@ -536,7 +537,7 @@ public final class JobExecutionContext
         // Execute the cancel and indicate it by passing back true.
         try {JobExecutionUtils.executeCmdMsg(this, cmdMsg, JobStatusType.CANCELLED);}
             catch (JobAsyncCmdException e) {
-                _log.info(MsgUtils.getMsg("JOBS_CMD_MSG_CANCELLED_BEFORE_RECOVERY", _job.getUuid()));
+                _log.info(JobUtils.getMsg("JOBS_CMD_MSG_CANCELLED_BEFORE_RECOVERY", _job.getUuid()));
                 return true;
             }
         

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,7 +203,7 @@ public final class JobQueuesDao
       
       // Throw an exception is the list is empty.
       if (list.isEmpty()) {
-          String msg = MsgUtils.getMsg("JOBS_QUEUE_NO_QUEUES");
+          String msg = JobUtils.getMsg("JOBS_QUEUE_NO_QUEUES");
           throw new TapisException(msg);
       }
       
@@ -257,7 +258,7 @@ public final class JobQueuesDao
         conn.commit();
         
         // Note that the queue was created.
-        _log.info(MsgUtils.getMsg("JOBS_JOB_QUEUE_CREATED", queue.getName()));
+        _log.info(JobUtils.getMsg("JOBS_JOB_QUEUE_CREATED", queue.getName()));
       }
       catch (Exception e)
       {
@@ -265,7 +266,7 @@ public final class JobQueuesDao
           try {if (conn != null) conn.rollback();}
             catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
         
-          String msg = MsgUtils.getMsg("JOBS_JOB_QUEUE_CREATE_ERROR", queue.getName(), e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_JOB_QUEUE_CREATE_ERROR", queue.getName(), e.getMessage());
           _log.error(msg, e);
           throw new JobException(msg, e);
       }
@@ -355,27 +356,27 @@ public final class JobQueuesDao
           throw new TapisException(msg);
       }
       if (queue.getPriority() < 1) {
-          String msg =  MsgUtils.getMsg("JOBS_QUEUE_INVALID_PRIORITY");
+          String msg =  JobUtils.getMsg("JOBS_QUEUE_INVALID_PRIORITY");
           throw new JobQueuePriorityException(msg);
       }
       
       // Check queue name for invalid length.
       if (queue.getName().length() > MAX_QUEUE_NAME_LEN) {
-          String msg = MsgUtils.getMsg("JOBS_QUEUE_LONG_NAME", queue.getName().substring(0, 64));
+          String msg = JobUtils.getMsg("JOBS_QUEUE_LONG_NAME", queue.getName().substring(0, 64));
           throw new JobQueueException(msg);
       }
           
       // Check queue name for invalid characters.
       Matcher m = _queueNamePattern.matcher(queue.getName());
       if (!m.matches()) {
-          String msg = MsgUtils.getMsg("JOBS_QUEUE_INVALID_NAME", queue.getName());
+          String msg = JobUtils.getMsg("JOBS_QUEUE_INVALID_NAME", queue.getName());
           throw new JobQueueException(msg);
       }
       
       // The queue name must begin with "tapis.jobq.submit."
       String prefix = JobQueueManagerNames.TAPIS_JOBQ_PREFIX + JobQueueManagerNames.SUBMIT_PART;
       if (!queue.getName().startsWith(prefix)) {
-          String msg = MsgUtils.getMsg("JOBS_QUEUE_INVALID_NAME_PREFIX", prefix);
+          String msg = JobUtils.getMsg("JOBS_QUEUE_INVALID_NAME_PREFIX", prefix);
           throw new JobQueueException(msg);
       }
       
@@ -383,7 +384,7 @@ public final class JobQueuesDao
       String defaultQueue = JobQueueManagerNames.getDefaultQueue();
       if (defaultQueue.equals(queue.getName()) && 
           (DEFAULT_TENANT_QUEUE_PRIORITY != queue.getPriority())) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_INVALID_DEFAULT_QUEUE_DEF", 
+        String msg = JobUtils.getMsg("JOBS_QUEUE_INVALID_DEFAULT_QUEUE_DEF", 
                                      defaultQueue, DEFAULT_TENANT_QUEUE_PRIORITY);
         throw new JobQueuePriorityException(msg);
       }
@@ -391,7 +392,7 @@ public final class JobQueuesDao
       // Make sure no non-default queue has the default (lowest) priority.
       if (!defaultQueue.equals(queue.getName()) && 
           (DEFAULT_TENANT_QUEUE_PRIORITY == queue.getPriority())) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_INVALID_NON_DEFAULT_QUEUE_DEF", 
+        String msg = JobUtils.getMsg("JOBS_QUEUE_INVALID_NON_DEFAULT_QUEUE_DEF", 
                                      queue.getName(), DEFAULT_TENANT_QUEUE_PRIORITY);
         throw new JobQueuePriorityException(msg);
       }
@@ -413,7 +414,7 @@ public final class JobQueuesDao
   {
       // Make sure 
       if (StringUtils.isBlank(filter)) {
-          String msg = MsgUtils.getMsg("JOBS_QUEUE_FILTER_EMPTY");
+          String msg = JobUtils.getMsg("JOBS_QUEUE_FILTER_EMPTY");
           _log.error(msg);
           throw new JobQueueFilterException(msg);
       }

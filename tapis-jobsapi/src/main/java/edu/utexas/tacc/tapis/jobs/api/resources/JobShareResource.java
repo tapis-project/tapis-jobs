@@ -26,6 +26,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -128,7 +129,9 @@ public class JobShareResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // The shared code takes it from here.
        String json = null;
        try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
@@ -192,7 +195,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+      	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;
@@ -244,7 +247,7 @@ public class JobShareResource
         
          // Success.
          JobShareDisplay shareMsg = new JobShareDisplay();
-         String msg = MsgUtils.getMsg("JOBS_JOB_SHARED", jobUuid, threadContext.getOboUser(),
+         String msg = JobUtils.getMsg("JOBS_JOB_SHARED", jobUuid, threadContext.getOboUser(),
         		 payload.getGrantee(), threadContext.getOboTenantId() );
          shareMsg.setMessage(msg);
        
@@ -266,7 +269,9 @@ public class JobShareResource
                                         "  " + _request.getRequestURL());
            _log.trace(msg);
          }
-         
+
+         JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
          // ------------------------- Input Processing -------------------------
          if (StringUtils.isBlank(jobUuid)) {
              String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -321,7 +326,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+      	   	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;
@@ -355,13 +360,13 @@ public class JobShareResource
          
         
          if(shareList.isEmpty()) {
-        	 String msg =  MsgUtils.getMsg("JOBS_JOB_NO_SHARES_FOUND", jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId());
+        	 String msg =  JobUtils.getMsg("JOBS_JOB_NO_SHARES_FOUND", jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId());
         	 return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                     msg,r)).build();
          }
         
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("JOBS_JOB_SHARE_INFO_RETRIEVED", jobUuid, threadContext.getOboUser(), 
+                 JobUtils.getMsg("JOBS_JOB_SHARE_INFO_RETRIEVED", jobUuid, threadContext.getOboUser(), 
                 		 threadContext.getOboTenantId()), r)).build();
     } 
     
@@ -377,7 +382,9 @@ public class JobShareResource
                                         "  " + _request.getRequestURL());
            _log.trace(msg);
          }
-         
+
+         JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
          // ------------------------- Input Processing -------------------------
          if (StringUtils.isBlank(jobUuid)) {
              String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -427,7 +434,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+      	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;
@@ -469,7 +476,7 @@ public class JobShareResource
          }
          
          JobUnShareDisplay unshareMsg = new JobUnShareDisplay();
-	     String msg = MsgUtils.getMsg("JOBS_JOB_UNSHARED", jobUuid,threadContext.getOboUser(), user, threadContext.getOboTenantId());
+	     String msg = JobUtils.getMsg("JOBS_JOB_UNSHARED", jobUuid,threadContext.getOboUser(), user, threadContext.getOboTenantId());
 	     unshareMsg.setMessage(msg);
      
 	     RespUnShareJob r = new RespUnShareJob(unshareMsg); 

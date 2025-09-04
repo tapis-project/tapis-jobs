@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.recover.testers;
 
 import java.util.Map;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,7 +124,7 @@ public class SSHAuthenticationTester
         // The protocol type must be valid.
         try {_authMethod = AuthMethod.valueOf(s);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_INVALID_TESTER_TYPE",
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_INVALID_TESTER_TYPE",
                                              _jobRecovery.getId(), s);
                 _log.error(msg, e);
                 throw new JobRecoveryAbortException(msg, e);

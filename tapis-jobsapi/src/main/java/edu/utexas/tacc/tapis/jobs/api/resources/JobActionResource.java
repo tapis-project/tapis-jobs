@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +71,7 @@ public class JobActionResource extends AbstractResource {
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
+
      @Context
      private Application        _application;
   
@@ -122,7 +123,9 @@ public class JobActionResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
     // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
@@ -159,7 +162,7 @@ public class JobActionResource extends AbstractResource {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_IN_TERMINAL_STATE", jobUuid);
+           String msg = JobUtils.getMsg("JOBS_JOB_NOT_IN_TERMINAL_STATE", jobUuid);
            _log.warn(msg);
     	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(
                    msg, r)).build();
@@ -167,12 +170,12 @@ public class JobActionResource extends AbstractResource {
        // Don't change visibility if already set to hidden
        if(!jobstatus.getVisible()) {
     	   JobHideDisplay hideMsg = new JobHideDisplay();
-    	   String msg = MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden");
+    	   String msg = JobUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden");
     	   hideMsg.setMessage(msg);
     	   RespHideJob r = new RespHideJob(hideMsg);
        	   
     	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-    			   MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden"),r)).build();
+    			   JobUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden"),r)).build();
        }
        
        //------------------------- Change the visibility  -----------------------------
@@ -181,19 +184,19 @@ public class JobActionResource extends AbstractResource {
 		if (!jobsImpl.doHideJob(jobUuid, threadContext.getOboTenantId(), threadContext.getOboUser() ))
     {
       return Response.status(Status.INTERNAL_SERVER_ERROR).
-        entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_UNCHANGED_VISIBILITY", jobUuid, "unhidden"))).build();
+        entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_UNCHANGED_VISIBILITY", jobUuid, "unhidden"))).build();
     }
      
        
        // ---------------------------- Success -------------------------------
        // Success.
        JobHideDisplay hideMsg = new JobHideDisplay();
-       String msg = MsgUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "hidden");
+       String msg = JobUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "hidden");
        hideMsg.setMessage(msg);
        
        RespHideJob r = new RespHideJob(hideMsg); 
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "hidden"),r)).build();
+               JobUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "hidden"),r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -211,7 +214,9 @@ public class JobActionResource extends AbstractResource {
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
@@ -229,8 +234,8 @@ public class JobActionResource extends AbstractResource {
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
-    // ------------------------- Retrieve Job Status-----------------------------
+
+       // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
        try {
@@ -266,7 +271,7 @@ public class JobActionResource extends AbstractResource {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_IN_TERMINAL_STATE", jobUuid);
+           String msg = JobUtils.getMsg("JOBS_JOB_NOT_IN_TERMINAL_STATE", jobUuid);
            _log.warn(msg);
     	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(
                    msg, r)).build();
@@ -275,12 +280,12 @@ public class JobActionResource extends AbstractResource {
        if(jobstatus.getVisible()) {
     	   
     	   JobHideDisplay hideMsg = new JobHideDisplay();
-    	   String msg = MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden");
+    	   String msg = JobUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden");
     	   hideMsg.setMessage(msg);
     	   RespHideJob r = new RespHideJob(hideMsg);
        	   
     	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-    			   MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden"),r)).build();
+    			   JobUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden"),r)).build();
     	   
        }
        
@@ -290,19 +295,19 @@ public class JobActionResource extends AbstractResource {
 		if (!jobsImpl.doUnHideJob(jobUuid, threadContext.getOboTenantId(), threadContext.getOboUser() ))
     {
       return Response.status(Status.INTERNAL_SERVER_ERROR).
-         entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_UNCHANGED_VISIBILITY", jobUuid, "unhidden"))).build();
+         entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_UNCHANGED_VISIBILITY", jobUuid, "unhidden"))).build();
     }
      
        
        // ---------------------------- Success -------------------------------
        // Success.
        JobHideDisplay hideMsg = new JobHideDisplay();
-       String msg = MsgUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "unhidden");
+       String msg = JobUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "unhidden");
        hideMsg.setMessage(msg);
        
        RespHideJob r = new RespHideJob(hideMsg); 
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "unhidden"),r)).build();
+               JobUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "unhidden"),r)).build();
      }
 
 }

@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.queue.messages.recover;
 
 import java.util.TreeMap;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +73,7 @@ public final class JobRecoverMsgFactory
     {
         // The config parameter cannot be null.
         if (config == null) {
-          String emsg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "getJobRecoverMsg", "config");
+          String emsg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getJobRecoverMsg", "config");
           _log.error(emsg);
           throw new TapisRuntimeException(emsg);
         }
@@ -186,7 +187,7 @@ public final class JobRecoverMsgFactory
                 break;
 
             default:
-                String emsg = MsgUtils.getMsg("JOBS_UNKNOWN_ENUM", "RecoveryConfiguration",
+                String emsg = JobUtils.getMsg("JOBS_UNKNOWN_ENUM", "RecoveryConfiguration",
                                               config, job.getUuid());
                 _log.error(emsg);
                 throw new TapisRuntimeException(emsg);

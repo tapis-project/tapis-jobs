@@ -4,6 +4,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -77,7 +78,7 @@ public final class StepwiseBackoffPolicyParameters
             Type typeOfT = new TypeToken<ArrayList<MutablePair<Integer,Long>>>(){}.getType();
             try {_steps = gson.fromJson(value, typeOfT);}
                 catch (Exception e) {
-                    String msg = MsgUtils.getMsg("JOB_RECOVERY_BAD_POLICY_PARM", 
+                    String msg = JobUtils.getMsg("JOBS_RECOVERY_BAD_POLICY_PARM",
                                                  "steps", value, e.getMessage());
                     _log.error(msg, e);
                 }

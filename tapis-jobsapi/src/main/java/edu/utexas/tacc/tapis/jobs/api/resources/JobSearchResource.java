@@ -23,6 +23,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
@@ -144,7 +145,9 @@ public class JobSearchResource extends AbstractResource {
                                      "  " + _request.getRequestURL());
         _log.trace(msg);
       }
-      
+
+      JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
       // ------------------------- Create Context ---------------------------
       // Validate the threadlocal content here so no subsequent code on this request needs to.
       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -154,7 +157,7 @@ public class JobSearchResource extends AbstractResource {
           return Response.status(Status.INTERNAL_SERVER_ERROR).
                   entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
-      
+
       // ---------------------- Get the Search Query Parameters --------------------
       int totalCount = DEFAULT_TOTAL_COUNT;
       List<String> searchList;
@@ -166,7 +169,7 @@ public class JobSearchResource extends AbstractResource {
       }
       catch (Exception e)
       {
-   	    String msg = MsgUtils.getMsg("JOBS_SEARCH_LIST_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(), threadContext.getOboTenantId(),threadContext.getOboUser(), e.getMessage());
+   	    String msg = JobUtils.getMsg("JOBS_SEARCH_LIST_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(), threadContext.getOboTenantId(),threadContext.getOboUser(), e.getMessage());
         _log.error(msg, e);
         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
@@ -185,7 +188,7 @@ public class JobSearchResource extends AbstractResource {
       SelectTuple selectValid = jobsImpl.checkSelectListValidity(selectList);
       _log.debug("select Valid flag : "+ selectValid.getValidFlag() + " str: "+ selectValid.getSelectStr());
       if(!selectValid.getValidFlag()) {
-    	  String msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_SELECTLIST_ERROR",threadContext.getOboTenantId(),threadContext.getOboUser(),selectValid.getSelectStr());
+    	  String msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_SELECTLIST_ERROR",threadContext.getOboTenantId(),threadContext.getOboUser(),selectValid.getSelectStr());
           _log.error(msg);
           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
@@ -207,7 +210,7 @@ public class JobSearchResource extends AbstractResource {
       
       // Get the listType. Default Type is  MY_JOBS   
       if(!EnumUtils.isValidEnum(JobListType.class, listType)) {
-    	  String msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(),
+    	  String msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(),
     			  threadContext.getOboTenantId(),threadContext.getOboUser());
           _log.error(msg);
           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -349,7 +352,7 @@ public class JobSearchResource extends AbstractResource {
 	       //---------- Get Job shared with user ends ----------------------------//
 	       
 	       if(jobSummaryList.isEmpty()) {
-              String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+              String msg =  JobUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
               RespJobSearch r = new RespJobSearch(jobSummaryList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
               return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,r)).build();
            }
@@ -360,7 +363,7 @@ public class JobSearchResource extends AbstractResource {
 	       RespJobSearch r = new RespJobSearch(jobSummaryList, srchParms.getLimit(), srchParms.getOrderBy(),
 	    		   srchParms.getSkip(), srchParms.getStartAfter(),totalCount);
 	       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-	               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build(); 
+	               JobUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build(); 
       
       
       } else {
@@ -413,7 +416,7 @@ public class JobSearchResource extends AbstractResource {
 	       }
 	   	   
 	       if(jobs.isEmpty()) {
-	          String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+	          String msg =  JobUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
 	          RespJobSearchAllAttributes r = new RespJobSearchAllAttributes(jobs,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
 	          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,r)).build();
 	       }
@@ -426,7 +429,7 @@ public class JobSearchResource extends AbstractResource {
    	  	  RespJobSearchSelectAttributes r = new RespJobSearchSelectAttributes (jobs, selectList, srchParms.getLimit(),
     			  srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
           return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                  MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
+                  JobUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
    	   
       }
       // ------------------------- Process Results --------------------------
@@ -434,7 +437,7 @@ public class JobSearchResource extends AbstractResource {
       RespJobSearchAllAttributes r = new RespJobSearchAllAttributes (jobs, srchParms.getLimit(), srchParms.getOrderBy(), 
     		  srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-              MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
+              JobUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
 }
   
     
@@ -460,7 +463,9 @@ public class JobSearchResource extends AbstractResource {
                                      "  " + _request.getRequestURL());
         _log.trace(msg);
       }
-      
+
+      JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
       // ------------------------- Create Context ---------------------------
       // Validate the threadlocal content here so no subsequent code on this request needs to.
       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -470,7 +475,9 @@ public class JobSearchResource extends AbstractResource {
           return Response.status(Status.INTERNAL_SERVER_ERROR).
                   entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
-      
+
+      JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
       // ------------------------- Validate Payload -------------------------
       // Read the payload into a string.
       String rawJson = null;
@@ -526,7 +533,7 @@ public class JobSearchResource extends AbstractResource {
      SelectTuple selectValid = jobsImpl.checkSelectListValidity(selectList);
      _log.debug("select Valid flag : "+ selectValid.getValidFlag() + " str: "+ selectValid.getSelectStr());
      if(!selectValid.getValidFlag()) {
-   	      msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_SELECTLIST_ERROR",threadContext.getOboTenantId(),threadContext.getOboUser(),selectValid.getSelectStr());
+   	      msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_SELECTLIST_ERROR",threadContext.getOboTenantId(),threadContext.getOboUser(),selectValid.getSelectStr());
          _log.error(msg);
          return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
      }
@@ -549,7 +556,7 @@ public class JobSearchResource extends AbstractResource {
   
      // Get the listType. Default Type is  MY_JOBS   
      if(!EnumUtils.isValidEnum(JobListType.class, listType)) {
-   	  msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(),
+   	  msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(),
    			  threadContext.getOboTenantId(),threadContext.getOboUser());
          _log.error(msg);
          return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -702,7 +709,7 @@ public class JobSearchResource extends AbstractResource {
 		       //---------- Get Job shared with user ends ----------------------------//
 		       
 		       if(jobSummaryList.isEmpty()) {
-	              msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+	              msg =  JobUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
 	              RespJobSearch r = new RespJobSearch(jobSummaryList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
 	              return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,r)).build();
 	           }
@@ -712,7 +719,7 @@ public class JobSearchResource extends AbstractResource {
 	    	
 	          RespJobSearch r = new RespJobSearch(jobSummaryList,srchParms.getLimit(), srchParms.getOrderBy(), srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
 	          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-	               MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build(); 
+	               JobUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build(); 
          
    	  } else {
   	   // select is provided by the user,
@@ -765,7 +772,7 @@ public class JobSearchResource extends AbstractResource {
 	       }
 	  	   
 	     if(jobs.isEmpty()) {
-             msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+             msg =  JobUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
              RespJobSearchAllAttributes r = new RespJobSearchAllAttributes(jobs,srchParms.getLimit(),
             		 srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
              return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,r)).build();
@@ -780,7 +787,7 @@ public class JobSearchResource extends AbstractResource {
   	  	  RespJobSearchSelectAttributes r = new RespJobSearchSelectAttributes (jobs, selectList, srchParms.getLimit(),
    			  srchParms.getOrderBy(), srchParms.getSkip(), srchParms.getStartAfter(), totalCount);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
+                 JobUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
   	   
      }
      // ------------------------- Process Results --------------------------
@@ -789,7 +796,7 @@ public class JobSearchResource extends AbstractResource {
     		 srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),totalCount);
      
      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-             MsgUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), 
+             JobUtils.getMsg("JOBS_SEARCH_RESULT_LIST_RETRIEVED", threadContext.getOboUser(), 
             		 threadContext.getOboTenantId()), r)).build();
 
       

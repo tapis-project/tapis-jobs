@@ -91,7 +91,7 @@ public final class EventReader
         QueueReaderParameters parms = null;
         try {parms = new QueueReaderParameters(args);}
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_START_ERROR", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_START_ERROR", e.getMessage());
             _log.error(msg, e);
             throw e;
           }
@@ -110,7 +110,7 @@ public final class EventReader
     {
       // Announce our arrival.
       if (_log.isInfoEnabled()) 
-          _log.info(MsgUtils.getMsg("JOBS_READER_STARTED", _parms.name, 
+          _log.info(JobUtils.getMsg("JOBS_READER_STARTED", _parms.name, 
                                     _queueName, getBindingKey()));
       
       // Get our service tokens.
@@ -121,7 +121,7 @@ public final class EventReader
       
       // Announce our termination.
       if (_log.isInfoEnabled()) 
-          _log.info(MsgUtils.getMsg("JOBS_READER_STOPPED", _parms.name, 
+          _log.info(JobUtils.getMsg("JOBS_READER_STOPPED", _parms.name, 
                                     _queueName, getBindingKey()));
     }
 
@@ -168,7 +168,7 @@ public final class EventReader
         
         // Make sure we got some message type.
         if (jobEvent.getEvent() == null) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", "null", getName());
+            String msg = JobUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", "null", getName());
             _log.error(msg);
             return false;
         }
@@ -318,7 +318,7 @@ public final class EventReader
             String url = parms.getTenantBaseUrl();
             tenantMap = TenantManager.getInstance(url).getTenants();
         } catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
             throw new JobException(msg, e);
         }
         if (!tenantMap.isEmpty()) {
@@ -326,7 +326,7 @@ public final class EventReader
             for (String tenant : tenantMap.keySet()) msg += "  " + tenant + "\n";
             _log.info(msg);
         } else {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
             throw new JobException(msg);
         }
         
@@ -341,7 +341,7 @@ public final class EventReader
                                            parms.getServicePassword());
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
             throw new JobException(msg, e);
         }
         

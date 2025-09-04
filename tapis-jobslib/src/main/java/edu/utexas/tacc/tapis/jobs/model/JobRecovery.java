@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,7 +211,7 @@ public final class JobRecovery
             String s = StringUtils.join(blockedUuids, ", ");
             
             // Throw exception with a detailed message.
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_EXPIRED", id, tenantId,
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_EXPIRED", id, tenantId,
                                          conditionCode.name(), policyType.name(),
                                          testerType.name(), numAttempts-1, 
                                          getPolicy().getReasonCode().name(), s);

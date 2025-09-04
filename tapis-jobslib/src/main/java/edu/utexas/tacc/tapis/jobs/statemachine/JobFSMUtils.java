@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.statemachine;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.statefulj.fsm.model.State;
@@ -117,7 +118,7 @@ public final class JobFSMUtils
         }
         
         // This should never happen, but there are statuses that are not FSM states.
-        String msg = MsgUtils.getMsg("JOBS_UNKNOWN_STATE","getJobFSMState" + status.name());
+        String msg = JobUtils.getMsg("JOBS_UNKNOWN_STATE","getJobFSMState" + status.name());
         _log.error(msg);
         throw new IllegalArgumentException(msg);
     }
@@ -152,7 +153,7 @@ public final class JobFSMUtils
         }
     
         // This should never happen, but there are statuses that are not FSM states.
-        String msg = MsgUtils.getMsg("JOBS_UNKNOWN_STATE","getJobFSMEvent" + status.name());
+        String msg = JobUtils.getMsg("JOBS_UNKNOWN_STATE","getJobFSMEvent" + status.name());
         _log.error(msg);
         throw new IllegalArgumentException(msg);
     }

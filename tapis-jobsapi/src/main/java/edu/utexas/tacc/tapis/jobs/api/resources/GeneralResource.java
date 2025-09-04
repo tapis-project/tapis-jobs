@@ -23,6 +23,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -281,7 +282,7 @@ public final class GeneralResource
       // Get the Jobs created event out of the payload.
       try {processLivenessNotification(json, loggingEnabled);}
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_FAILURE", json, e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_LIVENESS_NOTIF_FAILURE", json, e.getMessage());
           _log.error(msg, e);
           return Response.status(Status.BAD_REQUEST).
                   entity(TapisRestUtils.createErrorResponse(msg, false)).build();
@@ -304,7 +305,7 @@ public final class GeneralResource
   {
 	  // Perform optional tracing.
 	  if (loggingEnabled && _log.isInfoEnabled()) 
-		  _log.info(MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_RECEIVED", json));
+		  _log.info(JobUtils.getMsg("JOBS_LIVENESS_NOTIF_RECEIVED", json));
 	  
 	  // Parse the notification.
 	  Gson gson = TapisGsonUtils.getGson();

@@ -6,6 +6,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,14 +105,14 @@ public final class PollingMonitor
             // Check result integrity.
             if (task == null || task.getStatus() == null) 
             {
-                String msg = MsgUtils.getMsg("JOBS_INVALID_TRANSFER_RESULT", job.getUuid(), transferId, corrId);
+                String msg = JobUtils.getMsg("JOBS_INVALID_TRANSFER_RESULT", job.getUuid(), transferId, corrId);
                 throw new JobException(msg);
             }
             TransferStatusEnum status = task.getStatus();
             
             // Successful termination, we don't need to poll anymore.
             if (status == TransferStatusEnum.COMPLETED) {
-                _log.debug(MsgUtils.getMsg("JOBS_TRANSFER_COMPLETE", job.getUuid(), transferId, corrId));
+                _log.debug(JobUtils.getMsg("JOBS_TRANSFER_COMPLETE", job.getUuid(), transferId, corrId));
                 postEvent(job, status, transferId);
                 break;
             }
@@ -120,7 +121,7 @@ public final class PollingMonitor
             if (status == TransferStatusEnum.FAILED || status == TransferStatusEnum.CANCELLED) {
             	job.setCondition(JobConditionCode.JOB_TRANSFER_FAILED_OR_CANCELLED);
                 postEvent(job, status, transferId);
-                String msg = MsgUtils.getMsg("JOBS_TRANSFER_INCOMPLETE", job.getUuid(), transferId, corrId, 
+                String msg = JobUtils.getMsg("JOBS_TRANSFER_INCOMPLETE", job.getUuid(), transferId, corrId, 
                                              status, task.getErrorMessage());
                 throw new JobException(msg);
             }
@@ -130,17 +131,17 @@ public final class PollingMonitor
             Long waitMillis = millisToWait(lastAttemptFailed);
             if (waitMillis == null) {
             	job.setCondition(JobConditionCode.JOB_TRANSFER_MONITORING_TIMEOUT);
-                String msg = MsgUtils.getMsg("JOBS_TRANSFER_POLLING_ERROR", job.getUuid(), transferId, corrId, 
+                String msg = JobUtils.getMsg("JOBS_TRANSFER_POLLING_ERROR", job.getUuid(), transferId, corrId, 
                                              _reasonCode.name());
                 throw new JobException(msg);
             }
 
             // Wait the policy-determined number of milliseconds; exceptions are logged.
             if (_log.isDebugEnabled())
-                _log.debug(MsgUtils.getMsg("JOBS_TRANSFER_WAIT", job.getUuid(), transferId, corrId, status, waitMillis));
+                _log.debug(JobUtils.getMsg("JOBS_TRANSFER_WAIT", job.getUuid(), transferId, corrId, status, waitMillis));
             try {Thread.sleep(waitMillis);} 
                 catch (InterruptedException e) {
-                    String msg = MsgUtils.getMsg("JOBS_MONITOR_INTERRUPTED", job.getUuid(), 
+                    String msg = JobUtils.getMsg("JOBS_MONITOR_INTERRUPTED", job.getUuid(), 
                                                      getClass().getSimpleName());
                     _log.debug(msg, e);
                     throw new JobException(msg, e);
@@ -194,11 +195,11 @@ public final class PollingMonitor
                 // Unrecoverable error.
                 if (e instanceof TapisClientException) {
                     TapisClientException e1 = (TapisClientException) e;
-                    String msg = MsgUtils.getMsg("JOBS_GET_TRANSFER_ERROR", job.getUuid(),
+                    String msg = JobUtils.getMsg("JOBS_GET_TRANSFER_ERROR", job.getUuid(),
                                                  transferId, e1.getCode(), e1.getMessage());
                     throw new TapisImplException(msg, e1, e1.getCode());
                 } else {
-                    String msg = MsgUtils.getMsg("JOBS_GET_TRANSFER_ERROR", job.getUuid(),
+                    String msg = JobUtils.getMsg("JOBS_GET_TRANSFER_ERROR", job.getUuid(),
                                                  transferId, 0, e.getMessage());
                     throw new TapisImplException(msg, e, 0);
                  }
@@ -318,7 +319,7 @@ public final class PollingMonitor
             else if (job.getStatus() == JobStatusType.ARCHIVING)
                 eventMgr.recordArchivingEvent(job, transferStatus, transferId);
         } catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
+            String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
                                          job.getOwner(), job.getTenant(), e.getMessage());
             _log.error(msg, e);
         }

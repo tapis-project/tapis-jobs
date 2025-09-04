@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.reader;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,7 +89,7 @@ public final class AltQueueReader
         QueueReaderParameters parms = null;
         try {parms = new QueueReaderParameters(args);}
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_START_ERROR", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_START_ERROR", e.getMessage());
             _log.error(msg, e);
             throw e;
           }
@@ -107,7 +108,7 @@ public final class AltQueueReader
     {
       // Announce our arrival.
       if (_log.isInfoEnabled()) 
-          _log.info(MsgUtils.getMsg("JOBS_READER_STARTED", _parms.name, 
+          _log.info(JobUtils.getMsg("JOBS_READER_STARTED", _parms.name, 
                                     _queueName, getBindingKey()));
       
       // Start reading the queue.
@@ -115,7 +116,7 @@ public final class AltQueueReader
       
       // Announce our termination.
       if (_log.isInfoEnabled()) 
-          _log.info(MsgUtils.getMsg("JOBS_READER_STOPPED", _parms.name, 
+          _log.info(JobUtils.getMsg("JOBS_READER_STOPPED", _parms.name, 
                                     _queueName, getBindingKey()));
     }
 
@@ -135,7 +136,7 @@ public final class AltQueueReader
     protected boolean process(DeliveryResponse delivery)
     {
       // Log the unexpected message event.
-      String msg = MsgUtils.getMsg("JOBS_QUEUE_UNROUTABLE_MSG", 
+      String msg = JobUtils.getMsg("JOBS_QUEUE_UNROUTABLE_MSG", 
                                    JobQueueManager.getInstance().dumpMessageInfo(
                                       delivery.consumerTag, delivery.envelope, delivery.properties, 
                                       delivery.body));
@@ -157,7 +158,7 @@ public final class AltQueueReader
               client.send(runParms.getSupportName(), runParms.getSupportEmail(), 
                           subject, alertMessage, HTMLizer.htmlize(alertMessage));
           } catch (Exception e) {
-              String msg1 = MsgUtils.getMsg("JOBS_MAIL_SEND_ERROR", subject, runParms.getSupportEmail());
+              String msg1 = JobUtils.getMsg("JOBS_MAIL_SEND_ERROR", subject, runParms.getSupportEmail());
               _log.error(msg1, e);
           }
       }

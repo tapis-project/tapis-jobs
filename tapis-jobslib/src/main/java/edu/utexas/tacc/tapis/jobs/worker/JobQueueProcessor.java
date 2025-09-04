@@ -39,13 +39,13 @@ import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
-/** Main processing class for job worker.  Each instance of this class runs on
- * its own thread and pulls jobs off of the job submission queue.  The thread
+/** Main processing class for job worker. Each instance of this class runs on
+ * its own thread and pulls jobs off of the job submission queue. The thread
  * that starts processing a job will see the job through to termination unless
- * a recoverable error occurs.  In that case, the job is put into a BLOCKED 
+ * a recoverable error occurs. In that case, the job is put into a BLOCKED
  * state, queued on the recovery queue, and control relinquished by the thread.
  * Once a thread relinquishes control of a job it no longer has any connection 
- * to or affinity for that job; its ready to accept new work from the submission
+ * to or affinity for that job. It is be ready to accept new work from the submission
  * queue.
  * 
  * A job's lifecycle consists of managing its progress through the various 
@@ -166,7 +166,7 @@ final class JobQueueProcessor
       
       // Do we have a record of this job?
       if (job == null) {
-          String msg = MsgUtils.getMsg("JOBS_UNKNOWN_JOB_QUEUED", _jobWorker.getParms().name, 
+          String msg = JobUtils.getMsg("JOBS_UNKNOWN_JOB_QUEUED", _jobWorker.getParms().name, 
         		                       jobMsg.getUuid());
           _log.error(msg);
     	  sendUnknownJobEmail(jobMsg.getUuid(), msg);
@@ -203,7 +203,7 @@ final class JobQueueProcessor
         // Leave breadcrumbs.
         JobWorkerThread thd = (JobWorkerThread) Thread.currentThread();
         String jobUuid = job == null ? jobMsg.getUuid() : job.getUuid();
-        String msg = MsgUtils.getMsg("JOBS_WORKER_PROCESSING_ERROR", thd.getName(), _queueName, 
+        String msg = JobUtils.getMsg("JOBS_WORKER_PROCESSING_ERROR", thd.getName(), _queueName, 
                                      getProcessorName(), jobUuid, e.getMessage());
         _log.error(msg, e);
         
@@ -371,7 +371,7 @@ final class JobQueueProcessor
       try {job.validateForExecution();}
           catch (Exception e) {
         	  job.setCondition(JobConditionCode.JOB_INVALID_DEFINITION); // This should not happen!
-              String msg = MsgUtils.getMsg("JOBS_INVALID_JOB", job.getUuid(), e.getMessage());
+              String msg = JobUtils.getMsg("JOBS_INVALID_JOB", job.getUuid(), e.getMessage());
               throw JobUtils.tapisify(e, msg);
           }
     
@@ -380,7 +380,7 @@ final class JobQueueProcessor
       // and is undergoing recovery processing.  See putJobIntoRecovery()
       // for details.
       if (!job.getStatus().isActive()) {
-          String msg = MsgUtils.getMsg("JOBS_INACTIVE_JOB_REMOVED", job.getUuid(), job.getStatus());
+          String msg = JobUtils.getMsg("JOBS_INACTIVE_JOB_REMOVED", job.getUuid(), job.getStatus());
           _log.warn(msg);
           return false;
       }
@@ -784,14 +784,14 @@ final class JobQueueProcessor
       // The job better have a queue at this point.
       var logicalQueue = jobCtx.getLogicalQueue();
       if (logicalQueue == null) {
-          String msg = MsgUtils.getMsg("JOBS_BATCH_NO_LOGICAL_QUEUE", jobCtx.getJob().getUuid(),
+          String msg = JobUtils.getMsg("JOBS_BATCH_NO_LOGICAL_QUEUE", jobCtx.getJob().getUuid(),
                                        app.getId());
           throw new TapisException(msg);
       }
       
       // Make sure the hpc queue is defined.
       if (StringUtils.isBlank(logicalQueue.getHpcQueueName())) {
-          String msg = MsgUtils.getMsg("JOBS_BATCH_NO_HPC_QUEUE", jobCtx.getJob().getUuid(),
+          String msg = JobUtils.getMsg("JOBS_BATCH_NO_HPC_QUEUE", jobCtx.getJob().getUuid(),
                                        app.getId(), logicalQueue.getName());
           throw new TapisException(msg);
       }
@@ -827,7 +827,7 @@ final class JobQueueProcessor
       
       // Log the delay.
       if (_log.isDebugEnabled())
-          _log.debug(MsgUtils.getMsg("JOBS_DELAYED_START", job.getUuid(), skewMs));
+          _log.debug(JobUtils.getMsg("JOBS_DELAYED_START", job.getUuid(), skewMs));
       
       // Delay for the randomized period.
       try {Thread.sleep(skewMs);} catch (InterruptedException e) {}
@@ -933,7 +933,7 @@ final class JobQueueProcessor
           _log.error(msg);
           
           // Fail the job.
-          String failMsg =  MsgUtils.getMsg("JOBS_STATUS_FAILED_IMPROPER_RECOVERY");
+          String failMsg =  JobUtils.getMsg("JOBS_STATUS_FAILED_IMPROPER_RECOVERY");
           failJob(job, failMsg, JobConditionCode.JOB_RECOVERY_FAILURE);
           _log.error(failMsg);
           
@@ -957,7 +957,7 @@ final class JobQueueProcessor
           ack = false;
           
           // Log the exception but don't rethrow it.
-          failMsg = MsgUtils.getMsg("JOBS_STATUS_CHANGE_ERROR", job.getUuid(), JobStatusType.BLOCKED);
+          failMsg = JobUtils.getMsg("JOBS_STATUS_CHANGE_ERROR", job.getUuid(), JobStatusType.BLOCKED);
           _log.error(failMsg, e);
       }
       
@@ -983,7 +983,7 @@ final class JobQueueProcessor
               ack = false;
           
               // Log the exception but don't rethrow it.
-              failMsg = MsgUtils.getMsg("JOBS_QUEUE_POST_RECOVERY_QUEUE", job.getUuid(), 
+              failMsg = JobUtils.getMsg("JOBS_QUEUE_POST_RECOVERY_QUEUE", job.getUuid(), 
                                         job.getTenant(), job.getOwner(), e.getMessage());
               _log.error(failMsg, e);
           }
@@ -993,7 +993,7 @@ final class JobQueueProcessor
       // be able to fail the job since that also involves a status change.
       if (!ack) {
           // Fail the job.
-          String msg = MsgUtils.getMsg("JOBS_PUT_IN_RECOVERY_ERROR", job.getUuid(), 
+          String msg = JobUtils.getMsg("JOBS_PUT_IN_RECOVERY_ERROR", job.getUuid(), 
                                        job.getTenant(), job.getOwner(), failMsg);
           _log.error(msg);
           failJob(job, msg, JobConditionCode.JOB_RECOVERY_FAILURE);
@@ -1035,7 +1035,7 @@ final class JobQueueProcessor
       catch (Exception e) {
           // Double fault, what a mess.  The job will be left in 
           // a non-terminal state and not on any queue.  It's a zombie.
-          String msg2 = MsgUtils.getMsg("JOBS_WORKER_ZOMBIE_ERROR", 
+          String msg2 = JobUtils.getMsg("JOBS_WORKER_ZOMBIE_ERROR", 
                                         _jobWorker.getParms().name,
                                         job.getUuid(), job.getTenant());
           _log.error(msg2, e);

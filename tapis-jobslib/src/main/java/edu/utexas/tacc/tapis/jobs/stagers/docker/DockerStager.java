@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.stagers.docker;
 import java.util.regex.Pattern;
 
 import edu.utexas.tacc.tapis.jobs.stagers.JobExecCmd;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -276,7 +277,7 @@ public class DockerStager
             var m = _optionPattern.matcher(opt.getArg());
             boolean matches = m.matches();
             if (!matches) {
-                String msg = MsgUtils.getMsg("JOBS_CONTAINER_ARG_PARSE_ERROR", "docker", opt.getArg());
+                String msg = JobUtils.getMsg("JOBS_CONTAINER_ARG_PARSE_ERROR", "docker", opt.getArg());
                 throw new JobException(msg);
             }
             
@@ -289,7 +290,7 @@ public class DockerStager
             
             // The option should always exist.
             if (StringUtils.isBlank(option)) {
-                String msg = MsgUtils.getMsg("JOBS_CONTAINER_ARG_PARSE_ERROR", "docker", opt.getArg());
+                String msg = JobUtils.getMsg("JOBS_CONTAINER_ARG_PARSE_ERROR", "docker", opt.getArg());
                 throw new JobException(msg);
             }
             
@@ -405,7 +406,7 @@ public class DockerStager
                 //
                 //   --cidfile, -e, --env, --env-file, --name
                 //
-                String msg = MsgUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", "docker", option);
+                String msg = JobUtils.getMsg("JOBS_CONTAINER_UNSUPPORTED_ARG", "docker", option);
                 throw new JobException(msg);
         }
     }
@@ -422,7 +423,7 @@ public class DockerStager
         // Find the first equals sign.  We expect the value to be in key=text format.
         int index = value.indexOf("=");
         if (index < 1) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_INVALID_ARG", "docker", option, value);
+            String msg = JobUtils.getMsg("JOBS_CONTAINER_INVALID_ARG", "docker", option, value);
             throw new JobException(msg);
         }
         

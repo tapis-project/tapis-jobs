@@ -22,6 +22,7 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import com.google.gson.JsonObject;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -137,7 +138,9 @@ public class JobSubmitResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // The shared code takes it from here.
        return doSubmit(prettyPrint, payloadStream);
      }
@@ -157,7 +160,9 @@ public class JobSubmitResource
     				 				      "  " + _request.getRequestURL());
     		 _log.trace(msg);
     	 }
-     
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Validate Parameter -----------------------
        if (StringUtils.isAllBlank(jobUuid)) {
          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit", "jobuuid");
@@ -173,7 +178,7 @@ public class JobSubmitResource
            var jobResubmitDao = new JobResubmitDao();
            jobResubmit = jobResubmitDao.getJobResubmitByUUID(jobUuid);
        } catch (Exception e) {
-           String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
+           String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
                  entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -181,7 +186,7 @@ public class JobSubmitResource
        
        // Make sure we got something.
        if (jobResubmit == null) {
-           String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
+           String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -205,7 +210,9 @@ public class JobSubmitResource
     				 				      "  " + _request.getRequestURL());
     		 _log.trace(msg);
     	 }
-     
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Validate Parameter -----------------------
        if (StringUtils.isAllBlank(jobUuid)) {
          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit_reques_json", "jobuuid");
@@ -221,7 +228,7 @@ public class JobSubmitResource
            var jobResubmitDao = new JobResubmitDao();
            jobResubmit = jobResubmitDao.getJobResubmitByUUID(jobUuid);
        } catch (Exception e) {
-           String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
+           String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
                  entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -229,7 +236,7 @@ public class JobSubmitResource
        
        // Make sure we got something.
        if (jobResubmit == null) {
-           String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
+           String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -259,7 +266,7 @@ public class JobSubmitResource
       
        RespGetResubmit r = new RespGetResubmit(payload);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), r)).build();
+               JobUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -277,7 +284,9 @@ public class JobSubmitResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Validate Payload -------------------------
        // Read the payload into a string.
        String json = null;
@@ -332,7 +341,7 @@ public class JobSubmitResource
        // Make sure the job is in the same tenant as the requestor.  Note that this restriction
        // applies even to services, which shouldn't be sending user events anyway.
        if (!job.getTenant().equals(threadContext.getJwtTenantId())) {
-           String msg = MsgUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getJwtTenantId(),
+           String msg = JobUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getJwtTenantId(),
                                         job.getTenant());
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
@@ -343,7 +352,7 @@ public class JobSubmitResource
        // performing this check and sending the event.  This is not a big deal since we are
        // only adding an event to the job history and, possibly, sending notifications.
        if (job.getStatus().isTerminal()) {
-           String msg = MsgUtils.getMsg("JOBS_IN_TERMINAL_STATE", jobUuid, job.getStatus().name());
+           String msg = JobUtils.getMsg("JOBS_IN_TERMINAL_STATE", jobUuid, job.getStatus().name());
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -358,7 +367,7 @@ public class JobSubmitResource
                          threadContext.getJwtUser(), payload.getEventData(), payload.getEventDetail(), null);
        }
        catch (Exception e) {
-           String msg = MsgUtils.getMsg("JOBS_CREATE_JOB_EVENT", eventName, jobUuid, e.getMessage());
+           String msg = JobUtils.getMsg("JOBS_CREATE_JOB_EVENT", eventName, jobUuid, e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -484,7 +493,7 @@ public class JobSubmitResource
          try {JobQueueManager.getInstance().queueJob(job);}
            catch (Exception e) {
                // Log the error.
-               String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR1", job.getName(), job.getAppId(), e.getMessage());
+               String msg = JobUtils.getMsg("JOBS_SUBMIT_ERROR1", job.getName(), job.getAppId(), e.getMessage());
                _log.error(msg, e);
                
                // Fail the job.  
@@ -510,14 +519,14 @@ public class JobSubmitResource
              var jobResubmitDao = new JobResubmitDao();
              jobResubmitDao.createJobResubmit(jobResubmit);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_FAILED_PERSIST", "resubmit", e.getMessage());
+             String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_FAILED_PERSIST", "resubmit", e.getMessage());
              _log.error(msg);
          }
          
          // Success.
          RespSubmitJob r = new RespSubmitJob(job);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("JOBS_CREATED", job.getUuid()), r)).build();
+                 JobUtils.getMsg("JOBS_CREATED", job.getUuid()), r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -542,7 +551,7 @@ public class JobSubmitResource
              String url = null;
              try {url = JobsApiUtils.postSubscriptionRequest(req, job.getOwner(), job.getTenant(), job.getUuid());}
              catch (Exception e) {
-                 String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
+                 String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
                                               job.getOwner(), job.getTenant(), e.getMessage());
                  _log.error(msg, e);
                  return Response.status(Status.INTERNAL_SERVER_ERROR).
@@ -583,7 +592,7 @@ public class JobSubmitResource
          try {
             JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(job, count);
          } catch (Exception e) {
-             String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
+             String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
                                           job.getOwner(), job.getTenant(), e.getMessage());
              _log.error(msg, e);
          }
@@ -609,7 +618,7 @@ public class JobSubmitResource
          }
          catch (Exception e) {
              // Swallow exception.
-             String msg = MsgUtils.getMsg("JOBS_ZOMBIE_ERROR", 
+             String msg = JobUtils.getMsg("JOBS_ZOMBIE_ERROR", 
                                           job.getUuid(), job.getTenant(), "submitJob");
              _log.error(msg, e);
                  

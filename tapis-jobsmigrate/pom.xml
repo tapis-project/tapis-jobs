@@ -82,6 +82,8 @@
                                 implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                 <mainClass>edu.utexas.tacc.tapis.jobsmigrate.TapisJobsJDBCMigrate</mainClass>
                             </transformer>
+                            <transformer
+                                implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                         </transformers>
                     </configuration>
                 </execution>

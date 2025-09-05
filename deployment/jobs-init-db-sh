@@ -1,8 +1,9 @@
 #!/bin/bash
 #NOTE / WARNING:
-#  This is basically a copy of the script used by tapis-deployer to create the DB initially.
+#  This is a copy of the script used by tapis-deployer to create the DB initially.
 #  It is only occasionally synced with the actual script used in production.
-# Script to initialize Jobs service DB using psql
+# ---------------------------------------------------------------------------------
+# Script to initialize service DB using psql
 # Create database, user and schema
 # Postgres password must be set in env var POSTGRES_PASSWORD
 
@@ -51,7 +52,7 @@ BEGIN
 END
 \$\$;
 ALTER USER ${TAPIS_DB_USER} WITH ENCRYPTED PASSWORD '${TAPIS_POSTGRES_PASSWORD}';
-GRANT ALL PRIVILEGES ON DATABASE tapisjobsdb TO ${TAPIS_DB_USER};
+GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${TAPIS_DB_USER};
 
 -- Create schema if it does not exist
 CREATE SCHEMA IF NOT EXISTS ${TAPIS_DB_SCHEMA} AUTHORIZATION ${TAPIS_DB_USER};

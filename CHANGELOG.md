@@ -17,6 +17,7 @@ Log messages specific to Jobs service moved from shared catalog to a local catal
 
 ### New features:
 - Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
+- Return top level notes attribute as a json attribute rather than a string with json embedded.
 
 ### Bug fixes:
 - Fix issue with recovery from BLOCKED state. Incorrect error messages and not all authentication methods handled properly.

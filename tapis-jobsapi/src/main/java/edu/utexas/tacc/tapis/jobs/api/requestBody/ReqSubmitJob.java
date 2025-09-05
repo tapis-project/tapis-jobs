@@ -57,9 +57,6 @@ public class ReqSubmitJob
     // Temporary storage for hpc queue name during request processing.
     private transient String        hpcQueueName;
     
-    // Convert the incoming notes object to a string once.
-    private transient String        notesAsString;
-
 	@Override
 	public String validate() 
 	{
@@ -423,14 +420,5 @@ public class ReqSubmitJob
 
     public void setHpcQueueName(String hpcQueueName) {
         this.hpcQueueName = hpcQueueName;
-    }
-
-    @Schema(hidden = true)
-    public String getNotesAsString() {
-        return notesAsString;
-    }
-
-    public void setNotesAsString(String notesAsString) {
-        this.notesAsString = notesAsString;
     }
 }

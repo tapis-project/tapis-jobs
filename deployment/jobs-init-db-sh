@@ -28,8 +28,8 @@ if [ -z "${POSTGRES_PASSWORD}" ]; then
   exit 1
 fi
 
-if [ -z "${TAPIS_POSTGRES_PASSWORD}" ]; then
-  echo "Please set env var TAPIS_POSTGRES_PASSWORD before running this script"
+if [ -z "${TAPIS_DB_PASSWORD}" ]; then
+  echo "Please set env var TAPIS_DB_PASSWORD before running this script"
   exit 1
 fi
 
@@ -51,7 +51,7 @@ BEGIN
   RAISE NOTICE 'User already exists. User name: ${TAPIS_DB_USER}';
 END
 \$\$;
-ALTER USER ${TAPIS_DB_USER} WITH ENCRYPTED PASSWORD '${TAPIS_POSTGRES_PASSWORD}';
+ALTER USER ${TAPIS_DB_USER} WITH ENCRYPTED PASSWORD '${TAPIS_DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${TAPIS_DB_USER};
 
 -- Create schema if it does not exist

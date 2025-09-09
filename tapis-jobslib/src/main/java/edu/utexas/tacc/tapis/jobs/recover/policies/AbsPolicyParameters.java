@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.recover.policies;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +63,7 @@ public abstract class AbsPolicyParameters
         if (value != null) {
             try {_maxElapsedSeconds = Long.valueOf(value);}
                 catch (Exception e) {
-                    String msg = MsgUtils.getMsg("JOB_RECOVERY_BAD_POLICY_PARM", 
+                    String msg = JobUtils.getMsg("JOBS_RECOVERY_BAD_POLICY_PARM",
                                                  "maxElapsedSeconds", value, e.getMessage());
                     _log.error(msg);
                 }

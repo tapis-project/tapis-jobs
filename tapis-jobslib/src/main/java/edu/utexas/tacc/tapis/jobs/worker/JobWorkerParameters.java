@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -138,7 +139,7 @@ public final class JobWorkerParameters
   {
     // --- The number of workers must be in range.
     if ((numWorkers < MIN_WORKERS) || (numWorkers > MAX_WORKERS)) {
-      String msg = MsgUtils.getMsg("JOBS_WORKER_NUMBER_WORKERS", numWorkers, MIN_WORKERS, MAX_WORKERS);
+      String msg = JobUtils.getMsg("JOBS_WORKER_NUMBER_WORKERS", numWorkers, MIN_WORKERS, MAX_WORKERS);
       _log.error(msg);
       throw new JobInputException(msg);
     }
@@ -148,26 +149,26 @@ public final class JobWorkerParameters
     
     // --- Worker name checks.
     if (name.length() > MAX_WORKER_NAME_LEN) {
-      String msg = MsgUtils.getMsg("JOBS_WORKER_PARM_LENGTH", "name", MAX_WORKER_NAME_LEN);
+      String msg = JobUtils.getMsg("JOBS_WORKER_PARM_LENGTH", "name", MAX_WORKER_NAME_LEN);
       _log.error(msg);
       throw new JobInputException(msg);
     }
     // Allow alphanumerics plus [_.-].
     if (!pattern.matcher(name).matches()) {
-      String msg = MsgUtils.getMsg("JOBS_WORKER_INVALID_CHAR", "name", name);
+      String msg = JobUtils.getMsg("JOBS_WORKER_INVALID_CHAR", "name", name);
       _log.error(msg);
       throw new JobInputException(msg);
     }
     
     // Queue name checks.
     if (queueName.length() > MAX_QUEUE_NAME_LEN) {
-      String msg = MsgUtils.getMsg("JOBS_WORKER_PARM_LENGTH", "queue", MAX_QUEUE_NAME_LEN);
+      String msg = JobUtils.getMsg("JOBS_WORKER_PARM_LENGTH", "queue", MAX_QUEUE_NAME_LEN);
       _log.error(msg);
       throw new JobInputException(msg);
     }
     // Allow alphanumerics plus [_.-].
     if (!pattern.matcher(queueName).matches()) {
-      String msg = MsgUtils.getMsg("JOBS_WORKER_INVALID_CHAR", "queue", queueName);
+      String msg = JobUtils.getMsg("JOBS_WORKER_INVALID_CHAR", "queue", queueName);
       _log.error(msg);
       throw new JobInputException(msg);
     }
@@ -175,26 +176,26 @@ public final class JobWorkerParameters
     // confirms that the queuename and tenantId are compatible.
     String prefix = JobQueueManagerNames.TAPIS_JOBQ_PREFIX + JobQueueManagerNames.SUBMIT_PART;
     if (!queueName.startsWith(prefix)) {
-      String msg = MsgUtils.getMsg("JOBS_QUEUE_INVALID_NAME_PREFIX", prefix);
+      String msg = JobUtils.getMsg("JOBS_QUEUE_INVALID_NAME_PREFIX", prefix);
       _log.error(msg);
       throw new JobInputException(msg);
     }
     // Make sure there's something after the prefix.
     if (queueName.length() == prefix.length()) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_NAME_NO_SUFFIX", prefix);
+        String msg = JobUtils.getMsg("JOBS_QUEUE_NAME_NO_SUFFIX", prefix);
         _log.error(msg);
         throw new JobInputException(msg);
     }
     // There should be no periods in the suffix--it's the unsegmented queue name.
     if (queueName.indexOf('.', prefix.length()) >= 0) {
-        String msg = MsgUtils.getMsg("JOBS_QUEUE_INVALID_NAME_SUFFIX", prefix, queueName);
+        String msg = JobUtils.getMsg("JOBS_QUEUE_INVALID_NAME_SUFFIX", prefix, queueName);
         _log.error(msg);
         throw new JobInputException(msg);
     }
     
     // The user can only specify test* parameters when the -allowtest parameter was specified.
     if (testUser != null && (testUser.length() > MAX_USER_LEN)) {
-        String msg = MsgUtils.getMsg("JOBS_WORKER_PARM_LENGTH", "testUser", MAX_USER_LEN);
+        String msg = JobUtils.getMsg("JOBS_WORKER_PARM_LENGTH", "testUser", MAX_USER_LEN);
         _log.error(msg);
         throw new JobInputException(msg);
     }

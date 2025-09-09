@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -84,7 +85,7 @@ public abstract class AbstractJobExecStager
         } else if (SchedulerTypeEnum.SLURM.equals(schedulerType)) {
             _jobScheduler = new SlurmScheduler(jobCtx);
         } else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", schedulerType,
+            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", schedulerType,
                                          AbstractJobExecStager.class.getSimpleName());
             throw new JobException(msg);
         }
@@ -187,7 +188,7 @@ public abstract class AbstractJobExecStager
     {
         // Make sure we have a value.
         if (StringUtils.isBlank(value)) {
-            String msg = MsgUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", runtimeName, option);
+            String msg = JobUtils.getMsg("JOBS_CONTAINER_MISSING_ARG_VALUE", runtimeName, option);
             throw new JobException(msg);
         }
     }

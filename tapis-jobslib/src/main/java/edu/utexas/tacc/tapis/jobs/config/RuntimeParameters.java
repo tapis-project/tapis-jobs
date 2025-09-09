@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -258,7 +259,7 @@ public final class RuntimeParameters
         catch (UnknownHostException e)
         {
           // Log error and set to null
-          String msg = MsgUtils.getMsg("JOBS_INIT_PARM_LOCALNODE_ERR", parm, e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_INIT_PARM_LOCALNODE_ERR", parm, e.getMessage());
           _log.warn(msg, e);
           hostname = null;
         }

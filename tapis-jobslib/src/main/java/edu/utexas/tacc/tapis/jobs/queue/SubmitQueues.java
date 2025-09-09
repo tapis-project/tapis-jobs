@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +78,7 @@ public class SubmitQueues
           return queueDao.getJobQueuesByPriorityDesc();
       }
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_QUEUE_FAILED_ALL_QUERY", e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_QUEUE_FAILED_ALL_QUERY", e.getMessage());
           _log.error(msg, e);
       }
       

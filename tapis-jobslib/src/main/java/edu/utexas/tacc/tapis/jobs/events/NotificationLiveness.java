@@ -161,7 +161,7 @@ public final class NotificationLiveness
     	_checkerThread  = startCheckerThread(threadGroup);
     	
     	// Announce ourselves.
-    	_log.info(MsgUtils.getMsg("JOBS_EVENT_LIVENESS_STARTED", SEND_EVENT_WAIT_MILLIS/1000));
+    	_log.info(JobUtils.getMsg("JOBS_EVENT_LIVENESS_STARTED", SEND_EVENT_WAIT_MILLIS/1000));
     }
     
     /* ********************************************************************** */
@@ -367,7 +367,7 @@ public final class NotificationLiveness
     	{
     		// Announce ourselves.
     		if (_log.isInfoEnabled())
-    			_log.info(MsgUtils.getMsg("JOBS_WEBAPP_THREAD_STARTED", 
+    			_log.info(JobUtils.getMsg("JOBS_WEBAPP_THREAD_STARTED", 
     					                  Thread.currentThread().getName()));
     		
     		// Create the liveness subscription if it doesn't already exist.
@@ -391,7 +391,7 @@ public final class NotificationLiveness
                     try {Thread.sleep(GET_SUBCRIPTION_RETRY_MILLIS);} 
                     catch (InterruptedException e1) {
                         if (_log.isDebugEnabled()) {
-                            String msg = MsgUtils.getMsg("JOBS_LIVENESS_INTERRUPTED",  
+                            String msg = JobUtils.getMsg("JOBS_LIVENESS_INTERRUPTED",  
                                                          getClass().getSimpleName(),
                                                          Thread.currentThread().getName());
                             _log.debug(msg); 
@@ -408,7 +408,7 @@ public final class NotificationLiveness
                 try {Thread.sleep(SEND_EVENT_WAIT_MILLIS);} 
                 catch (InterruptedException e) {
                     if (_log.isDebugEnabled()) {
-                        String msg = MsgUtils.getMsg("JOBS_LIVENESS_INTERRUPTED",  
+                        String msg = JobUtils.getMsg("JOBS_LIVENESS_INTERRUPTED",  
                                                      getClass().getSimpleName(),
                                                      Thread.currentThread().getName());
                         _log.debug(msg);
@@ -490,7 +490,7 @@ public final class NotificationLiveness
             // Create the subscription.
             try {client.postSubscription(subreq);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", FAKE_JOBID,
+                String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", FAKE_JOBID,
                                  SUBSCRIPTION_OWNER, _siteAdminTenant, e.getMessage());
                 _log.error(msg, e);
                 throw new TapisException(msg, e);
@@ -498,7 +498,7 @@ public final class NotificationLiveness
             
             // Write the log on success.
             if (_log.isInfoEnabled()) {
-            	_log.info(MsgUtils.getMsg("JOBS_LIVENESS_SUBSCRIPTION_CREATED", _subscriptionName));
+            	_log.info(JobUtils.getMsg("JOBS_LIVENESS_SUBSCRIPTION_CREATED", _subscriptionName));
             }
         }
         
@@ -527,7 +527,7 @@ public final class NotificationLiveness
             String baseUrl = adminTenant.getBaseUrl();
             if (baseUrl == null) {
             	// This should never happen.
-            	var msg = MsgUtils.getMsg("JOBS_TENANT_NO_BASE_URL", adminTenant, FAKE_JOBID, 
+            	var msg = JobUtils.getMsg("JOBS_TENANT_NO_BASE_URL", adminTenant, FAKE_JOBID, 
             			                  "Invalid tenant definition.");
             	_log.error(msg);
             	throw new TapisRuntimeException(msg);
@@ -582,7 +582,7 @@ public final class NotificationLiveness
     	{
     		// Announce ourselves.
     		if (_log.isInfoEnabled())
-    			_log.info(MsgUtils.getMsg("JOBS_WEBAPP_THREAD_STARTED", 
+    			_log.info(JobUtils.getMsg("JOBS_WEBAPP_THREAD_STARTED", 
     					                  Thread.currentThread().getName()));
     		
     		// Periodically check when the last liveness event arrived.
@@ -592,7 +592,7 @@ public final class NotificationLiveness
                 try {Thread.sleep(CHECK_EVENT_WAIT_MILLIS);} 
                 catch (InterruptedException e) {
                     if (_log.isDebugEnabled()) {
-                        String msg = MsgUtils.getMsg("JOBS_LIVENESS_INTERRUPTED",  
+                        String msg = JobUtils.getMsg("JOBS_LIVENESS_INTERRUPTED",  
                                                      getClass().getSimpleName(),
                                                      Thread.currentThread().getName());
                         _log.debug(msg);
@@ -687,7 +687,7 @@ public final class NotificationLiveness
     		if (sentTS != null) emsg += " The last event was sent at " + sentTS.toString() + ".";
     		
     		// Log the error message and send email.
-            String msg = MsgUtils.getMsg("JOBS_MISSING_NOTIFICATION_ERROR", emsg);
+            String msg = JobUtils.getMsg("JOBS_MISSING_NOTIFICATION_ERROR", emsg);
     		_log.error(msg);
     		sendLivenessEmail(msg);
     	}

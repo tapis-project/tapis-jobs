@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.worker;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +121,7 @@ final class JobTopicProcessor
     
     // Make sure we got some message type.
     if (cmdMsg.msgType == null) {
-        String msg = MsgUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", "null", getProcessorName());
+        String msg = JobUtils.getMsg("JOBS_WORKER_INVALD_MSG_TYPE", "null", getProcessorName());
         _log.error(msg);
         return false;
     }
@@ -155,7 +156,7 @@ final class JobTopicProcessor
     }
     catch (Exception e) {
         if (body.length() > JSON_DUMP_LEN) body = body.substring(0, JSON_DUMP_LEN - 1);
-        String msg = MsgUtils.getMsg("JOBS_WORKER_MSG_PROCESSING_ERROR", getProcessorName(), 
+        String msg = JobUtils.getMsg("JOBS_WORKER_MSG_PROCESSING_ERROR", getProcessorName(), 
                                      body, e.getMessage());
         _log.error(msg, e);
         ack = false;
@@ -174,7 +175,7 @@ final class JobTopicProcessor
   {
       // Trace command.
       if (_log.isDebugEnabled())
-          _log.debug(MsgUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
+          _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
       
       // TODO:  process jobstatus cmd
@@ -189,7 +190,7 @@ final class JobTopicProcessor
   {
       // Trace command.
       if (_log.isDebugEnabled())
-          _log.debug(MsgUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
+          _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
       
       // Not a lot happening here--just set the field that
@@ -206,7 +207,7 @@ final class JobTopicProcessor
   {
       // Trace command.
       if (_log.isDebugEnabled())
-          _log.debug(MsgUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
+          _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
       
       // Not a lot happening here--just set the field that

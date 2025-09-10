@@ -824,7 +824,7 @@ public final class SubmitContext
         // If exec system not specified in job request or app it is an error.
         if (StringUtils.isBlank(execSystemId))
         {
-            String msg = MsgUtils.getMsg("TAPIS_JOBS_MISSING_SYSTEM", "execution");
+            String msg = JobUtils.getMsg("JOBS_NO_EXEC_SYSTEM_SPECIFIED", null);
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         

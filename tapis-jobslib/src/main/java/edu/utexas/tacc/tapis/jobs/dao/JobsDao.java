@@ -3593,7 +3593,7 @@ public final class JobsDao
             // Issue the call for the 1 row result set.
             ResultSet rs = pstmt.executeQuery();
             if (!rs.next()) {
-                String msg = MsgUtils.getMsg("SEARCH_ABORT_UNABLE_TO_GET_DB_FIELD_AND_TYPE", tableName);
+                String msg = JobUtils.getMsg("JOBS_SEARCH_SCHEMA_ERR", "getDBJobColumnAndType", tableName);
                 _log.error(msg);
                 throw new JobException(msg);
             }
@@ -3621,7 +3621,7 @@ public final class JobsDao
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
             //AloeThreadContext threadContext = AloeThreadLocal.aloeThreadContext.get();
-            String msg = MsgUtils.getMsg("DB_TABLE_INFORMATION_SCHEMA_ERROR");
+            String msg = JobUtils.getMsg("JOBS_DB_TABLE_INFO_SCHEMA_ERR", e.getMessage());
             _log.error(msg, e);
            
         }

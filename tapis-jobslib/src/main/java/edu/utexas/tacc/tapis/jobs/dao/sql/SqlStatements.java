@@ -13,7 +13,7 @@ public class SqlStatements
 	public static final String SELECT_COLUMN_DATA_TYPE_BY_TABLENAME =
 			"SELECT column_name, udt_name"
 			+ "  FROM information_schema.columns"
-			+ "  WHERE table_schema = 'public'"
+			+ "  WHERE table_schema = 'tapis_jobs'"
 			+ "   AND table_name   = ':tablename'";
 	
     public static final String SELECT_JOBS =

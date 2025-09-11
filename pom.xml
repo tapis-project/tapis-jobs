@@ -127,12 +127,15 @@
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
   </dependencies>
 
   <modules>
     <module>tapis-jobsapi</module>
     <module>tapis-jobslib</module>
-    <module>tapis-jobsmigrate</module>
   </modules>
 
 </project>

@@ -52,14 +52,12 @@ BEGIN
 END
 \$\$;
 ALTER USER ${TAPIS_DB_USER} WITH ENCRYPTED PASSWORD '${TAPIS_DB_PASSWORD}';
-GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${TAPIS_DB_USER};
 
 -- Create schema if it does not exist
 CREATE SCHEMA IF NOT EXISTS ${TAPIS_DB_SCHEMA} AUTHORIZATION ${TAPIS_DB_USER};
-ALTER ROLE ${TAPIS_DB_USER} SET search_path = '${TAPIS_DB_SCHEMA}';
 EOB
-# If tables are still in old schema move them to new schema.
-# NOTE: This will move indexes also
+# If tables are still in old schema move them to new schema
+# NOTE: This will move indexes also, but TYPEs must be moved separately
 $PSQL_CMD --username=${DB_USER} --dbname=${DB_NAME} -q << EOB
 DO
 \$\$DECLARE
@@ -74,4 +72,14 @@ BEGIN
       EXECUTE format('ALTER TABLE %s SET SCHEMA ${TAPIS_DB_SCHEMA}', p_table);
    END LOOP;
 END;\$\$;
+EOB
+
+# Make sure user has full access, and make sure TYPEs are in new schema
+$PSQL_CMD --username=${DB_USER} --dbname=${DB_NAME} -q << EOB
+ALTER ROLE ${TAPIS_DB_USER} SET search_path = '${TAPIS_DB_SCHEMA}';
+GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${TAPIS_DB_USER};
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA ${TAPIS_DB_SCHEMA} TO ${TAPIS_DB_USER};
+ALTER TYPE ${TAPIS_OLD_SCHEMA}.job_event_enum SET SCHEMA ${TAPIS_DB_SCHEMA};
+ALTER TYPE ${TAPIS_OLD_SCHEMA}.job_status_enum SET SCHEMA ${TAPIS_DB_SCHEMA};
+ALTER TYPE ${TAPIS_OLD_SCHEMA}.job_remote_outcome_enum SET SCHEMA ${TAPIS_DB_SCHEMA};
 EOB

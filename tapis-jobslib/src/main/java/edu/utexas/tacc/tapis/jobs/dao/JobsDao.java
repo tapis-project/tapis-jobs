@@ -3284,11 +3284,10 @@ public final class JobsDao
 	        String trackingId = rs.getString(70);
 	        if (trackingId != null) obj.setTrackingId(trackingId);
 
-          // Could be null until databases are migrated.
           String archiveModeStr = rs.getString(71);
           if (!StringUtils.isBlank(archiveModeStr)) obj.setArchiveMode(Job.ArchiveModeEnum.valueOf(archiveModeStr));
 
-      }
+	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
 	      throw new TapisJDBCException(msg, e);

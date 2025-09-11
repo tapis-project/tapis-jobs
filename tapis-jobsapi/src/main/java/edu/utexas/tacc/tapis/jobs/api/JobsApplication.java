@@ -5,15 +5,18 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.ApplicationPath;
+import org.flywaydb.core.Flyway;
 import org.glassfish.jersey.server.ResourceConfig;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
+import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.NotificationLiveness;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
-import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
+import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
@@ -114,8 +117,16 @@ extends ResourceConfig
     	   }
        }
        
-       // ----- Database Initialization
-       try {JobsImpl.getInstance().ensureDefaultQueueIsDefined();}
+     // ----- Database Initialization
+     // Use flyway to update the DB schema
+     try { migrateDB(); }
+     catch (Exception e) {
+       errors.add("**** FAILURE TO INITIALIZE: tapis-jobsapi MigrateDB ****\n" + e.getMessage());
+       e.printStackTrace();
+     }
+
+     // Check DB
+     try {JobsImpl.getInstance().ensureDefaultQueueIsDefined();}
 	    catch (Exception e) {
             errors.add("**** FAILURE TO INITIALIZE: tapis-jobsapi Database ****\n" + e.getMessage());
 	    	e.printStackTrace();
@@ -132,7 +143,7 @@ extends ResourceConfig
             errors.add("**** FAILURE TO INITIALIZE: tapis-jobsapi JobQueueManager ****\n" + e.getMessage());
             e.printStackTrace();
         }
-        
+
        // We're done.
        System.out.println("\n**********************************************");
        System.out.println("**** tapis-jobsapi Initialized [errors=" + errors.size() + "] ****");
@@ -195,4 +206,17 @@ extends ResourceConfig
    {
 	   NotificationLiveness.getInstance();
    }
+
+  /*
+   * migrateDB
+   * Use Flyway to make sure DB schema is at the latest version
+   */
+  private void migrateDB() throws TapisException
+  {
+    Flyway flyway = Flyway.configure().dataSource(JobsDao.getDataSource()).load();
+    // Note: Can use repair() as workaround to avoid checksum error during develop/deploy of SNAPSHOT versions when it
+    // is not a true migration.
+//    flyway.repair();
+    flyway.migrate();
+  }
 }

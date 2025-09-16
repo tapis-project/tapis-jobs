@@ -21,7 +21,7 @@ spec:
             secretKeyRef:
               name: tapis-jobs-secrets
               key: postgres-password
-        - name: TAPIS_POSTGRES_PASSWORD
+        - name: TAPIS_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: tapis-jobs-secrets

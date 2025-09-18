@@ -71,6 +71,7 @@ import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
 import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
+import static edu.utexas.tacc.tapis.jobs.model.Job.DEFAULT_ARCHIVE_MODE;
 import static edu.utexas.tacc.tapis.jobs.model.Job.DEFAULT_NOTES;
 
 /* This class orchestrates the job submission process, which includes incorporating
@@ -363,7 +364,10 @@ public final class SubmitContext
         
         // Resolve MPI and command prefix values.
         resolveMpiAndCmdPrefix();
-        
+
+        // Resolve archiveMode
+        resolveArchiveMode();
+
         // Merge tapis-defined logical queue value only when we are running in batch mode.
         if (JobType.BATCH.name().equals(_submitReq.getJobType())) 
         {
@@ -965,7 +969,42 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
     }
-    
+
+  /* ---------------------------------------------------------------------------- */
+  /* resolveArchiveMode:                                                          */
+  /* ---------------------------------------------------------------------------- */
+  /**
+   * Resolve final archiveMode setting for the job type using the request and application value.
+   * Precedence: job submit request, app attribute, default
+   *
+   * @throws TapisImplException invalid archiveMode from App
+   */
+  private void resolveArchiveMode() throws TapisImplException
+  {
+    Job.ArchiveModeEnum archiveMode;
+    if (_submitReq.getArchiveMode() != null) {
+      // Assigned in the request
+      archiveMode = _submitReq.getArchiveMode();
+    }
+    else if (_appJobAttrs != null && _appJobAttrs.getArchiveMode() != null) {
+      // Assigned in the app, attempt to convert to known enum
+      var appArchiveMode = _appJobAttrs.getArchiveMode();
+      try {
+        archiveMode = Job.ArchiveModeEnum.valueOf(appArchiveMode.name());
+      }
+      catch (Exception e)
+      {
+        String msg = MsgUtils.getMsg("JOBS_INVALID_ARCHIVEMODE", appArchiveMode.name());
+        throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
+      }
+    }
+    else {
+      // Not in request or App
+      archiveMode = DEFAULT_ARCHIVE_MODE;
+    }
+    _submitReq.setArchiveMode(archiveMode);
+  }
+
     /* ---------------------------------------------------------------------------- */
     /* resolveDirectoryPathNames:                                                   */
     /* ---------------------------------------------------------------------------- */
@@ -2300,7 +2339,8 @@ public final class SubmitContext
         _macros.put(JobTemplateVariables.ArchiveSystemId.name(),   _submitReq.getArchiveSystemId());
         _macros.put(JobTemplateVariables.DynamicExecSystem.name(), _submitReq.getDynamicExecSystem().toString());
         _macros.put(JobTemplateVariables.ArchiveOnAppError.name(), _submitReq.getArchiveOnAppError().toString());
-        
+        _macros.put(JobTemplateVariables.ArchiveMode.name(), _submitReq.getArchiveMode().toString());
+
         _macros.put(JobTemplateVariables.SysRootDir.name(), _execSystem.getRootDir());
         _macros.put(JobTemplateVariables.SysHost.name(), _execSystem.getHost());
         
@@ -3084,6 +3124,7 @@ public final class SubmitContext
         
         // Flags already validated.
         _job.setArchiveOnAppError(_submitReq.getArchiveOnAppError());
+        _job.setArchiveMode(_submitReq.getArchiveMode());
         _job.setDynamicExecSystem(_submitReq.getDynamicExecSystem());
         
         // Exec system fields.

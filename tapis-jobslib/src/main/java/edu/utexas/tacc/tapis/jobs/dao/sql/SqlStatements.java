@@ -34,7 +34,7 @@ public class SqlStatements
         	+ "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes, "
         	+ "stageapp_transaction_id, stageapp_correlation_id, "
         	+ "dtn_in_transaction_id, dtn_in_correlation_id, dtn_out_transaction_id, dtn_out_correlation_id, "
-        	+ "condition, tracking_id "
+        	+ "condition, tracking_id, archive_mode "
             + "FROM jobs ORDER BY id";
     
     public static final String SELECT_JOBS_BY_UUID =
@@ -55,7 +55,7 @@ public class SqlStatements
             + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, notes,"
             + "stageapp_transaction_id, stageapp_correlation_id, "
         	+ "dtn_in_transaction_id, dtn_in_correlation_id, dtn_out_transaction_id, dtn_out_correlation_id,"
-        	+ "condition, tracking_id "
+        	+ "condition, tracking_id, archive_mode "
             + "FROM jobs "
             + "WHERE uuid = ?";
         
@@ -95,7 +95,7 @@ public class SqlStatements
             + "file_inputs, parameter_set, exec_system_constraints, subscriptions, "
             + "tapis_queue, createdby, createdby_tenant, tags, job_type, "
             + "is_mpi, mpi_cmd, cmd_prefix, shared_app_ctx, shared_app_ctx_attribs, "
-            + "notes, tracking_id) "
+            + "notes, tracking_id, archive_mode) "
     		+ "VALUES (?, ?, ?, ?, ?::job_status_enum, "
     		+ "?, ?, ?, ?, ?, ?, "
     		+ "?, ?, ?, ?, "
@@ -106,7 +106,7 @@ public class SqlStatements
     		+ "?::json, ?::json, ?, ?::json, "
     		+ "?, ?, ?, ?, ?, "
     		+ "?, ?, ?, ?, ?, "
-    		+ "?::json, ?)"; 
+    		+ "?::json, ?, ?)";
 
     public static final String SELECT_JOB_STATUS_FOR_UPDATE = 
         "SELECT status FROM jobs WHERE tenant = ? AND uuid = ? FOR UPDATE";

@@ -2,15 +2,15 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+import edu.utexas.tacc.tapis.jobs.model.Job.ArchiveModeEnum;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ReqSubmitJob
  implements IReqBody
@@ -26,6 +26,7 @@ public class ReqSubmitJob
     private String   			    appVersion;
     private String            jobType;
     private Boolean  			    archiveOnAppError;  // not assigned by default
+    private ArchiveModeEnum   archiveMode;
     private Boolean           dynamicExecSystem;  // not assigned by default
     private String   			    execSystemId;
     private String   			    execSystemExecDir;
@@ -209,6 +210,14 @@ public class ReqSubmitJob
 	public void setArchiveOnAppError(Boolean archiveOnAppError) {
 		this.archiveOnAppError = archiveOnAppError;
 	}
+
+  public ArchiveModeEnum getArchiveMode() {
+    return archiveMode;
+  }
+
+  public void setArchiveMode(ArchiveModeEnum archiveMode) {
+    this.archiveMode = archiveMode;
+  }
 
 	public Boolean getDynamicExecSystem() {
 		return dynamicExecSystem;

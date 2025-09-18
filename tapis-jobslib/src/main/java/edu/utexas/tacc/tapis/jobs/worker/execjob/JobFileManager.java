@@ -433,7 +433,24 @@ public final class JobFileManager
         // DTN post-processing.
         if (useDtn) moveDtnInputs();
     }
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* isArchivingOff:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /*
+     * Determine if archiving should be skipped.
+     */
+    public boolean isArchivingOff()
+    {
+      if (JobRemoteOutcome.FAILED_SKIP_ARCHIVE.equals(_job.getRemoteOutcome()) ||
+          Job.ArchiveModeEnum.NEVER.equals(_job.getArchiveMode()))
+      {
+        _log.info(JobUtils.getMsg("JOBS_ARCHIVING_OFF", _job.getUuid(), _job.getArchiveMode(), _job.getRemoteOutcome()));
+        return true;
+      }
+      return false;
+  }
+
     /* ---------------------------------------------------------------------- */
     /* archiveOutputs:                                                        */
     /* ---------------------------------------------------------------------- */
@@ -445,9 +462,6 @@ public final class JobFileManager
      */
     public void archiveOutputs() throws TapisException, TapisClientException
     {
-        // Determine if archiving is necessary.
-        if (_job.getRemoteOutcome() == JobRemoteOutcome.FAILED_SKIP_ARCHIVE) return;
-        
         // Determine if we are restarting a previous archiving request.
         var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
         String transferId = transferInfo.archiveTransactionId;

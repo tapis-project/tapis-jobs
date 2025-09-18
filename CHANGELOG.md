@@ -9,15 +9,17 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
-## 1.9.1 - 2025-08-29
+## 1.9.1 - 2025-09-18
 
 Enhancement, incremental improvements and bug fix.
 
 Log messages specific to Jobs service moved from shared catalog to a local catalog in the repository.
+Note that user of ArchiveOnAppError attribute is deprecated. It is being replaced with ArchiveMode.
 
 ### New features:
 - Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
 - Return top level notes attribute as a json attribute rather than a string with json embedded.
+- Add attribute *archiveMode* to replace attribute *archiveOnAppError*. Three modes: ALWAYS, SKIP_ON_FAIL, NEVER
 
 ### Bug fixes:
 - Fix issue with recovery from BLOCKED state. Incorrect error messages and not all authentication methods handled properly.

@@ -1,9 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
-import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
-
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,11 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
-
 import javax.sql.DataSource;
-
 import com.google.gson.JsonObject;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -51,6 +44,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
 import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
@@ -64,12 +58,14 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
 
-
-/** A note about querying our JSON data types.  The jobs database schema currently defines these 
+/** A note about querying our JSON data types. The jobs database schema currently defines these
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
  * scripts in tapis-jobsmigrate for the complete definition.  The SubmitJobRequest.json schema in 
- * tapis-jobsapi defines the json dchema that validates job submission requests.  
+ * tapis-jobsapi defines the json schema that validates job submission requests.
  * 
  * The jsonb database type allows for indexed searches of json data.  Initially, only one json 
  * index is defined on the exec_system_constraints field.  All searches of json data that do not 
@@ -96,7 +92,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * and will result in a full table scan unless there's another where clause that uses an index.
  * 
  * DON'T USE:
- *  Q2: Select * from jobs where where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
+ *  Q2: Select * from jobs where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
  * 
  * Alternate Approach (not implemented)
  * ------------------------------------
@@ -267,9 +263,9 @@ public final class JobsDao
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
 	          String orderBy="";
 	          int listsize = orderByList.size();
-	         
+
 	          for (int i = 0;i < listsize; i++) {
-	              
+
 	        	  if (orderBy.isBlank()) {
 	        		  orderBy = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
 	        	  } else {
@@ -403,7 +399,7 @@ public final class JobsDao
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
-      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	List<OrderField> orderList = new ArrayList<>();
       	if(orderByList != null) {
       		for(int i = 0;i < listsize; i++) {
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
@@ -1392,7 +1388,9 @@ public final class JobsDao
 
           // Tracking ID from request header can be null.
           pstmt.setString(43, job.getTrackingId());             // could be null  
-          
+          // ArchiveMode
+          pstmt.setString(44, job.getArchiveMode().name());
+
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
           if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobs", rows, 1));
@@ -2178,7 +2176,7 @@ public final class JobsDao
 	 throws JobException, TapisNotFoundException
 	{
         // ------------------------- Check Input -------------------------
-        // Exceptions can be throw from here.
+        // Exceptions can be thrown from here.
         if (StringUtils.isBlank(jobUuid)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getTransferInfo", "jobUuid");
             throw new JobException(msg);
@@ -3281,6 +3279,10 @@ public final class JobsDao
 	        // Tracking ID is null unless the X-TAPIS-TRACKING-ID header was set.
 	        String trackingId = rs.getString(70);
 	        if (trackingId != null) obj.setTrackingId(trackingId);
+
+          String archiveModeStr = rs.getString(71);
+          if (!StringUtils.isBlank(archiveModeStr)) obj.setArchiveMode(Job.ArchiveModeEnum.valueOf(archiveModeStr));
+
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());

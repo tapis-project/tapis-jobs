@@ -2,4 +2,4 @@
 -- Values are: ALWAYS, SKIP_ON_FAIL, NEVER
 
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS archive_mode text NOT NULL DEFAULT 'ALWAYS';
-UPDATE jobs SET archive_mode = 'SKIP_ON_FAIL' WHERE archive_on_app_err = 'false';
+UPDATE jobs SET archive_mode = 'SKIP_ON_FAIL' WHERE archive_on_app_error = 'false';

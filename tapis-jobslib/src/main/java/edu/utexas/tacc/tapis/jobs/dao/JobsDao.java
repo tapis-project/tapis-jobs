@@ -1,9 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
-import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
-
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,11 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
-
 import javax.sql.DataSource;
-
 import com.google.gson.JsonObject;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -51,6 +44,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
 import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
@@ -64,12 +58,14 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
 
-
-/** A note about querying our JSON data types.  The jobs database schema currently defines these 
+/** A note about querying our JSON data types. The jobs database schema currently defines these
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
  * scripts in tapis-jobsmigrate for the complete definition.  The SubmitJobRequest.json schema in 
- * tapis-jobsapi defines the json dchema that validates job submission requests.  
+ * tapis-jobsapi defines the json schema that validates job submission requests.
  * 
  * The jsonb database type allows for indexed searches of json data.  Initially, only one json 
  * index is defined on the exec_system_constraints field.  All searches of json data that do not 
@@ -267,9 +263,9 @@ public final class JobsDao
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
 	          String orderBy="";
 	          int listsize = orderByList.size();
-	         
+
 	          for (int i = 0;i < listsize; i++) {
-	              
+
 	        	  if (orderBy.isBlank()) {
 	        		  orderBy = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
 	        	  } else {
@@ -403,7 +399,7 @@ public final class JobsDao
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
-      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	List<OrderField> orderList = new ArrayList<>();
       	if(orderByList != null) {
       		for(int i = 0;i < listsize; i++) {
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());

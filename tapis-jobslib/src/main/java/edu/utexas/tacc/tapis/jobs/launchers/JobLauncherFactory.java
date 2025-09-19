@@ -1,9 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.launchers;
 
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -37,10 +36,10 @@ public class JobLauncherFactory
         if (jobType == JobType.FORK) {
             launcher = switch (runtime) {
                 case DOCKER      -> new DockerNativeLauncher(jobCtx);
-                case SINGULARITY -> getSingularityOption(jobCtx, app);
+                case SINGULARITY -> new SingularityRunLauncher(jobCtx);
                 case ZIP         -> new ZipLauncher(jobCtx, null);
                 default -> {
-                    String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", runtime, 
+                    String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime,
                                                  "JobLauncherFactory");
                     throw new JobException(msg);
                 }
@@ -54,7 +53,7 @@ public class JobLauncherFactory
             
             // Doublecheck that a scheduler is assigned.
             if (scheduler == null) {
-                String msg = MsgUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(), 
+                String msg = JobUtils.getMsg("JOBS_SYSTEM_MISSING_SCHEDULER", system.getId(), 
                                               jobCtx.getJob().getUuid());
                 throw new JobException(msg);
             }
@@ -65,7 +64,7 @@ public class JobLauncherFactory
                 case SINGULARITY -> getBatchSingularityLauncher(jobCtx, scheduler);
                 case ZIP         -> getBatchZipLauncher(jobCtx, scheduler);
                 default -> {
-                    String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                    String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                                  scheduler + "(" + runtime +")", 
                                                  "JobLauncherFactory");
                     throw new JobException(msg);
@@ -73,29 +72,12 @@ public class JobLauncherFactory
             };
         }
         else {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_TYPE", jobType, "JobLauncherFactory");
+            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobLauncherFactory");
             throw new JobException(msg);
         }
 
         // Must be non-null.
         return launcher;
-    }
-    
-    /* ---------------------------------------------------------------------- */
-    /* getSingularityOption:                                                  */
-    /* ---------------------------------------------------------------------- */
-    private static JobLauncher getSingularityOption(JobExecutionContext jobCtx,
-                                                    TapisApp app)
-     throws TapisException
-    {
-        // We are only interested in the singularity options.  These have
-        // been validated in JobExecStageFactory, so no need to repeat here.
-        var opts = app.getRuntimeOptions();
-        boolean start = opts.contains(RuntimeOptionEnum.SINGULARITY_START);
-        
-        // Create the specified monitor.
-        if (start) return new SingularityStartLauncher(jobCtx);
-          else return new SingularityRunLauncher(jobCtx);
     }
     
     /* ---------------------------------------------------------------------- */
@@ -110,7 +92,7 @@ public class JobLauncherFactory
             case SLURM -> null;  // at least 1 case is required.
             
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(DOCKER)", 
                                              "JobLauncherFactory");
                 throw new JobException(msg);
@@ -119,7 +101,7 @@ public class JobLauncherFactory
         
         // Make sure we always return a non-null launcher.
         if (launcher == null) {
-            String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                           scheduler + "(DOCKER)", 
                                          "JobLauncherFactory");
             throw new JobException(msg);
@@ -140,7 +122,7 @@ public class JobLauncherFactory
             case SLURM -> new SingularityRunSlurmLauncher(jobCtx);
         
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME", 
+                String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(SINGULARITY)", 
                                              "JobLauncherFactory");
                 throw new JobException(msg);
@@ -162,7 +144,7 @@ public class JobLauncherFactory
             case SLURM -> new ZipLauncher(jobCtx, scheduler);
 
             default -> {
-                String msg = MsgUtils.getMsg("TAPIS_UNSUPPORTED_APP_RUNTIME",
+                String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME",
                                              scheduler + "(ZIP)",
                                               "JobLauncherFactory");
                 throw new JobException(msg);

@@ -19,6 +19,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,11 +39,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
 public class JobOutputListingResource extends AbstractResource{
@@ -51,10 +47,7 @@ public class JobOutputListingResource extends AbstractResource{
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobOutputListingResource.class);
-    
-    
-    
-    
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -109,42 +102,9 @@ public class JobOutputListingResource extends AbstractResource{
      @GET
      @Path("/{jobUuid}/output/list/{outputPath: (.*+)}")
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Retrieve a job's output file listing using the job's UUID. "
-            		       + "By default, the job must be in a terminal state (FINISHED or FAILED or CANCELLED) "
-            		       + "for this command to execute. "
-      		               + "To execute when a job is not in a terminal state--and possibly receive incomplete "
-      		               + "results--set _allowIfRunning=true_.  \n\n"
-            		       + "The caller must be the job owner, creator or a tenant administrator. "
-            		       + "The _outputPath_ is always relative to the job output directory and must end with a '/'. "
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job's output files list retrieved.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobOutputList.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "404", description = "Job not found.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
      public Response getJobOutputList(@PathParam("jobUuid") String jobUuid,@DefaultValue("")@PathParam("outputPath") String outputPath,
     		 						  @QueryParam("limit") int limit,	@QueryParam("skip") int skip,
-    		 						  @DefaultValue("false") @QueryParam("allowIfRunning") boolean allowIfRunning,
-    		 						  @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+    		 						  @DefaultValue("false") @QueryParam("allowIfRunning") boolean allowIfRunning)
                                
      {
        // Trace this request.
@@ -153,15 +113,17 @@ public class JobOutputListingResource extends AbstractResource{
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // ------------------------- Create Context ---------------------------
        // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -169,9 +131,9 @@ public class JobOutputListingResource extends AbstractResource{
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;
        var jobsImpl = JobsImpl.getInstance();
@@ -182,28 +144,27 @@ public class JobOutputListingResource extends AbstractResource{
        } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        } catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        
        if (job == null) {
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid, threadContext.getOboTenantId());
+           String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid, threadContext.getOboTenantId());
            _log.warn(msg);
            ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
            
        } else if(!job.isVisible()) {
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+           String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
            _log.warn(msg);
            return Response.status(Status.NOT_FOUND).
-                   entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid,threadContext.getOboTenantId()), 
-                          prettyPrint)).build();
+             entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE",jobUuid,threadContext.getOboTenantId()))).build();
        }
         
        // ------------------------- Check the Job's status -----------------------------
@@ -213,8 +174,8 @@ public class JobOutputListingResource extends AbstractResource{
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_NOT_TERMINATED",
-    			   jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), prettyPrint,r)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_NOT_TERMINATED",
+    			   jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()),r)).build();
        }
        
        // Set default parameters
@@ -242,14 +203,14 @@ public class JobOutputListingResource extends AbstractResource{
 	   } catch (TapisImplException e) {
 		   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	   }
        if(filesList == null) {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job Output Files List", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job Output Files List", jobUuid), r)).build();
        }
        
        // ------------------------- Process Results --------------------------
@@ -258,8 +219,8 @@ public class JobOutputListingResource extends AbstractResource{
        // Success.
        RespGetJobOutputList r = new RespGetJobOutputList(filesList,srchParms.getLimit(),srchParms.getSkip());
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),
-            		   threadContext.getOboTenantId()), prettyPrint, r)).build();
+               JobUtils.getMsg("JOBS_OUTPUT_FILES_LIST_RETRIEVED", jobUuid, threadContext.getOboUser(),
+            		   threadContext.getOboTenantId()), r)).build();
      }
      
      

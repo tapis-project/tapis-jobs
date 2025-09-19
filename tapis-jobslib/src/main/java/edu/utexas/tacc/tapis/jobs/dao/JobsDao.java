@@ -1,8 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
-
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,9 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
-
 import javax.sql.DataSource;
-
+import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -28,6 +24,7 @@ import org.jooq.OrderField;
 import org.jooq.Result;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +44,7 @@ import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
 import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
@@ -59,12 +57,15 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
 
-
-/** A note about querying our JSON data types.  The jobs database schema currently defines these 
+/** A note about querying our JSON data types. The jobs database schema currently defines these
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
  * scripts in tapis-jobsmigrate for the complete definition.  The SubmitJobRequest.json schema in 
- * tapis-jobsapi defines the json dchema that validates job submission requests.  
+ * tapis-jobsapi defines the json schema that validates job submission requests.
  * 
  * The jsonb database type allows for indexed searches of json data.  Initially, only one json 
  * index is defined on the exec_system_constraints field.  All searches of json data that do not 
@@ -91,7 +92,7 @@ import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
  * and will result in a full table scan unless there's another where clause that uses an index.
  * 
  * DON'T USE:
- *  Q2: Select * from jobs where where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
+ *  Q2: Select * from jobs where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
  * 
  * Alternate Approach (not implemented)
  * ------------------------------------
@@ -262,9 +263,9 @@ public final class JobsDao
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
 	          String orderBy="";
 	          int listsize = orderByList.size();
-	         
+
 	          for (int i = 0;i < listsize; i++) {
-	              
+
 	        	  if (orderBy.isBlank()) {
 	        		  orderBy = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
 	        	  } else {
@@ -385,7 +386,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         }
@@ -398,13 +399,13 @@ public final class JobsDao
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
-      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	List<OrderField> orderList = new ArrayList<>();
       	if(orderByList != null) {
       		for(int i = 0;i < listsize; i++) {
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -473,7 +474,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         	
@@ -501,7 +502,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -578,7 +579,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         	
@@ -598,7 +599,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -719,7 +720,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         }
@@ -742,7 +743,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -861,7 +862,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         	
@@ -881,7 +882,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -980,7 +981,7 @@ public final class JobsDao
         	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
         	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
         	if(orderByList.get(i)!=null && colOrderBy == null) {
-        		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+        		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
         		throw new TapisException(msg);
         	}
         	
@@ -1004,7 +1005,7 @@ public final class JobsDao
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
             	Field<?> colOrderBy = Tables.JOBS.field(DSL.name(attr));
             	if(orderByList.get(i)!=null && colOrderBy == null) {
-            		String msg = MsgUtils.getMsg("SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
+            		String msg = JobUtils.getMsg("JOBS_SEARCH_ORDERBY_DB_NO_COLUMN", DSL.name(attr));
             		throw new TapisException(msg);
             	}
             	if(orderByList.get(i).getOrderByDir().name().equals("ASC")) {
@@ -1172,7 +1173,7 @@ public final class JobsDao
 	    
 	    // Make sure we found a job.
 	    if (result == null && throwNotFound) {
-	        String msg = MsgUtils.getMsg("JOBS_JOB_NOT_FOUND", uuid);
+	        String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", uuid);
 	        throw new TapisNotFoundException(msg, uuid);
 	    }
 	      
@@ -1282,7 +1283,11 @@ public final class JobsDao
 	        job.setCreated(now);
 	        job.setLastUpdated(now);
 		}
-        
+
+        // Make sure notes is filled in as a JsonObject.
+        JsonObject notesObj = Job.DEFAULT_NOTES;
+        if (job.getNotes() != null) notesObj = (JsonObject) job.getNotes();
+
         // ------------------------- Check Input -------------------------
         // Exceptions can be throw from here.
         validateNewJob(job);
@@ -1379,11 +1384,13 @@ public final class JobsDao
           pstmt.setArray(41, attribsArray);
               
           // Notes is non-null json.
-          pstmt.setString(42, job.getNotes());
-          
+          pstmt.setString(42, notesObj.toString());
+
           // Tracking ID from request header can be null.
           pstmt.setString(43, job.getTrackingId());             // could be null  
-          
+          // ArchiveMode
+          pstmt.setString(44, job.getArchiveMode().name());
+
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
           if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobs", rows, 1));
@@ -1402,7 +1409,7 @@ public final class JobsDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_JOB_CREATE_ERROR", job.getName(), 
+            String msg = JobUtils.getMsg("JOBS_JOB_CREATE_ERROR", job.getName(), 
                                          job.getTenant(), job.getOwner(), e.getMessage());
             throw new JobException(msg, e);
         }
@@ -1630,7 +1637,7 @@ public final class JobsDao
             try {if (conn != null) conn.close(); conn = null;}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
                 _log.error(msg, e);
                 throw new JobException(msg, e);
         }
@@ -1705,7 +1712,7 @@ public final class JobsDao
      * code will already be set.  If not, the condition is set to an internal 
      * error and logged in updateEnded().
      * 
-     * @param uuid the job whose status is to change    
+     * @param job the Tapis job
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record or null
      * @return the last update time saved in the job record
@@ -1815,7 +1822,7 @@ public final class JobsDao
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
             job.setCondition(JobConditionCode.JOB_DATABASE_ERROR);
-            String msg = MsgUtils.getMsg("JOBS_UPDATE_TRANSFER_VALUE_ERROR", job.getUuid(), 
+            String msg = JobUtils.getMsg("JOBS_UPDATE_TRANSFER_VALUE_ERROR", job.getUuid(), 
                                          job.getTenant(), job.getOwner(), 
                                          type.name(), value, e.getMessage());
             throw new JobException(msg, e);
@@ -1853,14 +1860,14 @@ public final class JobsDao
     {
         // Make sure we write something to the job record.
         if (StringUtils.isBlank(failMsg)) 
-            failMsg = MsgUtils.getMsg("JOBS_STATUS_FAILED_UNKNOWN_CAUSE");
+            failMsg = JobUtils.getMsg("JOBS_STATUS_FAILED_UNKNOWN_CAUSE");
         
         // Fail the job.
         try {setStatus(jobUuid, JobStatusType.FAILED, failMsg, cond);}
             catch (Exception e) {
                 // The job will be left in a non-terminal state and probably 
                 // removed from any queue.  It's likely to become a zombie.
-                String msg = MsgUtils.getMsg("JOBS_WORKER_JOB_UPDATE_ERROR", 
+                String msg = JobUtils.getMsg("JOBS_WORKER_JOB_UPDATE_ERROR", 
                                               caller, jobUuid, tenantId);
                 throw new JobException(msg, e);
             }
@@ -1883,14 +1890,14 @@ public final class JobsDao
     {
         // Make sure we write something to the job record.
         if (StringUtils.isBlank(failMsg)) 
-            failMsg = MsgUtils.getMsg("JOBS_STATUS_FAILED_UNKNOWN_CAUSE");
+            failMsg = JobUtils.getMsg("JOBS_STATUS_FAILED_UNKNOWN_CAUSE");
         
         // Fail the job.
         try {setStatus(job, JobStatusType.FAILED, failMsg);}
             catch (Exception e) {
                 // The job will be left in a non-terminal state and probably 
                 // removed from any queue.  It's likely to become a zombie.
-                String msg = MsgUtils.getMsg("JOBS_WORKER_JOB_UPDATE_ERROR", 
+                String msg = JobUtils.getMsg("JOBS_WORKER_JOB_UPDATE_ERROR", 
                                               caller, job.getUuid(), job.getTenant());
                 throw new JobException(msg, e);
             }
@@ -2169,7 +2176,7 @@ public final class JobsDao
 	 throws JobException, TapisNotFoundException
 	{
         // ------------------------- Check Input -------------------------
-        // Exceptions can be throw from here.
+        // Exceptions can be thrown from here.
         if (StringUtils.isBlank(jobUuid)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getTransferInfo", "jobUuid");
             throw new JobException(msg);
@@ -2238,7 +2245,7 @@ public final class JobsDao
 	    
         // Make sure we found a job.
         if (result == null) {
-            String msg = MsgUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid);
+            String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid);
             throw new TapisNotFoundException(msg, jobUuid);
         }
         
@@ -2305,7 +2312,7 @@ public final class JobsDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getId(), 
+            String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getId(), 
                                          job.getTenant(), job.getOwner(), e.getMessage());
             throw new JobException(msg, e);
         }
@@ -2398,7 +2405,7 @@ public final class JobsDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getUuid(), 
+            String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getUuid(), 
                                          job.getTenant(), job.getOwner(), e.getMessage());
             throw new JobException(msg, e);
         }
@@ -2481,7 +2488,7 @@ public final class JobsDao
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getUuid(), 
+            String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", job.getUuid(), 
                                          job.getTenant(), job.getOwner(), e.getMessage());
             throw new JobException(msg, e);
         }
@@ -2524,7 +2531,7 @@ public final class JobsDao
      * code will already be set.  If not, the condition is set to an internal 
      * error and logged in updateEnded().
      * 
-     * @param uuid the job whose status is to change    
+     * @param job the Tapis job
      * @param newStatus the job's new status
      * @param message the status message to be saved in the job record
      * @param commit true to commit the transaction and close the connection;
@@ -2576,12 +2583,12 @@ public final class JobsDao
             
             // Debug logging.
             if (_log.isDebugEnabled())
-                _log.debug(MsgUtils.getMsg("JOBS_STATUS_UPDATE", job.getUuid(), 
+                _log.debug(JobUtils.getMsg("JOBS_STATUS_UPDATE", job.getUuid(), 
                                            curStatusString, newStatus.name()));
 
             // --------- Validate requested status transition ---------
             if (!JobFSMUtils.hasTransition(curStatus, newStatus)) {
-                String msg = MsgUtils.getMsg("JOBS_STATE_NO_TRANSITION", job.getUuid(), 
+                String msg = JobUtils.getMsg("JOBS_STATE_NO_TRANSITION", job.getUuid(), 
                                              curStatusString, newStatus.name());
                 throw new JobException(msg);
             }
@@ -2652,7 +2659,7 @@ public final class JobsDao
             try {if (conn != null) conn.close(); conn = null;}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", job.getUuid(), 
+            String msg = JobUtils.getMsg("JOBS_JOB_SELECT_UUID_ERROR", job.getUuid(), 
                                          job.getTenant(), job.getOwner(), e.getMessage());
             throw new JobException(msg, e);
         }
@@ -2685,7 +2692,7 @@ public final class JobsDao
      * calling it more than once for a job will not change the job record.
      * 
      * @param conn the connection with the in-progress transaction
-     * @param uuid the job uuid
+     * @param job the Tapis Job
      * @param ts the remote execution start time
      * @throws SQLException
      */
@@ -2718,7 +2725,7 @@ public final class JobsDao
      * calling it more than once for a job will not change the job record.
      * 
      * @param conn the connection with the in-progress transaction
-     * @param uuid the job uuid
+     * @param job the Tapis Job
      * @param ts the remote execution start time
      * @throws SQLException
      */
@@ -2751,7 +2758,7 @@ public final class JobsDao
      * calling it more than once for a job will not change the job record.
      * 
      * @param conn the connection with the in-progress transaction
-     * @param uuid the job uuid
+     * @param job the Tapis Job
      * @param ts the job termination time
      * @param newStatus the job's new, terminal status
      * @throws SQLException
@@ -2773,7 +2780,7 @@ public final class JobsDao
         		// Failed jobs should already have a condition code set. This
         		// branch also acts as a catch all, which should never happen.
         		job.setCondition(JobConditionCode.JOB_INTERNAL_ERROR);
-                String msg = MsgUtils.getMsg("JOBS_MISSING_CONDITION_CODE", 
+                String msg = JobUtils.getMsg("JOBS_MISSING_CONDITION_CODE", 
                 		                     job.getUuid(), newStatus.name());
                 _log.error(msg);
         	}
@@ -2890,7 +2897,7 @@ public final class JobsDao
             
             String ownerMsg = owner == null ? "*" : owner;
             String logicalQueueMsg = logicalQueue == null ? "*" : logicalQueue;
-            String msg = MsgUtils.getMsg("JOBS_COUNT_ACTIVE_SYSTEM_JOBS", tenantId, systemId, 
+            String msg = JobUtils.getMsg("JOBS_COUNT_ACTIVE_SYSTEM_JOBS", tenantId, systemId, 
                                          ownerMsg, logicalQueueMsg, e.getMessage());
             _log.error(msg, e);
             throw new JobException(msg, e);
@@ -2974,7 +2981,7 @@ public final class JobsDao
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
             String idSuffix = primary ? "" : "2";
-            String msg = MsgUtils.getMsg("JOBS_UPDATE_REMOTE_ID_ERROR", job.getUuid(), 
+            String msg = JobUtils.getMsg("JOBS_UPDATE_REMOTE_ID_ERROR", job.getUuid(), 
                                          job.getTenant(), job.getOwner(), 
                                          idSuffix, remoteId, e.getMessage());
             throw new JobException(msg, e);
@@ -3253,7 +3260,9 @@ public final class JobsDao
 	        	obj.setSharedAppCtxAttribs(JobSharedAppCtx.EMPTY_APP_CTX_ATTRIBS); // immutable list
 	        
 	        // Notes non-null json value.
-	        obj.setNotes(rs.getString(62));
+	        // Convert from sql PGobject to a JsonObject
+	        JsonObject notesJsonObj = convertPGObjToJsonObj((PGobject) rs.getObject(62));
+	        obj.setNotes(notesJsonObj);
 
 	        obj.setStageAppTransactionId(rs.getString(63));
 	        obj.setStageAppCorrelationId(rs.getString(64));
@@ -3270,6 +3279,10 @@ public final class JobsDao
 	        // Tracking ID is null unless the X-TAPIS-TRACKING-ID header was set.
 	        String trackingId = rs.getString(70);
 	        if (trackingId != null) obj.setTrackingId(trackingId);
+
+          String archiveModeStr = rs.getString(71);
+          if (!StringUtils.isBlank(archiveModeStr)) obj.setArchiveMode(Job.ArchiveModeEnum.valueOf(archiveModeStr));
+
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
@@ -3575,7 +3588,7 @@ public final class JobsDao
             // Issue the call for the 1 row result set.
             ResultSet rs = pstmt.executeQuery();
             if (!rs.next()) {
-                String msg = MsgUtils.getMsg("SEARCH_ABORT_UNABLE_TO_GET_DB_FIELD_AND_TYPE", tableName);
+                String msg = JobUtils.getMsg("JOBS_SEARCH_SCHEMA_ERR", "getDBJobColumnAndType", tableName);
                 _log.error(msg);
                 throw new JobException(msg);
             }
@@ -3603,7 +3616,7 @@ public final class JobsDao
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
             //AloeThreadContext threadContext = AloeThreadLocal.aloeThreadContext.get();
-            String msg = MsgUtils.getMsg("DB_TABLE_INFORMATION_SCHEMA_ERROR");
+            String msg = JobUtils.getMsg("JOBS_DB_TABLE_INFO_SCHEMA_ERR", e.getMessage());
             _log.error(msg, e);
            
         }
@@ -3660,6 +3673,14 @@ public final class JobsDao
     {
         public String name;
         public String owner;
+    }
+
+    private JsonObject convertPGObjToJsonObj(PGobject pgObj) {
+      // Convert from sql PGobject to a JsonObject
+      if (pgObj == null) return EMPTY_JSON_OBJ;
+      String objString = pgObj.toString();
+      JsonObject jsonObj = TapisGsonUtils.getGson().fromJson(objString, JsonObject.class);
+      return jsonObj;
     }
 }
     

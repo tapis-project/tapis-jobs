@@ -1,10 +1,6 @@
 # Compiled class file
 *.class
 
-# Generated files
-openapi.json
-openapi.yaml
-
 # Log file
 *.log
 
@@ -32,6 +28,9 @@ hs_err_pid*
 # Binary targets
 target
 *~
+# Generated openapi files
+*openapi.json
+*openapi.yaml
 
 # test reports
 testreports
@@ -83,3 +82,4 @@ Icon
 /tapis-metaapi/http.testing/rest-client.private.env.json
 /tapis-metaapi/http.testing/packards_sanityCheck.sh
 /tapis-metaapi/environment/tapisdev.env
+/bin/

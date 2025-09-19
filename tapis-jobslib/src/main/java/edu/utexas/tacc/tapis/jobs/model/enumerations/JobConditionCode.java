@@ -13,6 +13,7 @@ public enum JobConditionCode
 	JOB_ARCHIVING_FAILED("Job error while archiving outputs"),
 	JOB_DATABASE_ERROR("Jobs is unable to access its database"),
 	JOB_EXECUTION_MONITORING_ERROR("An error occurred during application monitoring"),
+	JOB_EXECUTION_MONITORING_ERROR_TIMEOUT("Continuous monitor errors exceeded allowed time"),
 	JOB_EXECUTION_MONITORING_TIMEOUT("Tapis execution monitoring time expired"),
 	JOB_FILES_SERVICE_ERROR("An error involving the File service occurred"),
 	JOB_INTERNAL_ERROR("Jobs service internal error"),

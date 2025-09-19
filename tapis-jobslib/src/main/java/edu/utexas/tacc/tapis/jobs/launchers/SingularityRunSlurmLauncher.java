@@ -57,7 +57,7 @@ public final class SingularityRunSlurmLauncher
         
         // Log the command we are about to issue.
         if (_log.isDebugEnabled()) 
-            _log.debug(MsgUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
+            _log.debug(JobUtils.getMsg("JOBS_SUBMIT_CMD", getClass().getSimpleName(), 
                                        _job.getUuid(), cmd));
         
         // Get the command object.
@@ -69,14 +69,14 @@ public final class SingularityRunSlurmLauncher
         
         // Let's see what happened.
         if (exitStatus != 0) {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
+            String msg = JobUtils.getMsg("JOBS_SUBMIT_ERROR2", getClass().getSimpleName(),
                                          _job.getUuid(), cmd, result, exitStatus);
             throw new JobException(msg);
         }
 
         // Note success.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
+            String msg = JobUtils.getMsg("JOBS_SUBMIT_RESULT", getClass().getSimpleName(), 
                                          _job.getUuid(), result, exitStatus);
             _log.debug(msg);
         }

@@ -2,17 +2,17 @@ package edu.utexas.tacc.tapis.jobs.api.requestBody;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+import edu.utexas.tacc.tapis.jobs.model.Job.ArchiveModeEnum;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInputArray;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-import io.swagger.v3.oas.annotations.media.Schema;
 
-public class ReqSubmitJob 
+public class ReqSubmitJob
  implements IReqBody
 {
     /* **************************************************************************** */
@@ -24,32 +24,33 @@ public class ReqSubmitJob
     private String   			    description;
     private String   			    appId;
     private String   			    appVersion;
-    private String                  jobType;
+    private String            jobType;
     private Boolean  			    archiveOnAppError;  // not assigned by default
-    private Boolean                 dynamicExecSystem;  // not assigned by default
+    private ArchiveModeEnum   archiveMode;
+    private Boolean           dynamicExecSystem;  // not assigned by default
     private String   			    execSystemId;
     private String   			    execSystemExecDir;
     private String   		     	execSystemInputDir;
     private String   			    execSystemOutputDir;
-    private String                  execSystemLogicalQueue;  // can be null
+    private String            execSystemLogicalQueue;  // can be null
     private String   			    archiveSystemId;
     private String   			    archiveSystemDir;
     private String   		     	dtnSystemInputDir;
     private String   			    dtnSystemOutputDir;
-    private Integer   			    nodeCount;
-    private Integer      		    coresPerNode;
-    private Integer      		    memoryMB;
-    private Integer      		    maxMinutes;
+    private Integer 			    nodeCount;
+    private Integer    		    coresPerNode;
+    private Integer    		    memoryMB;
+    private Integer    		    maxMinutes;
     private List<JobFileInput>      fileInputs;
     private List<JobFileInputArray> fileInputArrays;
-    private JobParameterSet 	    parameterSet;             // assigned on first get
+    private JobParameterSet         parameterSet;             // assigned on first get
     private List<String>            execSystemConstraints;    // don't call--used internally only
     private List<String>            tags;                     // assigned on first get
     private List<ReqSubscribe>      subscriptions;            // assigned on first get
     private Boolean                 isMpi;
     private String                  mpiCmd;
     private String                  cmdPrefix;
-    private Object                  notes;  
+    private Object                  notes;
     
     // Constraints flattened and aggregated from app and job request.
     private transient String        consolidatedConstraints;          
@@ -57,9 +58,6 @@ public class ReqSubmitJob
     // Temporary storage for hpc queue name during request processing.
     private transient String        hpcQueueName;
     
-    // Convert the incoming notes object to a string once.
-    private transient String        notesAsString;
-
 	@Override
 	public String validate() 
 	{
@@ -146,7 +144,6 @@ public class ReqSubmitJob
 	    else consolidatedConstraints = null;
 	}
 	
-	@Schema(required = true)
 	public String getName() {
 		return name;
 	}
@@ -179,7 +176,6 @@ public class ReqSubmitJob
 		this.description = description;
 	}
 
-	@Schema(required = true)
 	public String getAppId() {
 		return appId;
 	}
@@ -188,7 +184,6 @@ public class ReqSubmitJob
 		this.appId = appId;
 	}
 
-	@Schema(required = true)
 	public String getAppVersion() {
 		return appVersion;
 	}
@@ -212,6 +207,14 @@ public class ReqSubmitJob
 	public void setArchiveOnAppError(Boolean archiveOnAppError) {
 		this.archiveOnAppError = archiveOnAppError;
 	}
+
+  public ArchiveModeEnum getArchiveMode() {
+    return archiveMode;
+  }
+
+  public void setArchiveMode(ArchiveModeEnum archiveMode) {
+    this.archiveMode = archiveMode;
+  }
 
 	public Boolean getDynamicExecSystem() {
 		return dynamicExecSystem;
@@ -326,7 +329,7 @@ public class ReqSubmitJob
 	}
 
 	public List<JobFileInput> getFileInputs() {
-	    if (fileInputs == null) fileInputs = new ArrayList<JobFileInput>();
+	    if (fileInputs == null) fileInputs = new ArrayList<>();
 		return fileInputs;
 	}
 
@@ -335,7 +338,7 @@ public class ReqSubmitJob
 	}
 
     public List<JobFileInputArray> getFileInputArrays() {
-        if (fileInputArrays == null) fileInputArrays = new ArrayList<JobFileInputArray>();
+        if (fileInputArrays == null) fileInputArrays = new ArrayList<>();
         return fileInputArrays;
     }
 
@@ -411,26 +414,15 @@ public class ReqSubmitJob
         this.cmdPrefix = cmdPrefix;
     }
 
-    @Schema(hidden = true)
     public String getConsolidatedConstraints() {
         return consolidatedConstraints;
     }
 
-    @Schema(hidden = true)
     public String getHpcQueueName() {
         return hpcQueueName;
     }
 
     public void setHpcQueueName(String hpcQueueName) {
         this.hpcQueueName = hpcQueueName;
-    }
-
-    @Schema(hidden = true)
-    public String getNotesAsString() {
-        return notesAsString;
-    }
-
-    public void setNotesAsString(String notesAsString) {
-        this.notesAsString = notesAsString;
     }
 }

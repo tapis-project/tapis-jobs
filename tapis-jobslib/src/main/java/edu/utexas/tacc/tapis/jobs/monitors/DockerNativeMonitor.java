@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,7 +126,7 @@ public class DockerNativeMonitor
                 if (SUCCESS_RC.equals(_exitCode)) status = JobRemoteStatus.DONE;
                   else status = JobRemoteStatus.FAILED;
             } else {
-                String msg = MsgUtils.getMsg("JOBS_DOCKER_STATUS_PARSE_ERROR", 
+                String msg = JobUtils.getMsg("JOBS_DOCKER_STATUS_PARSE_ERROR",
                                              _job.getUuid(), result, cmd);
                 _log.warn(msg);
                 _exitCode = SUCCESS_RC;
@@ -139,7 +140,7 @@ public class DockerNativeMonitor
         }
         
         // This should not happen.
-        String msg = MsgUtils.getMsg("JOBS_DOCKER_STATUS_PARSE_ERROR", 
+        String msg = JobUtils.getMsg("JOBS_DOCKER_STATUS_PARSE_ERROR", 
                                      _job.getUuid(), result, cmd);
         _log.error(msg);
         return JobRemoteStatus.EMPTY;
@@ -174,7 +175,7 @@ public class DockerNativeMonitor
         if (result.contains(ERROR_PERMISSION_DENIED)) {
             String host = "<unknown>";
             try {host = _jobCtx.getExecutionSystem().getHost();} catch (Exception e) {}
-            String msg = MsgUtils.getMsg("JOBS_DOCKER_PERM_DENIED", rc, 
+            String msg = JobUtils.getMsg("JOBS_DOCKER_PERM_DENIED", rc, 
                                          _job.getOwner(), _job.getUuid(), host);
             throw new TapisException(msg);
         }
@@ -203,7 +204,7 @@ public class DockerNativeMonitor
         catch (Exception e) {
             String cid = _job.getRemoteJobId();
             if (!StringUtils.isBlank(cid) && cid.length() >= 12) cid = cid.substring(0, 12);
-            String msg = MsgUtils.getMsg("JOBS_DOCKER_RM_CONTAINER_ERROR", 
+            String msg = JobUtils.getMsg("JOBS_DOCKER_RM_CONTAINER_ERROR", 
                                          _job.getUuid(), execSystem.getId(), cid, result, cmd);
             _log.error(msg, e);
         }

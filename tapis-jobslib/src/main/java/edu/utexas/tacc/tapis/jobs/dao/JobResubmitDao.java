@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,7 +211,7 @@ public final class JobResubmitDao
           // Rollback transaction.
           try {if (conn != null) conn.rollback();}
               catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
-          String msg = MsgUtils.getMsg("JOBS_JOBRESUBMIT_INSERT_ERROR", jobResubmit.getJobUuid(), e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_INSERT_ERROR", jobResubmit.getJobUuid(), e.getMessage());
           _log.error(msg, e);
       }
       finally {

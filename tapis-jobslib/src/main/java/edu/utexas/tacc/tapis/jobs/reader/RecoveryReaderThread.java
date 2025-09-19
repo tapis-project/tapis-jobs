@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.reader;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,7 @@ public final class RecoveryReaderThread
     {
         // Tracing.
         if (_log.isInfoEnabled()) 
-            _log.info(MsgUtils.getMsg("JOBS_RECOVERY_THREAD_STARTING", 
+            _log.info(JobUtils.getMsg("JOBS_RECOVERY_THREAD_STARTING",
                                       Thread.currentThread().getName(),
                                       Thread.currentThread().getId(),
                                       _reader.getName(), _reader.getQueueName()));
@@ -57,7 +58,7 @@ public final class RecoveryReaderThread
         RecoveryManager mgr = null;
         try {mgr = RecoveryManager.getInstance(_reader);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_INIT_MGR_ERROR", 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_INIT_MGR_ERROR", 
                                              _reader.getName(), _reader.getQueueName());
                 _log.error(msg, e);
                 shutdownReader();
@@ -87,7 +88,7 @@ public final class RecoveryReaderThread
             catch (InterruptedException e) {
                 // End thread here.
                 if (_log.isInfoEnabled()) {
-                    String msg = MsgUtils.getMsg("JOBS_RECOVERY_THREAD_INTERRUPTED", 
+                    String msg = JobUtils.getMsg("JOBS_RECOVERY_THREAD_INTERRUPTED", 
                                                  Thread.currentThread().getName(),
                                                  Thread.currentThread().getId(),
                                                  _reader.getName(), _reader.getQueueName());
@@ -105,7 +106,7 @@ public final class RecoveryReaderThread
         
         // Say goodbye.
         if (_log.isInfoEnabled()) 
-            _log.info(MsgUtils.getMsg("JOBS_RECOVERY_THREAD_STOPPING", 
+            _log.info(JobUtils.getMsg("JOBS_RECOVERY_THREAD_STOPPING", 
                                       Thread.currentThread().getName(),
                                       Thread.currentThread().getId(),
                                       _reader.getName(), _reader.getQueueName()));
@@ -125,7 +126,7 @@ public final class RecoveryReaderThread
         // Check if we were interrupted and clear the interrupted bit.
         if (Thread.interrupted()) {
             if (_log.isInfoEnabled()) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_THREAD_INTERRUPTED", 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_THREAD_INTERRUPTED", 
                                              Thread.currentThread().getName(),
                                              Thread.currentThread().getId(),
                                              _reader.getName(), _reader.getQueueName());
@@ -157,7 +158,7 @@ public final class RecoveryReaderThread
         JobQueueManager qm = JobQueueManager.getInstance();
         try {qm.postRecoveryQueue(shutdownMsg);}
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_QUEUE_POST_ERROR", "RecoverShutdownMsg", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_QUEUE_POST_ERROR", "RecoverShutdownMsg", e.getMessage());
             _log.error(msg, e);
         }
 

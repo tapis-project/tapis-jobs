@@ -55,6 +55,7 @@ abstract class AbstractSingularityExecCmd
     private String                    workdir;      // working directory to be used for /tmp, /var/tmp and $HOME (if --contain was also used)
     private boolean                   writable;     // This option makes the container file system accessible as read/write
     private boolean                   writableTmpfs;// makes the file system accessible as read-write with non persistent data (with overlay support only)
+    private boolean                   fakeRoot;     // allows an unprivileged user to run a container with the appearance of running as root
 
     // Fields specific to singularity run.
     private String          app;      // an application to run inside a container
@@ -171,6 +172,7 @@ abstract class AbstractSingularityExecCmd
         }
         if (isWritable()) buf.append(" --writable");
         if (isWritableTmpfs()) buf.append(" --writable-tmpfs");
+        if (isFakeRoot()) buf.append(" --fakeroot");
     }
 
     /* ---------------------------------------------------------------------- */
@@ -474,6 +476,12 @@ abstract class AbstractSingularityExecCmd
     }
     public void setWritableTmpfs(boolean writableTmpfs) {
         this.writableTmpfs = writableTmpfs;
+    }
+    public boolean isFakeRoot() {
+        return fakeRoot;
+    }
+    public void setFakeRoot(boolean fakeRoot) {
+        this.fakeRoot = fakeRoot;
     }
 
     public String getAppArguments() {

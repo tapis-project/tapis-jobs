@@ -3,6 +3,7 @@ package edu.utexas.tacc.tapis.jobs.reader;
 import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,7 +173,7 @@ public abstract class AbstractQueueReader
           boolean multipleAck = false;
           try {_channel.basicAck(delivery.envelope.getDeliveryTag(), multipleAck);}
             catch (IOException e) {
-              String msg = MsgUtils.getMsg("JOBS_THREAD_ACK_ERROR",
+              String msg = JobUtils.getMsg("JOBS_THREAD_ACK_ERROR",
                                            Thread.currentThread().getName(),
                                            Thread.currentThread().getId(),
                                            getName(),
@@ -181,7 +182,7 @@ public abstract class AbstractQueueReader
               _log.error(msg, e);
             
               // Failures here are fatal.
-              String msg2 = MsgUtils.getMsg("JOBS_READER_FATAL_BROKER_ERROR", getName(),
+              String msg2 = JobUtils.getMsg("JOBS_READER_FATAL_BROKER_ERROR", getName(),
                                             getQueueName(), e.getMessage());
               _log.error(msg2, e);
               throw new TapisRuntimeException(msg2, e);
@@ -193,7 +194,7 @@ public abstract class AbstractQueueReader
           boolean requeue = false;
           try {_channel.basicReject(delivery.envelope.getDeliveryTag(), requeue);} 
             catch (IOException e) {
-              String msg = MsgUtils.getMsg("JOBS_THREAD_REJECT_ERROR",
+              String msg = JobUtils.getMsg("JOBS_THREAD_REJECT_ERROR",
                                            Thread.currentThread().getName(),
                                            Thread.currentThread().getId(),
                                            getName(),
@@ -202,7 +203,7 @@ public abstract class AbstractQueueReader
               _log.error(msg, e);
               
               // Failures here are fatal.
-              String msg2 = MsgUtils.getMsg("JOBS_READER_FATAL_BROKER_ERROR", getName(),
+              String msg2 = JobUtils.getMsg("JOBS_READER_FATAL_BROKER_ERROR", getName(),
                                             getQueueName(), e.getMessage());
               _log.error(msg2, e);
               throw new TapisRuntimeException(msg2, e);
@@ -223,7 +224,7 @@ public abstract class AbstractQueueReader
         if (_channel != null)
             try {_channel.basicCancel(_consumerTag);}
             catch (IOException e) {
-                String msg = MsgUtils.getMsg("JOBS_QMGR_CANCEL_CONSUMER_ERROR", 
+                String msg = JobUtils.getMsg("JOBS_QMGR_CANCEL_CONSUMER_ERROR", 
                                              getClass().getSimpleName(),
                                              _channel.getConnection().getId(),
                                              _channel.getChannelNumber());
@@ -330,7 +331,7 @@ public abstract class AbstractQueueReader
           // Create a temporary channel.
           try {channel = qm.getNewInChannel();}
             catch (Exception e) {
-              String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_ERROR");
+              String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_ERROR");
               _log.error(msg, e);
               throw e;
             }
@@ -341,7 +342,7 @@ public abstract class AbstractQueueReader
           int prefetchCount = 1;
           try {channel.basicQos(prefetchCount);}
               catch (IOException e) {
-                  String msg = MsgUtils.getMsg("JOBS_WORKER_CHANNEL_PREFETCH_ERROR", 
+                  String msg = JobUtils.getMsg("JOBS_WORKER_CHANNEL_PREFETCH_ERROR", 
                                   getName(), channel.getChannelNumber(), e.getMessage());
                   _log.error(msg, e);
                   throw new JobQueueException(msg, e);
@@ -356,7 +357,7 @@ public abstract class AbstractQueueReader
           try {channel.exchangeDeclare(exchangeName, getExchangeType().getType(), durable, autoDelete,
                                        qm.getExchangeArgs(getExchangeUse()));}
             catch (IOException e) {
-                String msg = MsgUtils.getMsg("JOBS_QMGR_XCHG_ERROR",
+                String msg = JobUtils.getMsg("JOBS_QMGR_XCHG_ERROR",
                                               qm.getInConnectionName(), channel.getChannelNumber(), 
                                               e.getMessage());
                 _log.error(msg, e);
@@ -368,7 +369,7 @@ public abstract class AbstractQueueReader
           String queueName = getQueueName();
           try {channel.queueDeclare(queueName, durable, exclusive, autoDelete, null);}
               catch (IOException e) {
-                  String msg = MsgUtils.getMsg("JOBS_QMGR_Q_DECLARE_ERROR", "topic", 
+                  String msg = JobUtils.getMsg("JOBS_QMGR_Q_DECLARE_ERROR", "topic", 
                                                queueName, qm.getInConnectionName(), 
                                                channel.getChannelNumber(), e.getMessage());
                   _log.error(msg, e);
@@ -380,7 +381,7 @@ public abstract class AbstractQueueReader
               channel.queueBind(queueName, exchangeName, getBindingKey());
           }
           catch (IOException e) {
-              String msg = MsgUtils.getMsg("JOBS_QMGR_Q_BIND_ERROR", "topic", queueName, 
+              String msg = JobUtils.getMsg("JOBS_QMGR_Q_BIND_ERROR", "topic", queueName, 
                                            getBindingKey(), qm.getInConnectionName(), 
                                            channel.getChannelNumber(), e.getMessage());
               _log.error(msg, e);
@@ -392,14 +393,14 @@ public abstract class AbstractQueueReader
             if (channel != null) {
               try {channel.abort(AMQP.CHANNEL_ERROR, e.getMessage());} 
                 catch (Exception e1){
-                  String msg = MsgUtils.getMsg("JOBS_QMGR_CHANNEL_ABORT_ERROR", 
+                  String msg = JobUtils.getMsg("JOBS_QMGR_CHANNEL_ABORT_ERROR", 
                                                channel.getChannelNumber(), e1.getMessage());
                   _log.warn(msg, e1);
                 }
             }
             
             // Failures here are fatal.
-            String msg = MsgUtils.getMsg("JOBS_READER_FATAL_BROKER_ERROR", getName(),
+            String msg = JobUtils.getMsg("JOBS_READER_FATAL_BROKER_ERROR", getName(),
                                          getQueueName(), e.getMessage());
             _log.error(msg, e);
             throw new TapisRuntimeException(msg, e);
@@ -438,7 +439,7 @@ public abstract class AbstractQueueReader
           // Queue the response.
           try {_deliveryQueue.put(delivery);}
             catch (InterruptedException e) {
-              String msg = MsgUtils.getMsg("JOBS_THREAD_CONSUMER_INTERRUPTED",
+              String msg = JobUtils.getMsg("JOBS_THREAD_CONSUMER_INTERRUPTED",
                                             Thread.currentThread().getName(),
                                             Thread.currentThread().getId(),
                                             getName(), 
@@ -472,7 +473,7 @@ public abstract class AbstractQueueReader
           consumerTag = _channel.basicConsume(getQueueName(), autoack, _consumer);
       }
       catch (Exception e) {
-        String msg = MsgUtils.getMsg("JOBS_THREAD_CONSUMER_START_ERROR",
+        String msg = JobUtils.getMsg("JOBS_THREAD_CONSUMER_START_ERROR",
                                      Thread.currentThread().getName(),
                                      Thread.currentThread().getId(),
                                      getName(),

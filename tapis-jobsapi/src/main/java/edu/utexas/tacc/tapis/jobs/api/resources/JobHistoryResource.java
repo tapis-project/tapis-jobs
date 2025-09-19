@@ -19,6 +19,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,11 +40,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
 public class JobHistoryResource extends AbstractResource {
@@ -106,35 +102,8 @@ public class JobHistoryResource extends AbstractResource {
      @GET
      @Path("/{jobUuid}/history")
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Retrieve history of a previously submitted job by its UUID.\n\n"
-                           + "The caller must be the job owner, creator or a tenant administrator."
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job's history retrieved.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespJobHistory.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "404", description = "Job not found.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
-     public Response getJobHistory(@PathParam("jobUuid") String jobUuid, @QueryParam("limit") int limit, 
-				@QueryParam("skip") int skip, @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response getJobHistory(@PathParam("jobUuid") String jobUuid, @QueryParam("limit") int limit,
+				@QueryParam("skip") int skip)
                                
      {
        // Trace this request.
@@ -143,13 +112,15 @@ public class JobHistoryResource extends AbstractResource {
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
@@ -159,9 +130,9 @@ public class JobHistoryResource extends AbstractResource {
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // orderBy is of the format - fname1(desc), fname2, fname3(asc), ...
        // ThreadContext designed to never return null for SearchParameters
        SearchParameters srchParms = threadContext.getSearchParameters();
@@ -181,12 +152,12 @@ public class JobHistoryResource extends AbstractResource {
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
       
            
@@ -197,16 +168,16 @@ public class JobHistoryResource extends AbstractResource {
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        
        } else if(!jobstatus.getVisible()) {
-    	   String msg = MsgUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+    	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
        	   _log.warn(msg);
        	   ResultName missingName = new ResultName();
        	   missingName.name = jobUuid;
        	   RespName r = new RespName(missingName);
        	   return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-            msg, prettyPrint, r)).build();
+            msg, r)).build();
        }
       
        List<JobEvent> events = null;
@@ -216,11 +187,11 @@ public class JobHistoryResource extends AbstractResource {
        	} catch (TapisImplException e) {
     	   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        	} catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        
        
@@ -232,11 +203,11 @@ public class JobHistoryResource extends AbstractResource {
 		} catch (TapisImplException e) {
 			_log.error(e.getMessage(), e);
 	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	       	} catch (Exception e) {
 	           _log.error(e.getMessage(), e);
 	           return Response.status(Status.INTERNAL_SERVER_ERROR).
-	                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+	                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	       }
        }
        // Success.
@@ -244,6 +215,6 @@ public class JobHistoryResource extends AbstractResource {
 	     
        return Response.status(Status.OK).entity(TapisRestUtils
     		   .createSuccessResponse(
-               MsgUtils.getMsg("JOBS_HISTORY_RETRIEVED",  threadContext.getOboTenantId(),threadContext.getOboUser(),jobUuid), prettyPrint, r)).build();
+               JobUtils.getMsg("JOBS_HISTORY_RETRIEVED",  threadContext.getOboTenantId(),threadContext.getOboUser(),jobUuid), r)).build();
      }
 }

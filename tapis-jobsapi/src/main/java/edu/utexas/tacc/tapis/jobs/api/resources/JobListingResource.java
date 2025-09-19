@@ -20,6 +20,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +38,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/list")
 public class JobListingResource 
@@ -109,41 +105,13 @@ extends AbstractResource
 	/* ---------------------------------------------------------------------------- */
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	@Operation(
-			description = "Retrieve list of jobs for which the user is the job owner, creator or a tenant administrator.\n\n"
-					+ "Also list the jobs that are shared with the user. \n"
-					+ "listType allowed are: MY_JOBS, SHARED_JOBS, ALL_JOBS",
-					tags = "jobs",
-					security = {@SecurityRequirement(name = "TapisJWT")},
-					responses = 
-				{
-						@ApiResponse(responseCode = "200", description = "Jobs List retrieved.",
-								content = @Content(schema = @Schema(
-										implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJobList.class))),
-						@ApiResponse(responseCode = "400", description = "Input error.",
-						content = @Content(schema = @Schema(
-								implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-						@ApiResponse(responseCode = "401", description = "Not authorized.",
-						content = @Content(schema = @Schema(
-								implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-						@ApiResponse(responseCode = "403", description = "Forbidden.",
-						content = @Content(schema = @Schema(
-								implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-						@ApiResponse(responseCode = "404", description = "Job not found.",
-						content = @Content(schema = @Schema(
-								implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-						@ApiResponse(responseCode = "500", description = "Server error.",
-						content = @Content(schema = @Schema(
-								implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-			)
 	public Response getJobList(
 			@QueryParam("limit") int limit, 
 			@QueryParam("skip") int skip,
 			@QueryParam("startAfter") int startAfter,
 			@QueryParam("orderBy") String OrderBy,
 			@QueryParam("computeTotal")  boolean computeTotal,
-			@DefaultValue("MY_JOBS") @QueryParam("listType") String listType,
-			@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+			@DefaultValue("MY_JOBS") @QueryParam("listType") String listType)
 
 	{
 		// Trace this request.
@@ -153,6 +121,8 @@ extends AbstractResource
 			_log.trace(msg);
 		}
 
+    JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
 		// ------------------------- Create Context ---------------------------
 		// Validate the threadlocal content here so no subsequent code on this request needs to.
 		TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
@@ -160,7 +130,7 @@ extends AbstractResource
 			var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
 			_log.error(msg);
 			return Response.status(Status.INTERNAL_SERVER_ERROR).
-					entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+					entity(TapisRestUtils.createErrorResponse(msg)).build();
 		}
 
 		// ------ Set default values for the reserved query parameters ------------
@@ -176,9 +146,9 @@ extends AbstractResource
 		// Get the listType. Default Type is  MY_JOBS  
 		// Validate the listType query parameter
 		if(!EnumUtils.isValidEnum(JobListType.class, listType)) {
-			String msg = MsgUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR", threadContext.getOboTenantId(),threadContext.getOboUser(), listType);
+			String msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR", threadContext.getOboTenantId(),threadContext.getOboUser(), listType);
 			_log.error(msg);
-			return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg,prettyPrint)).build();
+			return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
 		}
 
 		boolean sharedWithMe = false;
@@ -202,7 +172,7 @@ extends AbstractResource
 		} catch (TapisImplException e) {
 			_log.error(e.getMessage(), e);
 			return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-					entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+					entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 		}
 		String sharedCond = null;
 		// Add the shared jobs UUIDs to the shared searchlist
@@ -228,7 +198,7 @@ extends AbstractResource
 				} catch (TapisImplException e) {
 					_log.error(e.getMessage(), e);
 					return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-							entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+							entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				}
 			}
 			//totalCountShared represents all the jobs that are shared with the user
@@ -239,7 +209,7 @@ extends AbstractResource
 				} catch (TapisImplException e) {
 					_log.error(e.getMessage(), e);
 					return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-							entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+							entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				}
 			} 
 
@@ -264,12 +234,12 @@ extends AbstractResource
 			catch (TapisImplException e) {
 				_log.error(e.getMessage(), e);
 				return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-						entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+						entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			}
 			catch (Exception e) {
 				_log.error(e.getMessage(), e);
 				return Response.status(Status.INTERNAL_SERVER_ERROR).
-						entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+						entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			}
 		}
 
@@ -290,7 +260,7 @@ extends AbstractResource
 			  } catch (TapisImplException e) {
 				  _log.error(e.getMessage(), e);
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-			                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			  }
 		}
 
@@ -305,7 +275,7 @@ extends AbstractResource
 			} catch (TapisImplException e) {
 				_log.error(e.getMessage(), e);
 				return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-						entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+						entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			} 
 			if(!jobSharedSummaryList.isEmpty()) {
 				jobList.addAll(jobSharedSummaryList);
@@ -313,9 +283,9 @@ extends AbstractResource
 		}
 
 		if(jobList.isEmpty()) {
-			String msg =  MsgUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
+			String msg =  JobUtils.getMsg("JOBS_SEARCH_NO_JOBS_FOUND", threadContext.getOboTenantId(),threadContext.getOboUser());
 			RespJobSearch r = new RespJobSearch(jobList,srchParms.getLimit(),srchParms.getOrderBy(),srchParms.getSkip(),srchParms.getStartAfter(),-1);
-			return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,prettyPrint,r)).build(); 
+			return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg,r)).build();
 		}
 
 		if (computeTotal && srchParms.getLimit() <= 0 && srchParms.getSkip() == 0) totalCount = jobList.size();
@@ -326,7 +296,7 @@ extends AbstractResource
 
 		return Response.status(Status.OK).entity(TapisRestUtils
 				.createSuccessResponse(
-						MsgUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), prettyPrint, r)).build();
+						JobUtils.getMsg("JOBS_LIST_RETRIEVED", threadContext.getOboUser(), threadContext.getOboTenantId()), r)).build();
 	}
 }
 

@@ -1,13 +1,12 @@
 package edu.utexas.tacc.tapis.jobs.api;
 
-import static edu.utexas.tacc.tapis.client.shared.Utils.DEFAULT_SELECT_ALL;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,7 +144,7 @@ final class DBMigrationSharedAppCtx
 		try {
 			jobsUpdate = conn.prepareStatement(UPDATE);
 		} catch (Exception e) {
-			String msg = MsgUtils.getMsg("DB_JOBS_UPDATE_SHAREDAPPCTX_CONNECTION_ERROR",e.getMessage());
+			String msg = JobUtils.getMsg("JOBS_DBUPDATE_SHAREDAPPCTX_CONNECTION_ERROR",e.getMessage());
 			_log.error(msg,e);
 			return; // Not much we can do.
 		}
@@ -163,7 +162,7 @@ final class DBMigrationSharedAppCtx
 			int totalRowsUpdated = 0;
 			for(int k = 0; k < rows.length; k++) {
 				if(rows[k] != 1) {
-					_log.debug(MsgUtils.getMsg("DB_UPDATE_JOB_SHAREDAPP_CTX_FAILURE", "jobs", rows[k]));
+					_log.debug(JobUtils.getMsg("JOBS_DBUPDATE_JOB_SHAREDAPP_CTX_FAILURE", "jobs", rows[k]));
 				} else totalRowsUpdated = totalRowsUpdated + 1;
 			}
 	        if (totalRowsUpdated < expectedRowsUpdate ) {
@@ -177,7 +176,7 @@ final class DBMigrationSharedAppCtx
             try {if (conn != null) conn.rollback();}
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
-            String msg = MsgUtils.getMsg("JOBS_UPDATE_SHAREDAPPCTX_VALUE_ERROR",e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_UPDATE_SHAREDAPPCTX_VALUE_ERROR",e.getMessage());
             _log.error(msg,e);
         }
 	}

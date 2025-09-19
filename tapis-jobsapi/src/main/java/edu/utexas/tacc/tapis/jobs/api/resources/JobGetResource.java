@@ -18,6 +18,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +36,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @Path("/")
 public class JobGetResource 
@@ -105,35 +101,7 @@ public class JobGetResource
      @Path("/{jobUuid}")
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Retrieve a previously submitted job by its UUID.\n\n"
-                           + "The caller must be the job owner, creator or a tenant administrator."
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Job retrieved.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespGetJob.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "404", description = "Job not found.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
-     public Response getJob(@PathParam("jobUuid") String jobUuid,
-                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response getJob(@PathParam("jobUuid") String jobUuid)
                                
      {
        // Trace this request.
@@ -142,13 +110,15 @@ public class JobGetResource
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
@@ -158,9 +128,9 @@ public class JobGetResource
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;
        try {
@@ -170,11 +140,11 @@ public class JobGetResource
        } catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        } catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
         
        // ------------------------- Process Results --------------------------
@@ -184,12 +154,12 @@ public class JobGetResource
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        }
        
        // Success.
        RespSubmitJob r = new RespSubmitJob(job);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_RETRIEVED", jobUuid), prettyPrint, r)).build();
+               JobUtils.getMsg("JOBS_RETRIEVED", jobUuid), r)).build();
      }
 }

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.monitors;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +72,7 @@ public class SingularityRunMonitor
         
         // Sanity check--we can't do much without the remote job id.
         if (StringUtils.isBlank(_job.getRemoteJobId())) {
-            String msg = MsgUtils.getMsg("JOBS_MISSING_REMOTE_JOB_ID", _job.getUuid());
+            String msg = JobUtils.getMsg("JOBS_MISSING_REMOTE_JOB_ID", _job.getUuid());
             throw new JobException(msg);
         }
         
@@ -79,7 +80,7 @@ public class SingularityRunMonitor
         var runCmd = _jobCtx.getExecSystemTapisSSH().getRunCommand();
         
         // Get the command text for this job's container.
-        String cmd = JobExecutionUtils.SINGULARITY_START_MONITOR;
+        String cmd = JobExecutionUtils.SINGULARITY_MONITOR;
         
         // Execute the query with retry capability.
         String result = null;
@@ -151,7 +152,7 @@ public class SingularityRunMonitor
             var m = _psPattern.matcher(r);
             var b = m.matches();
             if (!b) {
-                String msg = MsgUtils.getMsg("JOBS_SINGULARITY_PS_PARSE_WARN", _job.getUuid(), r);
+                String msg = JobUtils.getMsg("JOBS_SINGULARITY_PS_PARSE_WARN", _job.getUuid(), r);
                 _log.warn(msg);
                 continue;
             }

@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.statemachine;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.statefulj.fsm.FSM;
@@ -132,7 +133,7 @@ public class JobFSM<T extends IJobFSMStatefulEntity>
             try {current = this.transition(stateful, current, event, transition, args);}
              catch (RetryException e){
                  // This should never happen, but just in case...
-                 String msg = MsgUtils.getMsg("JOBS_STATE_RETRY_ERROR", e.getMessage());
+                 String msg = JobUtils.getMsg("JOBS_STATE_RETRY_ERROR", e.getMessage());
                  throw new RuntimeException(msg, e);
              } 
         } 
@@ -143,7 +144,7 @@ public class JobFSM<T extends IJobFSMStatefulEntity>
             // method signature.
             if (_strict) 
             {
-                String msg = MsgUtils.getMsg("JOBS_STATE_ILLEGAL_TRANSITION", current.getName(), event);
+                String msg = JobUtils.getMsg("JOBS_STATE_ILLEGAL_TRANSITION", current.getName(), event);
                 throw new IllegalStateException(msg);
             }
             

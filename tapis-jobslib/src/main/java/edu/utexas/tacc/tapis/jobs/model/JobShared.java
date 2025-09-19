@@ -5,7 +5,6 @@ import java.time.Instant;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 public final class JobShared
 {
@@ -84,7 +83,6 @@ public final class JobShared
 		this.createdby = createdby;
 	}
 		
-	@Schema(type = "string")
 	public Instant getCreated() {
 		return created;
 	}

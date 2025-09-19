@@ -8,11 +8,108 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
+---------------------------------------------------------------------------
+## 1.9.1 - 2025-09-18
+
+Enhancement, incremental improvements and bug fix.
+
+Log messages specific to Jobs service moved from shared catalog to a local catalog in the repository.
+Note that user of ArchiveOnAppError attribute is deprecated. It is being replaced with ArchiveMode.
+
+### New features:
+- Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
+- Return top level notes attribute as a json attribute rather than a string with json embedded.
+- Add attribute *archiveMode* to replace attribute *archiveOnAppError*. Three modes: ALWAYS, SKIP_ON_FAIL, NEVER
+
+### Bug fixes:
+- Fix issue with recovery from BLOCKED state. Incorrect error messages and not all authentication methods handled properly.
+
 -----------------------
-## 1.8.1 - 2024-12-19
+## 1.9.0 - 2025-06-23
+
+Incremental improvements and new features.
+
+### New Features:
+- Move openapi specification file to repo tapis-project/openapi-jobs
+- Support runtime setting TAPIS_LOCAL_NODE_NAME=auto. When set to *auto* the local host name is used.
+- Support Apptainer (i.e. Singularity) option --fakeroot
+
+### Breaking Changes:
+1. Support for the deprecated runtime option *SINGULARITY_START* has been removed.
+2. The deprecated endpoints *ready* and *sayHello* have been removed. Please use the endpoints *healthcheck* and *readycheck*.
+3. The query parameter *pretty* has been removed.
+
+### Bug fixes:
+- None
+
+-----------------------
+## 1.8.5 - 2025-05-08
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+Incremental improvements and a bug fix.
+
+### New Features:
+- Ignore expired JWTs older than 90 days (update from shared code).
+- Add job completion condition code JOB_EXECUTION_MONITORING_ERROR_TIMEOUT
+
+### Bug fixes:
+1. Fix issue with archiving not happening when job times out.
+
+-----------------------
+## 1.8.4 - 2025-03-25
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+### New Features:
+- Update tomcat to version 9.0.99.
+
+### Bug fixes:
+1. Improved handling of unexpected squeue output during job monitoring. Do not abort.
+
+-----------------------
+## 1.8.3 - 2025-02-16
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+Bug fix for setting of shared application context when Jobs initiates a transfer for a file input.
+When the job submit request specifies file inputs the shared application context for the destination paths
+was not being correctly set for all cases. 
+
+### New Features:
+- None
+
+### Bug fixes:
+1. Shared application context not correctly set for destination paths of job request file inputs. 
+
+-----------------------
+## 1.8.2 - 2025-02-05
+
+**WARNING** Support for runtime option *SINGULARITY_START* has been deprecated. Support will be removed
+in a future release. If you have a need for this option please contact Tapis support (cicsupport@tacc.utexas.edu).
+
+Incremental improvements and new features.
+
+### New Features:
+1. Support for Trusted Management System (TMS) ssh keys, Tapis authentication method TMS_KEYS.
+2. Add GUID to audit log record.
+3. Reject service JWTs from OSP authenticator service.
+4. Allow setting of *--user* option for Docker runtime.
+
+### Bug fixes:
+- None
+
+-----------------------
+## 1.8.1 - 2025-01-09
 
 ### New Features:
 1. Upgrade to Java 21.
+2. Add readycheck endpoint that will replace ready endpoint at next major release.
+3. Add support for scheduler profile hidden option PARTITION.
+4. Incorporate latest JWT refresh code from tapis-shared-java. Exit on service JWT refresh error.
 
 -----------------------
 ## 1.8.0 - 2024-12-04

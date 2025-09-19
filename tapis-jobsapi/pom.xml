@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis-jobs</artifactId>
-		<version>1.8.1</version>
+		<version>1.9.1</version>
 	</parent>
 	
 	<artifactId>tapis-jobsapi</artifactId>
@@ -98,29 +98,6 @@
                         <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
                     </suiteXmlFiles>
                 </configuration>
-            </plugin>
-
-            <!-- Generate the openapi documentation from the code -->
-            <plugin>
-                <groupId>io.swagger.core.v3</groupId>
-                <artifactId>swagger-maven-plugin</artifactId>
-                <configuration>
-                    <outputFileName>openapi</outputFileName>
-                    <outputPath>${project.basedir}/src/main/resources</outputPath>
-                    <outputFormat>JSONANDYAML</outputFormat>
-                    <resourcePackages>
-                        <package>edu.utexas.tacc.tapis.jobs.api.resources</package>
-                    </resourcePackages>
-                    <prettyPrint>true</prettyPrint>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>resolve</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
 

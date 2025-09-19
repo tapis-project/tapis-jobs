@@ -5,7 +5,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 public class ReqUserEvent 
  implements IReqBody
@@ -36,20 +35,16 @@ public class ReqUserEvent
 		return null; 
 	}
 
-    @Schema(required = true)
     public String getEventData() {
         return eventData;
     }
-
     public void setEventData(String eventData) {
         this.eventData = eventData;
     }
 	
-	@Schema(required = false)
     public String getEventDetail() {
         return eventDetail;
     }
-
     public void setEventDetail(String eventDetail) {
         this.eventDetail = eventDetail;
     }

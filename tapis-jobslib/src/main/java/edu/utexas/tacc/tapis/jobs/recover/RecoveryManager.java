@@ -9,6 +9,7 @@ import java.util.ListIterator;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,7 +179,7 @@ public final class RecoveryManager
      * When this method runs, it must be the only thread accessing the recovery
      * data structures.
      * 
-     * @param recoverMsg a new recovery record or null if this is just a wake up call.
+     * @param newJobRecovery a new recovery record or null if this is just a wake up call.
      */
     public synchronized void recover(JobRecovery newJobRecovery)
     {
@@ -241,7 +242,7 @@ public final class RecoveryManager
         JobRecovery jobRecovery = _jobUuidIndex.get(cancelMsg.jobUuid);
         if (jobRecovery == null) {
             // The job is not in recovery
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_JOB_NOT_FOUND", cancelMsg.jobUuid);
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_JOB_NOT_FOUND", cancelMsg.jobUuid);
             _log.info(msg);
             return false; 
         }
@@ -257,7 +258,7 @@ public final class RecoveryManager
         // Is the job in recovery?
         if (blockedJob == null) {
             // The job is not in recovery even though its indexed. This should never happen.
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_JOB_NOT_FOUND", cancelMsg.jobUuid);
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_JOB_NOT_FOUND", cancelMsg.jobUuid);
             _log.error(msg);
             return false;
         }
@@ -275,7 +276,7 @@ public final class RecoveryManager
         boolean result = true;
         try {_jobsDao.setStatus(blockedJob.getJobUuid(), cancelMsg.newStatus, cancelMsg.statusMessage, cond);}
         catch (JobException e) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_CANCEL_JOB_ERROR", jobRecovery.getId(), 
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_CANCEL_JOB_ERROR", jobRecovery.getId(), 
                                          blockedJob.getJobUuid(), e.getMessage());
             _log.error(msg, e);
             result = false;
@@ -312,7 +313,7 @@ public final class RecoveryManager
         List<JobRecovery> list = null;
         try {list = _recoveryDao.getRecoveryJobs();}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_DB_QUERY_ERROR", "recovery", 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_DB_QUERY_ERROR", "recovery", 
                                              e.getMessage());
                 _log.error(msg, e);
                 throw new JobException(msg, e);
@@ -337,7 +338,7 @@ public final class RecoveryManager
                 addRecoveryJob(jobRecovery);
             }
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_SELECT_BLOCKED_ERROR", curRecoveryId, 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_SELECT_BLOCKED_ERROR", curRecoveryId, 
                                              e.getMessage());
                 _log.error(msg, e);
             }
@@ -409,7 +410,7 @@ public final class RecoveryManager
         // Firewall against incomplete recovery objects.  We make sure there is NO WAY that
         // a recovery job object can be placed in the internal set without a valid id.
         if (jobRecovery.getId() <= 0) {
-            String msg = MsgUtils.getMsg("JOBS_BAD_RECOVERY_ID", jobRecovery.getTenantId(), 
+            String msg = JobUtils.getMsg("JOBS_BAD_RECOVERY_ID", jobRecovery.getTenantId(), 
                                          jobRecovery.getConditionCode().name(), 
                                          jobRecovery.getTesterHash(), jobRecovery.getId());
             _log.error(msg);
@@ -430,7 +431,7 @@ public final class RecoveryManager
                 newJobUuids.contains(blockedJob.getJobUuid())) 
             {
                 it.remove();
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_DUPLICATE_JOB", 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_DUPLICATE_JOB", 
                                              blockedJob.getJobUuid(), 
                                              jobRecovery.getId(),
                                              jobRecovery.getConditionCode().name());
@@ -483,13 +484,13 @@ public final class RecoveryManager
     {
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETING_BLOCKED_JOB", jobUuid);
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_DELETING_BLOCKED_JOB", jobUuid);
             _log.debug(msg);
         }
         
         // The recovery record should not be null.
         if (jobRecovery == null) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_NULL_RECOVERY_RECORD", jobUuid);
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_NULL_RECOVERY_RECORD", jobUuid);
             _log.error(msg);
             return;
         }
@@ -539,7 +540,7 @@ public final class RecoveryManager
     {
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_DELETING_RECOVERY_RECORD", jobRecovery.getId(), jobRecovery.getTenantId());
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_DELETING_RECOVERY_RECORD", jobRecovery.getId(), jobRecovery.getTenantId());
             _log.debug(msg);
         }
         
@@ -556,7 +557,7 @@ public final class RecoveryManager
             List<String> blockedUuids = 
                 jobRecovery.getBlockedJobs().stream().map(JobBlocked::getJobUuid).collect(Collectors.toList());
             String s = StringUtils.join(blockedUuids, ", ");
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_INVALID_JOB", jobRecovery.getId(),
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_INVALID_JOB", jobRecovery.getId(),
                                          jobRecovery.getTenantId(), s, e.getMessage());
             _log.error(msg, e);
         }
@@ -598,7 +599,7 @@ public final class RecoveryManager
         // to update the database and continue with recovery anyway.
         try {_recoveryDao.updateAttempts(jobRecovery);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_INGORE_UPDATE_ERROR",
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_INGORE_UPDATE_ERROR",
                                              jobRecovery.getId(), jobRecovery.getTenantId());
                 _log.warn(msg, e);
             } 
@@ -640,7 +641,7 @@ public final class RecoveryManager
         
         // Some debugging.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_RESUBMIT_COUNT", resubmitCount, totalBlockedJobs,
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_RESUBMIT_COUNT", resubmitCount, totalBlockedJobs,
                                          jobRecovery.getId(), jobRecovery.getTenantId());
             _log.debug(msg);
         }
@@ -658,7 +659,7 @@ public final class RecoveryManager
             processedList.add(blockedJob.getJobUuid());
             
             // Create the resubmission message.
-            String message = MsgUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB",
+            String message = JobUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB",
                                              jobRecovery.getId(), blockedJob.getJobUuid(),
                                              blockedJob.getSuccessStatus());
             if (_log.isDebugEnabled()) _log.debug(message);
@@ -670,7 +671,7 @@ public final class RecoveryManager
             	_jobsDao.setStatus(blockedJob.getJobUuid(), blockedJob.getSuccessStatus(), message, cond);
             }
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB_ERROR", jobRecovery.getId(), 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB_ERROR", jobRecovery.getId(), 
                                              blockedJob.getJobUuid(), e.getMessage());
                 _log.error(msg, e);
                 
@@ -693,7 +694,7 @@ public final class RecoveryManager
             Job job = null;
             try {job = _jobsDao.getJobByUUID(blockedJob.getJobUuid(), true);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB_ERROR", jobRecovery.getId(), 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB_ERROR", jobRecovery.getId(), 
                                              blockedJob.getJobUuid(), e.getMessage());
                 _log.error(msg, e);
 
@@ -709,7 +710,7 @@ public final class RecoveryManager
             // Queue the job on its original tenant queue.
             try {JobQueueManager.getInstance().queueJob(job);}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB_ERROR", jobRecovery.getId(), 
+                String msg = JobUtils.getMsg("JOBS_RECOVERY_RESUBMIT_JOB_ERROR", jobRecovery.getId(), 
                                              blockedJob.getJobUuid(), e.getMessage());
                 _log.error(msg, e);
     
@@ -744,7 +745,7 @@ public final class RecoveryManager
     {
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_FAILING_ALL_BLOCKED_JOBS", jobRecovery.getBlockedJobs().size(),
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_FAILING_ALL_BLOCKED_JOBS", jobRecovery.getBlockedJobs().size(),
                                          jobRecovery.getId(), jobRecovery.getTenantId());
             _log.debug(msg);
         }
@@ -773,7 +774,7 @@ public final class RecoveryManager
     {
         // Tracing.
         if (_log.isDebugEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_RECOVERY_FAILING_JOBS", jobUuid);
+            String msg = JobUtils.getMsg("JOBS_RECOVERY_FAILING_JOBS", jobUuid);
             _log.debug(msg);
         }
         
@@ -792,7 +793,7 @@ public final class RecoveryManager
         try {_jobsDao.failJob(name, jobUuid, tenantId, message, cond);} 
             catch (Exception e) {
                 // Swallow exception.
-                String msg = MsgUtils.getMsg("JOBS_STATUS_CHANGE_ERROR", 
+                String msg = JobUtils.getMsg("JOBS_STATUS_CHANGE_ERROR", 
                                              jobUuid, JobStatusType.FAILED.name());
                 _log.error(msg, e);
                 
@@ -811,7 +812,7 @@ public final class RecoveryManager
         List<String> blockedUuids = 
             jobRecovery.getBlockedJobs().stream().map(JobBlocked::getJobUuid).collect(Collectors.toList());
         String s = StringUtils.join(blockedUuids, ", ");
-        String msg = MsgUtils.getMsg("JOBS_RECOVERY_INVALID_JOB", jobRecovery.getId(),
+        String msg = JobUtils.getMsg("JOBS_RECOVERY_INVALID_JOB", jobRecovery.getId(),
                                      jobRecovery.getTenantId(), s, e.getMessage());
         return msg;
     }

@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,12 +57,6 @@ public final class JobExecutionUtils
     public static final Pattern DOCKER_RC_PATTERN = Pattern.compile(".*\\((.*)\\).*\\R*");
     
     // -------------------------- Singularity Section ----------------------------
-    // Get the PID of the sinit process.
-    public static final String SINGULARITY_START_PID = "singularity instance list ";
-    
-    // Stop the detached singularity instance.
-    public static final String SINGULARITY_STOP = "singularity instance stop ";
-    
     // Kill a process using the SIGKILL signal
     public static final String KILL_9_CMD_FMT = "kill -9 %s";
     // Use PKILL to kill a process and it's subprocesses using the SIGKILL signal
@@ -71,7 +66,7 @@ public final class JobExecutionUtils
     public static final String SLURM_CANCEL = "scancel ";
     
     // Get select information about all processes running on the system.
-    public static final String SINGULARITY_START_MONITOR = "ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd";
+    public static final String SINGULARITY_MONITOR = "ps --no-headers --sort=pid -eo pid,ppid,stat,euser,cmd";
 
     // ----------------------------- Zip Section -----------------------------
     public static final String ZIP_UNZIP_CMD_FMT = "cd %s; unzip %s";
@@ -142,14 +137,14 @@ public final class JobExecutionUtils
     {
         // Informational logging.
         Job job = jobCtx.getJob();
-        String msg = MsgUtils.getMsg("JOBS_CMD_MSG_RECEIVED", job.getUuid(), cmdMsg.msgType.name(),
+        String msg = JobUtils.getMsg("JOBS_CMD_MSG_RECEIVED", job.getUuid(), cmdMsg.msgType.name(),
                                      cmdMsg.senderId, cmdMsg.correlationId);
         _log.info(msg);
         
         // Change the job state.  Failure here forces us to ignore the command.
         try {jobCtx.getJobsDao().setStatus(job, newStatus, msg);}
         catch (Exception e) {
-            String msg1 = MsgUtils.getMsg("JOBS_STATUS_CHANGE_ON_CMD_ERROR", job.getUuid(), 
+            String msg1 = JobUtils.getMsg("JOBS_STATUS_CHANGE_ON_CMD_ERROR", job.getUuid(), 
                                           newStatus.name(), cmdMsg.msgType.name());
             _log.error(msg1, e);
             return;  // the command failed 
@@ -165,7 +160,7 @@ public final class JobExecutionUtils
                 killer.attack();
                 */
             } catch (Exception e) {
-                _log.warn(MsgUtils.getMsg("JOBS_CMD_KILL_ERROR", job.getUuid(), e.getMessage()));
+                _log.warn(JobUtils.getMsg("JOBS_CMD_KILL_ERROR", job.getUuid(), e.getMessage()));
             }
 
         // Stop further job processing on success.
@@ -180,7 +175,7 @@ public final class JobExecutionUtils
         // Informational logging.
         Job job = jobCtx.getJob();
         if (_log.isInfoEnabled()) {
-            String msg = MsgUtils.getMsg("JOBS_CMD_MSG_RECEIVED", job.getUuid(), cmdMsg.msgType.name(),
+            String msg = JobUtils.getMsg("JOBS_CMD_MSG_RECEIVED", job.getUuid(), cmdMsg.msgType.name(),
                                          cmdMsg.senderId, cmdMsg.correlationId);
             _log.info(msg);
         }
@@ -206,7 +201,7 @@ public final class JobExecutionUtils
         if (enabled != null && enabled) return;
             
         // Throw a recoverable exception.
-        String msg = MsgUtils.getMsg("JOBS_SYSTEM_NOT_AVAILABLE", job.getUuid(), system.getId());
+        String msg = JobUtils.getMsg("JOBS_SYSTEM_NOT_AVAILABLE", job.getUuid(), system.getId());
         _log.warn(msg);
         throw new TapisSystemAvailableException(msg, RecoveryUtils.captureSystemState(system));        
     }
@@ -231,7 +226,7 @@ public final class JobExecutionUtils
         if (enabled != null && versionEnabled != null && enabled && versionEnabled) return;
             
         // Throw a recoverable exception.
-        String msg = MsgUtils.getMsg("JOBS_APP_NOT_AVAILABLE", job.getUuid(), app.getId(), app.getVersion());
+        String msg = JobUtils.getMsg("JOBS_APP_NOT_AVAILABLE", job.getUuid(), app.getId(), app.getVersion());
         _log.warn(msg);
         throw new TapisAppAvailableException(msg, RecoveryUtils.captureAppState(app));        
     }

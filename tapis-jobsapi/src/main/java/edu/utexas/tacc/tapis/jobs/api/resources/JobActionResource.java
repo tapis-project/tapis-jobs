@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,11 +33,6 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement; 
 
 @Path("/")
 public class JobActionResource extends AbstractResource {
@@ -75,7 +71,7 @@ public class JobActionResource extends AbstractResource {
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
+
      @Context
      private Application        _application;
   
@@ -100,38 +96,7 @@ public class JobActionResource extends AbstractResource {
      @POST
      @Path("/{jobUuid}/hide")
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Hide a job by its UUID.\n\n"
-                           + "The caller must be the job owner, creator or a tenant administrator."
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Hide the job successfully",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespHideJob.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "404", description = "Job not found.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                  @ApiResponse(responseCode = "409", description = "Job is already in Terminal State (CANCELLED, FINISHED or FAILED). Job state conflicts with the cancel request. No action taken",
-                  content = @Content(schema = @Schema(
-                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
-     public Response hideJob(@PathParam("jobUuid") String jobUuid,
-                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response hideJob(@PathParam("jobUuid") String jobUuid)
                                
      {
        // Trace this request.
@@ -146,7 +111,7 @@ public class JobActionResource extends AbstractResource {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
@@ -156,9 +121,11 @@ public class JobActionResource extends AbstractResource {
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
     // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
@@ -170,12 +137,12 @@ public class JobActionResource extends AbstractResource {
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
 
        // ------------------------- Process Results --------------------------
@@ -185,7 +152,7 @@ public class JobActionResource extends AbstractResource {
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        
        }
        // ------------------------- Check the Job's status -----------------------------
@@ -195,40 +162,41 @@ public class JobActionResource extends AbstractResource {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_IN_TERMINAL_STATE", jobUuid);
+           String msg = JobUtils.getMsg("JOBS_JOB_NOT_IN_TERMINAL_STATE", jobUuid);
            _log.warn(msg);
     	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(
-                   msg, prettyPrint, r)).build(); 
+                   msg, r)).build();
        }
        // Don't change visibility if already set to hidden
        if(!jobstatus.getVisible()) {
     	   JobHideDisplay hideMsg = new JobHideDisplay();
-    	   String msg = MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden");
+    	   String msg = JobUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden");
     	   hideMsg.setMessage(msg);
     	   RespHideJob r = new RespHideJob(hideMsg);
        	   
     	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-    			   MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden"), prettyPrint,r)).build();
+    			   JobUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "hidden"),r)).build();
        }
        
        //------------------------- Change the visibility  -----------------------------
        // set visible to false
       
 		if (!jobsImpl.doHideJob(jobUuid, threadContext.getOboTenantId(), threadContext.getOboUser() ))
-		       return Response.status(Status.INTERNAL_SERVER_ERROR).
-		               entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_UNCHANGED_VISIBILITY", jobUuid, "unhidden"),
-		                   prettyPrint)).build();
+    {
+      return Response.status(Status.INTERNAL_SERVER_ERROR).
+        entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_UNCHANGED_VISIBILITY", jobUuid, "unhidden"))).build();
+    }
      
        
        // ---------------------------- Success -------------------------------
        // Success.
        JobHideDisplay hideMsg = new JobHideDisplay();
-       String msg = MsgUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "hidden");
+       String msg = JobUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "hidden");
        hideMsg.setMessage(msg);
        
        RespHideJob r = new RespHideJob(hideMsg); 
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "hidden"), prettyPrint,r)).build();
+               JobUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "hidden"),r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -237,39 +205,7 @@ public class JobActionResource extends AbstractResource {
      @POST
      @Path("/{jobUuid}/unhide")
      @Produces(MediaType.APPLICATION_JSON)
-     @Operation(
-             description = "Un-hide a job by its UUID.\n\n"
-                           + "The caller must be the job owner, creator or a tenant administrator."
-                           + "",
-             tags = "jobs",
-             security = {@SecurityRequirement(name = "TapisJWT")},
-             responses = 
-                 {
-                  @ApiResponse(responseCode = "200", description = "Unhide the job successfuly.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespHideJob.class))),
-                  @ApiResponse(responseCode = "400", description = "Input error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "401", description = "Not authorized.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "403", description = "Forbidden.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-                  @ApiResponse(responseCode = "404", description = "Job not found.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                  @ApiResponse(responseCode = "409", description = "Job is already in Terminal State (CANCELLED, FINISHED or FAILED). Job state conflicts with the cancel request. No action taken",
-                  content = @Content(schema = @Schema(
-                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespName.class))),
-                  @ApiResponse(responseCode = "500", description = "Server error.",
-                      content = @Content(schema = @Schema(
-                         implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class)))}
-     )
-          
-     public Response unhideJob(@PathParam("jobUuid") String jobUuid,
-                            @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
+     public Response unhideJob(@PathParam("jobUuid") String jobUuid)
                                
      {
        // Trace this request.
@@ -278,13 +214,15 @@ public class JobActionResource extends AbstractResource {
                                       "  " + _request.getRequestURL());
          _log.trace(msg);
        }
-       
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                      entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
@@ -294,10 +232,10 @@ public class JobActionResource extends AbstractResource {
            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
            _log.error(msg);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
-       
-    // ------------------------- Retrieve Job Status-----------------------------
+
+       // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
        try {
@@ -308,12 +246,12 @@ public class JobActionResource extends AbstractResource {
        catch (TapisImplException e) {
            _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
 
        // ------------------------- Process Results --------------------------
@@ -323,7 +261,7 @@ public class JobActionResource extends AbstractResource {
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), prettyPrint, r)).build();
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        
        }
        // ------------------------- Check the Job's status -----------------------------
@@ -333,21 +271,21 @@ public class JobActionResource extends AbstractResource {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           String msg = MsgUtils.getMsg("JOBS_JOB_NOT_IN_TERMINAL_STATE", jobUuid);
+           String msg = JobUtils.getMsg("JOBS_JOB_NOT_IN_TERMINAL_STATE", jobUuid);
            _log.warn(msg);
     	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(
-                   msg, prettyPrint, r)).build(); 
+                   msg, r)).build();
        }
        // Don't change visibility if already set to unhidden
        if(jobstatus.getVisible()) {
     	   
     	   JobHideDisplay hideMsg = new JobHideDisplay();
-    	   String msg = MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden");
+    	   String msg = JobUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden");
     	   hideMsg.setMessage(msg);
     	   RespHideJob r = new RespHideJob(hideMsg);
        	   
     	   return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-    			   MsgUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden"), prettyPrint,r)).build();
+    			   JobUtils.getMsg("JOBS_JOB_VISBILITY", jobUuid, "unhidden"),r)).build();
     	   
        }
        
@@ -355,20 +293,21 @@ public class JobActionResource extends AbstractResource {
        // set visible to true
       
 		if (!jobsImpl.doUnHideJob(jobUuid, threadContext.getOboTenantId(), threadContext.getOboUser() ))
-		       return Response.status(Status.INTERNAL_SERVER_ERROR).
-		               entity(TapisRestUtils.createErrorResponse(MsgUtils.getMsg("JOBS_JOB_UNCHANGED_VISIBILITY", jobUuid, "unhidden"),
-		                   prettyPrint)).build();
+    {
+      return Response.status(Status.INTERNAL_SERVER_ERROR).
+         entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_UNCHANGED_VISIBILITY", jobUuid, "unhidden"))).build();
+    }
      
        
        // ---------------------------- Success -------------------------------
        // Success.
        JobHideDisplay hideMsg = new JobHideDisplay();
-       String msg = MsgUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "unhidden");
+       String msg = JobUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "unhidden");
        hideMsg.setMessage(msg);
        
        RespHideJob r = new RespHideJob(hideMsg); 
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "unhidden"), prettyPrint,r)).build();
+               JobUtils.getMsg("JOBS_JOB_CHANGED_VISIBILITY", jobUuid, "unhidden"),r)).build();
      }
 
 }

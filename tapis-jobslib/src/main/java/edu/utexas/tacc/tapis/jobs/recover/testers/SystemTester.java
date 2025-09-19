@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.recover.testers;
 
 import java.util.Map;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +77,7 @@ extends AbsTester
        boolean available; 
        try {available = sysClient.isEnabled(_sysName);}
        catch (Exception e) {
-               String msg = MsgUtils.getMsg("JOBS_RECOVERY_DB_ACCESS", _jobRecovery.getId(), 
+               String msg = JobUtils.getMsg("JOBS_RECOVERY_DB_ACCESS", _jobRecovery.getId(),
                                             "SystemDao", e.getMessage());
                throw new JobRecoveryAbortException(msg, e);
          }
@@ -118,7 +119,7 @@ extends AbsTester
        // We need the tenantId to be specified.
        _tenantId = testerParameters.get("tenantId");
        if (StringUtils.isBlank(_tenantId)) {
-           String msg = MsgUtils.getMsg("ALOE_NULL_PARAMETER", "validateTesterParameters", 
+           String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "validateTesterParameters",
                                         "tenantId");
            _log.error(msg);
            throw new JobRecoveryAbortException(msg);

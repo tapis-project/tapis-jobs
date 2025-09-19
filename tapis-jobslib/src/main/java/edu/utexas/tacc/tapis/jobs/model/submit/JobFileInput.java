@@ -4,7 +4,6 @@ import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.shared.uri.TapisLocalUrl;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.regex.Pattern;
 
@@ -22,11 +21,8 @@ public class JobFileInput
     private String  targetPath;
     private Object  notes;
     
-    @Schema(hidden = true)
     private boolean optional = false;
-    @Schema(hidden = true)
     private String srcSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
-    @Schema(hidden = true)
     private String destSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     
     // Import an app input into a request input.
@@ -52,7 +48,6 @@ public class JobFileInput
         return reqInput;
     }
     
-    @Schema(hidden = true)
     public boolean isTapisLocal() {
         if (sourceUrl == null) return false;
         if (sourceUrl.startsWith(TapisLocalUrl.TAPISLOCAL_PROTOCOL_PREFIX)) return true;
@@ -95,27 +90,21 @@ public class JobFileInput
     public void setTargetPath(String targetPath) {
         this.targetPath = targetPath;
     }
-    @Schema(hidden = true)
     public boolean isOptional() {
         return optional;
     }
-    @Schema(hidden = true)
     public void setOptional(boolean optional) {
         this.optional = optional;
     }
-    @Schema(hidden = true)
     public String getSrcSharedAppCtx() {
         return srcSharedAppCtx;
     }
-    @Schema(hidden = true)
     public void setSrcSharedAppCtx(String srcSharedAppCtx) {
         this.srcSharedAppCtx = srcSharedAppCtx;
     }
-    @Schema(hidden = true)
     public String getDestSharedAppCtx() {
         return destSharedAppCtx;
     }
-    @Schema(hidden = true)
     public void setDestSharedAppCtx(String destSharedAppCtx) {
         this.destSharedAppCtx = destSharedAppCtx;
     }

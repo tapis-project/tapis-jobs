@@ -6,7 +6,6 @@ import java.util.List;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 public class JobFileInputArray 
 {
@@ -17,19 +16,15 @@ public class JobFileInputArray
     private String       targetDir;
     private Object       notes;
     
-    @Schema(hidden = true)
     private boolean      optional = false;
-    @Schema(hidden = true)
     private String       srcSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
-    @Schema(hidden = true)
     private String       destSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     
     public boolean emptySourceUrls()
     {return sourceUrls == null || sourceUrls.isEmpty();}
     
     public boolean equalSourceUrls​(List<String> urls) {
-        // We don't distinguish between null and empty when
-        // checking for equality.
+        // We don't distinguish between null and empty when checking for equality.
         if ((sourceUrls == null || sourceUrls.isEmpty()) && 
             (urls == null || urls.isEmpty())) return true;
         
@@ -48,8 +43,7 @@ public class JobFileInputArray
         for (var srcUrl : sourceUrls)
             if (!urlSet.contains(srcUrl)) return false;
             
-        // The two non-empty lists are the same size and
-        // they contain the same strings, order independent.
+        // The two non-empty lists are the same size, and they contain the same strings, order independent.
         return true;
     }
     
@@ -99,27 +93,21 @@ public class JobFileInputArray
     public void setTargetDir(String targetDir) {
         this.targetDir = targetDir;
     }
-    @Schema(hidden = true)
     public boolean isOptional() {
         return optional;
     }
-    @Schema(hidden = true)
     public void setOptional(boolean optional) {
         this.optional = optional;
     }
-    @Schema(hidden = true)
     public String getSrcSharedAppCtx() {
         return srcSharedAppCtx;
     }
-    @Schema(hidden = true)
     public void setSrcSharedAppCtx(String srcSharedAppCtx) {
         this.srcSharedAppCtx = srcSharedAppCtx;
     }
-    @Schema(hidden = true)
     public String getDestSharedAppCtx() {
         return destSharedAppCtx;
     }
-    @Schema(hidden = true)
     public void setDestSharedAppCtx(String destSharedAppCtx) {
         this.destSharedAppCtx = destSharedAppCtx;
     }

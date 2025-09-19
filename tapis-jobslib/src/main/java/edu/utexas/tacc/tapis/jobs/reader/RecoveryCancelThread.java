@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.reader;
 
 import java.util.Hashtable;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +71,7 @@ public class RecoveryCancelThread
         try {
             // Tracing.
             if (_log.isInfoEnabled()) 
-                _log.info(MsgUtils.getMsg("JOBS_RECOVERY_CANCEL_THREAD_STARTING", 
+                _log.info(JobUtils.getMsg("JOBS_RECOVERY_CANCEL_THREAD_STARTING",
                                           Thread.currentThread().getName(),
                                           Thread.currentThread().getId(),
                                           _reader.getName(), _cancelMsg.jobUuid));
@@ -79,7 +80,7 @@ public class RecoveryCancelThread
             RecoveryManager mgr = null;
             try {mgr = RecoveryManager.getInstance(_reader);}
                 catch (Exception e) {
-                    String msg = MsgUtils.getMsg("JOBS_RECOVERY_INIT_MGR_ERROR", 
+                    String msg = JobUtils.getMsg("JOBS_RECOVERY_INIT_MGR_ERROR",
                                                  _reader.getName(), _reader.getQueueName());
                     _log.error(msg, e);
                     return;
@@ -95,7 +96,7 @@ public class RecoveryCancelThread
         
             // Say goodbye.
             if (_log.isInfoEnabled()) 
-                _log.info(MsgUtils.getMsg("JOBS_RECOVERY_CANCEL_THREAD_STOPPING", 
+                _log.info(JobUtils.getMsg("JOBS_RECOVERY_CANCEL_THREAD_STOPPING",
                                           Thread.currentThread().getName(),
                                           Thread.currentThread().getId(),
                                           _reader.getName(), _cancelMsg.jobUuid, 
@@ -104,7 +105,7 @@ public class RecoveryCancelThread
         catch (Exception e) {
             // This could be an interrupt exception or something more ominous.
             // We swallow the exception and let the thread terminate.
-            _log.warn(MsgUtils.getMsg("JOBS_RECOVERY_CANCEL_THREAD_EXCEPTION", 
+            _log.warn(JobUtils.getMsg("JOBS_RECOVERY_CANCEL_THREAD_EXCEPTION",
                       Thread.currentThread().getName(), Thread.currentThread().getId(),
                       _reader.getName(), _cancelMsg.jobUuid), e.getMessage(), e);
         }

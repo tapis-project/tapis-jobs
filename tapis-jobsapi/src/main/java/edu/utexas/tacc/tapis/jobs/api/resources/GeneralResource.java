@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,6 +23,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +42,6 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @Path("/")
 public final class GeneralResource
@@ -62,8 +57,8 @@ public final class GeneralResource
     private static final long DB_READY_TIMEOUT_MS  = 6000;   // 6 seconds.
     private static final long DB_HEALTH_TIMEOUT_MS = 60000;  // 1 minute.
     
-    // Limit the amount of logging on liveness calls.
-    private static final int liveness_modulus = 20;
+    // Limit the amount of logging on eventLiveness calls.
+    private static final int event_liveness_modulus = 20;
     
     // The table we query during readiness checks.
     private static final String QUERY_TABLE = "jobs";
@@ -117,10 +112,10 @@ public final class GeneralResource
      @Context
      private HttpServletRequest _request;
      
-     // Count the number of healthchecks requests received.
+     // Count the number of healthcheck requests received.
      private static final AtomicLong _healthChecks = new AtomicLong();
     
-     // Count the number of healthchecks requests received.
+     // Count the number of readycheck requests received.
      private static final AtomicLong _readyChecks = new AtomicLong();
      
      // Count the number of liveness events received.
@@ -130,45 +125,11 @@ public final class GeneralResource
   /*                                Public Methods                                */
   /* **************************************************************************** */
   /* ---------------------------------------------------------------------------- */
-  /* hello:                                                                       */
-  /* ---------------------------------------------------------------------------- */
-  @GET
-  @Path("/hello")
-  @Produces(MediaType.APPLICATION_JSON)
-  @PermitAll
-  @Operation(
-          description = "Logged connectivity test. No authorization required.",
-          tags = "general",
-          responses = 
-              {@ApiResponse(responseCode = "200", description = "Message received.",
-                   content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "500", description = "Server error.")}
-      )
-  public Response sayHello(@DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
-  {
-      // Trace this request.
-      if (_log.isTraceEnabled()) {
-          String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "hello", 
-                                     "  " + _request.getRequestURL());
-          _log.trace(msg);
-      }
-      
-      // Create the response payload.
-      RespBasic r = new RespBasic("Hello from the Tapis Jobs Service.");
-         
-      // ---------------------------- Success ------------------------------- 
-      // Success means we found the resource. 
-      return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-          MsgUtils.getMsg("TAPIS_FOUND", "hello", "0 items"), prettyPrint, r)).build();
-  }
-
-  /* ---------------------------------------------------------------------------- */
   /* healthcheck:                                                                 */
   /* ---------------------------------------------------------------------------- */
   /** This method does no logging and is expected to be as lightweight as possible.
    * It's intended as the endpoint that monitoring applications can use to check
-   * the liveness (i.e, no deadlocks) of the application.  In particular, 
+   * the liveness (i.e, no deadlocks) of the application. In particular,
    * kubernetes can use this endpoint as part of its pod health check.
    * 
    * Note that no JWT is required on this call.
@@ -190,17 +151,6 @@ public final class GeneralResource
   @Path("/healthcheck")
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
-  @Operation(
-          description = "Lightweight health check for liveness. No authorization required.",
-          tags = "general",
-          responses = 
-              {@ApiResponse(responseCode = "200", description = "Message received.",
-                   content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class))),
-               @ApiResponse(responseCode = "503", description = "Service unavailable.",
-                   content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class)))}
-      )
   public Response checkHealth()
   {
       // Assign the current check count to the probe result object.
@@ -237,7 +187,7 @@ public final class GeneralResource
   }
 
   /* ---------------------------------------------------------------------------- */
-  /* ready:                                                                       */
+  /* readycheck:                                                                  */
   /* ---------------------------------------------------------------------------- */
   /** This method does no logging and is expected to be as lightweight as possible.
    * It's intended as the endpoint that monitoring applications can use to check
@@ -260,21 +210,10 @@ public final class GeneralResource
    * @return a success response if all is ok
    */
   @GET
-  @Path("/ready")
+  @Path("/readycheck")
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
-  @Operation(
-          description = "Lightweight readiness check. No authorization required.",
-          tags = "general",
-          responses = 
-              {@ApiResponse(responseCode = "200", description = "Service ready.",
-                   content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class))),
-               @ApiResponse(responseCode = "503", description = "Service unavailable.",
-                   content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class)))}
-      )
-  public Response ready()
+  public Response readycheck()
   {
       // Assign the current check count to the probe result object.
       var jobsProbe = new JobsProbe();
@@ -316,34 +255,11 @@ public final class GeneralResource
   @Path("/eventLiveness")
   @Produces(MediaType.APPLICATION_JSON)
   @PermitAll
-  @Operation(
-          description = "Call back webhook used to test liveness of event send and notification delivery.",
-          tags = "general",
-          hidden = true,
-          requestBody = 
-              @RequestBody(
-                  required = true,
-                  content = @Content(schema = @Schema(
-                      implementation = com.google.gson.JsonObject.class))),
-          responses = 
-              {@ApiResponse(responseCode = "200", description = "Liveness acknowledged.",
-                   content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class))),
-               @ApiResponse(responseCode = "400", description = "Input error.",
-                   content = @Content(schema = @Schema(
-                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "401", description = "Not authorized.",
-                   content = @Content(schema = @Schema(
-                     implementation = edu.utexas.tacc.tapis.sharedapi.responses.RespBasic.class))),
-               @ApiResponse(responseCode = "500", description = "Jobs service error.",
-                   content = @Content(schema = @Schema(
-                       implementation = edu.utexas.tacc.tapis.jobs.api.responses.RespProbe.class)))}
-      )
   public Response eventLiveness(InputStream payloadStream)
   {
       // Print a log message every so often.
 	  long count = _livenessEvents.incrementAndGet();
-	  boolean loggingEnabled = (((count % liveness_modulus) == 0) || count == 1);
+	  boolean loggingEnabled = (((count % event_liveness_modulus) == 0) || count == 1);
       if (loggingEnabled && _log.isInfoEnabled()) {
     	String method = "eventLiveness" + "[count=" + count + "]";
         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), method, 
@@ -366,7 +282,7 @@ public final class GeneralResource
       // Get the Jobs created event out of the payload.
       try {processLivenessNotification(json, loggingEnabled);}
       catch (Exception e) {
-          String msg = MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_FAILURE", json, e.getMessage());
+          String msg = JobUtils.getMsg("JOBS_LIVENESS_NOTIF_FAILURE", json, e.getMessage());
           _log.error(msg, e);
           return Response.status(Status.BAD_REQUEST).
                   entity(TapisRestUtils.createErrorResponse(msg, false)).build();
@@ -389,7 +305,7 @@ public final class GeneralResource
   {
 	  // Perform optional tracing.
 	  if (loggingEnabled && _log.isInfoEnabled()) 
-		  _log.info(MsgUtils.getMsg("JOBS_LIVENESS_NOTIF_RECEIVED", json));
+		  _log.info(JobUtils.getMsg("JOBS_LIVENESS_NOTIF_RECEIVED", json));
 	  
 	  // Parse the notification.
 	  Gson gson = TapisGsonUtils.getGson();

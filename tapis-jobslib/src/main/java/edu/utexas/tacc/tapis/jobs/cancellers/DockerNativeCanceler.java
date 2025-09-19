@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.cancellers;
 
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,7 @@ public class DockerNativeCanceler extends AbstractJobCanceler{
         catch (Exception e) {
             String cid = _job.getRemoteJobId();
             if (!StringUtils.isBlank(cid) && cid.length() >= 12) cid = cid.substring(0, 12);
-            String msg = MsgUtils.getMsg("JOBS_DOCKER_RM_CONTAINER_ERROR", 
+            String msg = JobUtils.getMsg("JOBS_DOCKER_RM_CONTAINER_ERROR",
                                          _job.getUuid(), execSystem.getId(), cid, result, cmd);
             _log.error(msg, e);
         }

@@ -1594,9 +1594,19 @@ public final class JobsDao
             String sql = replace ? SqlStatements.REPLACE_JOB_ANNOTATIONS : SqlStatements.PATCH_JOB_ANNOTATIONS;
 			try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) 
 			{
-				Array tagsArray = TagsConverter.toJDBCArray(connection, tags);
-				pstmt.setArray(1, tagsArray);
-				pstmt.setString(2, notes == null ? Job.DEFAULT_NOTES.toString() : notes.toString());
+				if (tags == null) {
+					pstmt.setNull(1, Types.ARRAY);
+				} else {
+					Array tagsArray = TagsConverter.toJDBCArray(connection, tags);
+					pstmt.setArray(1, tagsArray);
+				}
+
+				if (notes == null) {
+					pstmt.setNull(2, Types.VARCHAR);
+				} else {
+					pstmt.setString(2, notes.toString());
+				}
+				
 				pstmt.setString(3, jobUuid);
 				pstmt.execute();
 				ResultSet rs = pstmt.getGeneratedKeys();

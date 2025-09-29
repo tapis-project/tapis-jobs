@@ -207,8 +207,8 @@ public class SqlStatements
     public static final String REPLACE_JOB_ANNOTATIONS = """
             WITH p(tags, notes, uuid) AS (
                 VALUES (
-                    COALESCE(?::text[], ARRAY[]::text[]),
-                    COALESCE(?::jsonb, '{}'::jsonb),
+                    ?::text[],
+                    ?::jsonb,
                     ?
                 )
             ),
@@ -220,8 +220,14 @@ public class SqlStatements
             )
             UPDATE public.jobs j
             SET
-                tags = p.tags,
-                notes = p.notes,
+                tags = CASE
+                        WHEN p.tags IS NULL THEN j.tags
+                        ELSE p.tags
+                    END,
+                notes = CASE
+                            WHEN p.notes IS NULL THEN j.notes
+                            ELSE p.notes
+                        END,
                 last_updated = now()
             FROM p, curr
             WHERE j.id = curr.id

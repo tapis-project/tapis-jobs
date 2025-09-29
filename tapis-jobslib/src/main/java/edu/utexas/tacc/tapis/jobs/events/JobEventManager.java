@@ -504,13 +504,13 @@ public final class JobEventManager
      * @param jobUuid the job targeted by the event
      * @param tenant the job tenant
      * @param sender the tapis user that sent the event
-     * @param eventData the user provided body of the event
+     * @param description the user provided body of the event
      * @param eventDetail the event subtype or key
      * @param conn existing connection or null
      * @throws TapisException on error
      */
     public JobEvent recordUserEvent(String jobUuid, String tenant, String sender,
-                                    String eventData, String eventDetail, Connection conn)
+                                    String description, String eventDetail, Connection conn)
      throws TapisException
     {
         // Create the Job event.
@@ -518,7 +518,7 @@ public final class JobEventManager
         jobEvent.setEvent(JobEventType.JOB_USER_EVENT);
         jobEvent.setJobUuid(jobUuid);
         jobEvent.setTenant(tenant);
-        jobEvent.setDescription(eventData);
+        jobEvent.setDescription(description);
         jobEvent.setEventDetail(eventDetail); 
         
         // Save in db and send to notifications service asynchronously.

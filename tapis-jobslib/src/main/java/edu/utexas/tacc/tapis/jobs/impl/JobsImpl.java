@@ -887,34 +887,35 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
 
     public JobAnnotation doUpdateAnnotation(String jobUuid, String tenant, String user, TreeSet<String> tags, 
-        JsonObject notes, boolean replace) 
+        JsonObject notes, boolean replace) throws TapisImplException
     {
         JobAnnotation jobAnnotation = null;
         try {
             jobAnnotation = getJobsDao().updateJobAnnotations(jobUuid, tenant, user, tags, notes, replace);
             // Prepare Event Data and Details
-            String eventData = replace ? "UPDATE_ANNOTATION" : "PATCH_ANNOTATION";
-            String eventDetail = "{";
+            String eventDetail = replace ? "UPDATE_ANNOTATION" : "PATCH_ANNOTATION";
+            String description = "{";
             if (!jobAnnotation.getOldNotes().equals(jobAnnotation.getNotes())) {
-                eventDetail += "\"notes\": " + ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes()).toJsonString();
+                description += "\"notes\": " + ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes()).toJsonString();
             }
             if (!jobAnnotation.getOldTags().equals(jobAnnotation.getTags())) {
                 if (!eventDetail.equals("{")) eventDetail += ", ";
-                eventDetail += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
+                description += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
             }
-            eventDetail += "}";
+            description += "}";
             // Write an annotation event record
             try {
                 JobEventManager eventMgr = JobEventManager.getInstance();
-                eventMgr.recordUserEvent(jobUuid, tenant, user, eventData, eventDetail, null);
+                eventMgr.recordUserEvent(jobUuid, tenant, user, description, eventDetail, null);
             } catch (Exception e) {
-                String msg = JobUtils.getMsg("JOBS_JOBEVENT_ANNOTATION_EVENT_CREATE_ERROR", jobUuid, tenant, user, eventData, eventDetail, e);
+                String msg = JobUtils.getMsg("JOBS_JOBEVENT_ANNOTATION_EVENT_CREATE_ERROR", jobUuid, tenant, user, eventDetail, description, e);
                 _log.error(msg, e);
             }
         }
         catch (Exception e) {
             String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR",  replace?"PUT":"PATCH", jobUuid, tenant, user, tags, notes, e);
             _log.error(msg, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }
         // Could be null if not found.
         return jobAnnotation;

@@ -10,10 +10,10 @@
             "items": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 50
+                "maxLength": 128
             },
             "minItems": 0,
-            "maxItems": 64,
+            "maxItems": 128,
             "uniqueItems": true
         },
         "notes": {

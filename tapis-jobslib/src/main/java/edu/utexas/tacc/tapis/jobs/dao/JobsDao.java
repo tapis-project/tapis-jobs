@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import javax.sql.DataSource;
 import com.google.gson.JsonObject;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -34,6 +36,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Tables;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobAnnotation;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
@@ -58,6 +61,9 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import io.swagger.v3.oas.annotations.tags.Tags;
+import jakarta.xml.bind.annotation.XmlElement.DEFAULT;
+
 import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
@@ -1353,13 +1359,7 @@ public final class JobsDao
           pstmt.setString(34, job.getCreatedbyTenant());
           
           var tags = job.getTags();
-          Array tagsArray;
-          if (tags == null || tags.isEmpty()) 
-              tagsArray = conn.createArrayOf("text", new String[0]);
-            else {
-                String[] sarray = tags.toArray(new String[tags.size()]);
-                tagsArray = conn.createArrayOf("text", sarray);
-            }
+          Array tagsArray = TagsConverter.toJDBCArray(conn, tags);
           pstmt.setArray(35, tagsArray);
           pstmt.setString(36, job.getJobType().name());
           
@@ -1570,6 +1570,73 @@ public final class JobsDao
           }
           
           return result;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* updateJobAnnotations:                                                  */
+    /* ---------------------------------------------------------------------- */
+    /** Set the visibility of the job; meaning some requests for job info
+     * may exclude this job if visible is set to false.
+     *
+     * @param jobUuid
+     * @param tenant
+     * @param user
+     * @param replace Determine if this is a replace or merge operation
+     * @throws TapisException 
+     */
+    public JobAnnotation updateJobAnnotations(String jobUuid, String tenant, String user,  TreeSet<String> tags, 
+    		JsonObject notes, boolean replace) throws TapisException {
+		JobAnnotation jobAnnotation = null;
+        try (Connection connection = getConnection()) 
+		{
+			connection.setAutoCommit(false);
+			// Set the sql command.
+            String sql = replace ? SqlStatements.REPLACE_JOB_ANNOTATIONS : SqlStatements.PATCH_JOB_ANNOTATIONS;
+			try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) 
+			{
+				Array tagsArray = TagsConverter.toJDBCArray(connection, tags);
+				pstmt.setArray(1, tagsArray);
+				pstmt.setString(2, notes == null ? Job.DEFAULT_NOTES.toString() : notes.toString());
+				pstmt.setString(3, jobUuid);
+				pstmt.execute();
+				ResultSet rs = pstmt.getGeneratedKeys();
+				if (rs.next()) {
+					jobAnnotation = new JobAnnotation();
+					jobAnnotation.setId(rs.getInt(1));
+					jobAnnotation.setUuid(rs.getString(2));
+					jobAnnotation.setOldTags(TagsConverter.fromJDBCArray(rs.getArray(3)));
+					jobAnnotation.setOldNotes(TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class));
+					jobAnnotation.setTags(TagsConverter.fromJDBCArray(rs.getArray(5)));
+					jobAnnotation.setNotes(TapisGsonUtils.getGson().fromJson(rs.getString(6), JsonObject.class));
+				}
+				connection.commit();
+			} 
+			finally 
+			{
+				if(!connection.isClosed()) {
+					try {connection.rollback();} catch(Exception e) {
+						_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e);
+					}
+					try {connection.setAutoCommit(true);} catch (Exception e) 
+					{
+						_log.error(MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE"), e);
+					}
+				}
+			}
+        }
+		catch (SQLException ex) 
+		{
+			String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, ex.getMessage());
+                _log.error(msg, ex);
+                throw new JobException(msg, ex);
+        } 
+		catch (Exception e) 
+		{
+			String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
+                _log.error(msg, e);
+                throw new JobException(msg, e);
+		}
+		return jobAnnotation;
     }
     
 	/* ---------------------------------------------------------------------- */

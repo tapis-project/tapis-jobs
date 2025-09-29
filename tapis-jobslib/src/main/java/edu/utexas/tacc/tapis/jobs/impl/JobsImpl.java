@@ -3,12 +3,17 @@ package edu.utexas.tacc.tapis.jobs.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.jobs.utils.ObjectDiffUtils;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
@@ -17,6 +22,7 @@ import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobAnnotation;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobQueue;
 import edu.utexas.tacc.tapis.jobs.model.JobShared;
@@ -34,6 +40,7 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.jobs.utils.SelectTuple;
+import edu.utexas.tacc.tapis.jobs.utils.ObjectDiffUtils.ObjectDiff;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.ReqPostSubscription;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.RespSubscriptions;
@@ -874,6 +881,45 @@ public final class JobsImpl
         // Return result code.
         return result;
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* doUpdateAnnotation:                                                    */
+    /* ---------------------------------------------------------------------- */
+
+    public JobAnnotation doUpdateAnnotation(String jobUuid, String tenant, String user, TreeSet<String> tags, 
+        JsonObject notes, boolean replace) 
+    {
+        JobAnnotation jobAnnotation = null;
+        try {
+            jobAnnotation = getJobsDao().updateJobAnnotations(jobUuid, tenant, user, tags, notes, replace);
+            // Prepare Event Data and Details
+            String eventData = replace ? "UPDATE_ANNOTATION" : "PATCH_ANNOTATION";
+            String eventDetail = "{";
+            if (!jobAnnotation.getOldNotes().equals(jobAnnotation.getNotes())) {
+                eventDetail += "\"notes\": " + ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes()).toJsonString();
+            }
+            if (!jobAnnotation.getOldTags().equals(jobAnnotation.getTags())) {
+                if (!eventDetail.equals("{")) eventDetail += ", ";
+                eventDetail += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
+            }
+            eventDetail += "}";
+            // Write an annotation event record
+            try {
+                JobEventManager eventMgr = JobEventManager.getInstance();
+                eventMgr.recordUserEvent(jobUuid, tenant, user, eventData, eventDetail, null);
+            } catch (Exception e) {
+                String msg = JobUtils.getMsg("JOBS_JOBEVENT_ANNOTATION_EVENT_CREATE_ERROR", jobUuid, tenant, user, eventData, eventDetail, e);
+                _log.error(msg, e);
+            }
+        }
+        catch (Exception e) {
+            String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR",  replace?"PUT":"PATCH", jobUuid, tenant, user, tags, notes, e);
+            _log.error(msg, e);
+        }
+        // Could be null if not found.
+        return jobAnnotation;
+    }
+
     
     /* ---------------------------------------------------------------------- */
     /* doHideJob:                                                             */

@@ -1,12 +1,17 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.TreeSet;
+
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DefaultValue;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -17,13 +22,19 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqJobAnnotation;
+import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespHideJob;
+import edu.utexas.tacc.tapis.jobs.api.responses.RespJobAnnotationUpdate;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
+import edu.utexas.tacc.tapis.jobs.model.JobAnnotation;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobHideDisplay;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
@@ -42,6 +53,8 @@ public class JobActionResource extends AbstractResource {
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobActionResource.class);
+    private static final String FILE_JOB_ANNOTATION_REQUEST =
+        "/edu/utexas/tacc/tapis/jobs/api/jsonschema/JobAnnotationRequest.json";
     
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -90,6 +103,108 @@ public class JobActionResource extends AbstractResource {
      /* **************************************************************************** */
      /*                                Public Methods                                */
      /* **************************************************************************** */
+     private Response updateJobAnnotations(String jobUuid, InputStream payloadStream,
+         boolean replace) {
+       // Trace this request.
+       if (_log.isTraceEnabled()) {
+         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "updateJobAnnotations",
+             "  " + _request.getRequestURL());
+         _log.trace(msg);
+       }
+
+       // ------------------------- Input Processing -------------------------
+       if (StringUtils.isBlank(jobUuid)) {
+         String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+         _log.error(msg);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
+       }
+
+       // ------------------------- Validate Payload -------------------------
+       // Read the payload into a string.
+       String json = null;
+       try {
+         json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8);
+       } catch (Exception e) {
+         String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job submission", e.getMessage());
+         _log.error(msg, e);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
+       }
+
+       // Parse and validate the json in the request payload, which must exist.
+       ReqJobAnnotation payload = null;
+       try {
+         payload = getPayload(json, FILE_JOB_ANNOTATION_REQUEST, ReqJobAnnotation.class);
+       } catch (Exception e) {
+         String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR",
+             "submitJob", e.getMessage());
+         _log.error(msg, e);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
+       }
+
+       // ------------------------- Create Context ---------------------------
+       // Validate the threadlocal content here so no subsequent code on this request
+       // needs to.
+       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+       if (!threadContext.validate()) {
+         var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+         _log.error(msg);
+         return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
+       }
+
+       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+
+       // ------------------- Job Status Check -----------------------------
+       // There is no need for job status check for now.
+
+       // ------------------------- Update Annotations -------------------------
+       JobAnnotation jobAnnotation = null;
+       var jobsImpl = JobsImpl.getInstance();
+       String user = threadContext.getOboUser();
+       String tenant = threadContext.getOboTenantId();
+       var tags = new TreeSet<>(payload.getTags());
+       var notes = payload.getNotes();
+       try {
+         jobAnnotation = jobsImpl.doUpdateAnnotation(jobUuid, tenant, user, tags, notes, replace);
+         if (jobAnnotation == null) {
+           ResultName missingName = new ResultName();
+           missingName.name = jobUuid;
+           RespName r = new RespName(missingName);
+           return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
+               MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
+         }
+       } catch (Exception e) {
+         String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR", replace ? "PUT" : "PATCH", jobUuid,
+             tenant, user, tags, notes, e);
+         _log.error(msg, e);
+         return Response.status(Status.INTERNAL_SERVER_ERROR)
+             .entity(TapisRestUtils.createErrorResponse(msg)).build();
+       }
+
+       // ---------------------------- Success -------------------------------
+       // Success.
+       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
+           MsgUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATED", jobUuid),
+           new RespJobAnnotationUpdate(jobAnnotation))).build();
+     }
+
+     @PUT
+     @Path("/{jobUuid}/annotations")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     public Response putJobAnnotations(@PathParam("jobUuid") String jobUuid, InputStream payloadStream)
+     {
+       return updateJobAnnotations(jobUuid, payloadStream, true);
+     }
+
+     @PATCH
+     @Path("/{jobUuid}/annotations")
+     @Consumes(MediaType.APPLICATION_JSON)
+     @Produces(MediaType.APPLICATION_JSON)
+     public Response patchJobAnnotations(@PathParam("jobUuid") String jobUuid, InputStream payloadStream) {
+       return updateJobAnnotations(jobUuid, payloadStream, false);
+     }
+     
+
      /* ---------------------------------------------------------------------------- */
      /* hideJob:                                                                     */
      /* ---------------------------------------------------------------------------- */

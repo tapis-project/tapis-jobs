@@ -1,0 +1,50 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "JobAnnotationRequest",
+    "description": "Payload for patching/updating tags and notes of a job.",
+    "type": "object",
+    "properties": {
+        "tags": {
+            "$comment": "An array of user-chosen strings that can be associated with a job",
+            "type": "array",
+            "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50
+            },
+            "minItems": 0,
+            "maxItems": 64,
+            "uniqueItems": true
+        },
+        "notes": {
+            "type": "object",
+            "$comment": "User notes in JSON format"
+        }
+    },
+    "additionalProperties": false,
+    "examples": [
+        {
+            "tags": [
+                "project:abc",
+                "stage:analysis"
+            ],
+            "notes": {
+                "jira": "ABC-123",
+                "inputs.sha": "e1f..."
+            }
+        },
+        {
+            "tags": [
+                "project:abc",
+                "stage:analysis"
+            ]
+        },
+        {
+            "notes": {
+                "jira": "ABC-123",
+                "inputs.sha": "e1f..."
+            }
+        },
+        {}
+    ]
+}

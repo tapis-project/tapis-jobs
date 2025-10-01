@@ -20,6 +20,7 @@ import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.JobAnnotation;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
@@ -911,6 +912,10 @@ public final class JobsImpl
                 String msg = JobUtils.getMsg("JOBS_JOBEVENT_ANNOTATION_EVENT_CREATE_ERROR", jobUuid, tenant, user, eventDetail, description, e);
                 _log.error(msg, e);
             }
+        }
+        catch (JobInputException e) {
+            _log.error(e.getMessage(), e);
+            throw new TapisImplException(e.getMessage(), e, Condition.BAD_REQUEST);
         }
         catch (Exception e) {
             String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR",  replace?"PUT":"PATCH", jobUuid, user, tenant, tags, notes, e);

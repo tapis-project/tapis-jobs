@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqJobAnnotation;
-import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespHideJob;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespJobAnnotationUpdate;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
@@ -172,7 +171,13 @@ public class JobActionResource extends AbstractResource {
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createSuccessResponse(
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          }
-       } catch (Exception e) {
+       } 
+       catch (TapisImplException e) {
+         String msg = e.getMessage();
+         _log.error(msg, e);
+         return Response.status(e.condition.getHttpStatus()).entity(TapisRestUtils.createErrorResponse(msg)).build();
+       }
+       catch (Exception e) {
         String msg = e.getMessage();
          _log.error(msg, e);
          return Response.status(Status.INTERNAL_SERVER_ERROR)

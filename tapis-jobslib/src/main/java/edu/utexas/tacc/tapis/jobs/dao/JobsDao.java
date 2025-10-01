@@ -1578,14 +1578,20 @@ public final class JobsDao
     /* updateJobAnnotations: */
     /* ---------------------------------------------------------------------- */
     /**
-     * Set the visibility of the job; meaning some requests for job info
-     * may exclude this job if visible is set to false.
+     * Update the annotations (tags and notes) of a job.
+     * <p>
+     * This method updates the tags and notes associated with a job. The update can either
+     * replace the existing annotations entirely or merge the new values with the existing ones,
+     * depending on the value of the {@code replace} parameter.
      *
-     * @param jobUuid
-     * @param tenant
-     * @param user
-     * @param replace Determine if this is a replace or merge operation
-     * @throws TapisException
+     * @param jobUuid the UUID of the job to update
+     * @param tenant the tenant in which the job resides
+     * @param user the user performing the update
+     * @param tags the set of tags to associate with the job (may be null)
+     * @param notes the notes to associate with the job as a JsonObject (may be null)
+     * @param replace if true, replace existing annotations; if false, merge with existing
+     * @return the updated JobAnnotation object, or null if the update failed
+     * @throws TapisException if a database or other error occurs
      */
     public JobAnnotation updateJobAnnotations(String jobUuid, String tenant, String user, TreeSet<String> tags,
         JsonObject notes, boolean replace) throws TapisException {

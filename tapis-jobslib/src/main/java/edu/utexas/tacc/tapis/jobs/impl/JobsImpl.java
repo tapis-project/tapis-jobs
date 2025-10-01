@@ -899,7 +899,7 @@ public final class JobsImpl
                 description += "\"notes\": " + ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes()).toJsonString();
             }
             if (!jobAnnotation.getOldTags().equals(jobAnnotation.getTags())) {
-                if (!eventDetail.equals("{")) eventDetail += ", ";
+                if (!description.equals("{")) description += ", ";
                 description += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
             }
             description += "}";
@@ -913,7 +913,7 @@ public final class JobsImpl
             }
         }
         catch (Exception e) {
-            String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR",  replace?"PUT":"PATCH", jobUuid, tenant, user, tags, notes, e);
+            String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR",  replace?"PUT":"PATCH", jobUuid, user, tenant, tags, notes, e);
             _log.error(msg, e);
             throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
         }

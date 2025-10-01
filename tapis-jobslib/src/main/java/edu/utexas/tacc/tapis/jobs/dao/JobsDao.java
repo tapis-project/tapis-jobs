@@ -65,8 +65,6 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import io.swagger.v3.oas.annotations.tags.Tags;
-import jakarta.xml.bind.annotation.XmlElement.DEFAULT;
 
 import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;

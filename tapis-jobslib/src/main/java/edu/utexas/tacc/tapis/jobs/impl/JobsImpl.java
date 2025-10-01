@@ -899,7 +899,7 @@ public final class JobsImpl
                 description += "\"notes\": " + ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes()).toJsonString();
             }
             if (!jobAnnotation.getOldTags().equals(jobAnnotation.getTags())) {
-                if (!eventDetail.equals("{")) eventDetail += ", ";
+                if (!description.equals("{")) description += ", ";
                 description += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
             }
             description += "}";

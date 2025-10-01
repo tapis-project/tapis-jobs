@@ -162,7 +162,16 @@ public final class JobsDao
     
     // Initialize Jobs Table Map with column name and type;
     public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
-    
+
+    // Limitation of max tag count per job
+    private static final int MAX_TAG_COUNT_PER_JOB = 128;
+
+    // Limitation of max tags field length in bytes
+    private static final int MAX_TAGS_LENGTH_BYTES = 128 * 1_024;
+
+    // Limitation of max notes field length in bytes
+    private static final int MAX_NOTES_LENGTH_BYTES = 128 * 1_024;
+
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
@@ -1651,13 +1660,13 @@ public final class JobsDao
           // Handle the specific constraint violation exception
           switch (e.getConstraintName()) {
             case "jobs_tags_count_ck":
-              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_LIMIT_EXCEEDED", jobUuid, 128, user, tenant);
+              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_LIMIT_EXCEEDED", jobUuid, MAX_TAG_COUNT_PER_JOB, user, tenant);
               break;
             case "jobs_tags_bytes_ck":
-              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, 128 * 1024, user, tenant);
+              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, MAX_TAGS_LENGTH_BYTES, user, tenant);
               break;
             case "jobs_notes_bytes_ck":
-              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_NOTES_SIZE_LIMIT_EXCEEDED", jobUuid, 128 * 1024, user, tenant);
+              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_NOTES_SIZE_LIMIT_EXCEEDED", jobUuid, MAX_NOTES_LENGTH_BYTES, user, tenant);
               break;
             default:
               msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());

@@ -164,13 +164,13 @@ public final class JobsDao
     public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
 
     // Limitation of max tag count per job
-    private static final int MAX_TAG_COUNT_PER_JOB = 128;
+    public static final int MAX_TAG_COUNT_PER_JOB = 128;
 
     // Limitation of max tags field length in bytes
-    private static final int MAX_TAGS_LENGTH_BYTES = 128 * 1_024;
+    public static final int MAX_TAGS_LENGTH_BYTES = 128 * 1_024;
 
     // Limitation of max notes field length in bytes
-    private static final int MAX_NOTES_LENGTH_BYTES = 128 * 1_024;
+    public static final int MAX_NOTES_LENGTH_BYTES = 128 * 1_024;
 
     /* ********************************************************************** */
     /*                                 Enums                                  */

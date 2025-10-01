@@ -3,6 +3,43 @@
     "title": "JobAnnotationRequest",
     "description": "Payload for patching/updating tags and notes of a job.",
     "type": "object",
+    "definitions": {
+        "constrainedValue": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "maxLength": 1024
+                },
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "null"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/constrainedValue"
+                    },
+                    "maxItems": 128
+                },
+                {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                    },
+                    "additionalProperties": {
+                        "$ref": "#/definitions/constrainedValue"
+                    }
+                }
+            ]
+        }
+    },
     "properties": {
         "tags": {
             "$comment": "An array of user-chosen strings that can be associated with a job",
@@ -18,7 +55,15 @@
         },
         "notes": {
             "type": "object",
-            "$comment": "User notes in JSON format"
+            "$comment": "User notes in JSON format with constrained string lengths",
+            "propertyNames": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+            },
+            "additionalProperties": {
+                "$ref": "#/definitions/constrainedValue"
+            }
         }
     },
     "additionalProperties": false,

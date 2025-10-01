@@ -6,26 +6,40 @@ import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 
+/**
+ * Request body for patch/putJobAnnotations (tags and notes) to a job.
+ * 
+ * @author wei.zhang@tacc.utexas.edu
+ */
 public class ReqJobAnnotation implements IReqBody
 {
+
+    // ============================================================
+    //                          Fields
+    // ============================================================
+
     // Tags and notes to be added to the job annotation.
     private List<String>            tags;   
-    private JsonObject                  notes;
+    private JsonObject              notes;
 
-    // setters and getters
+    // ============================================================
+    //                    Getters and Setters
+    // ============================================================
     public List<String> getTags() {return tags;}
     public void setTags(List<String> tags) {this.tags = tags;}
     public JsonObject getNotes() {return notes;}
     public void setNotes(JsonObject notes) {this.notes = notes;}
 
+    // ============================================================
+    //                      Public Methods
+    // ============================================================
     @Override
     public String validate() {
         // list of tags should only contain less than 128 tags. 
         if (tags != null && tags.size() > 128) {
             return MsgUtils.getMsg("SK_INVALID_PARAMETER", "tags", "must contain less than 128 items");
         }
-        // TODO: currently there is no need to add validation for notes object. 
+        // NOTE: notes is a free-form JsonObject, no validation needed.
         return null;
     }
-    
 }

@@ -7,7 +7,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
-import edu.utexas.tacc.tapis.jobs.utils.ObjectDiffUtils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -40,7 +39,6 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
 import edu.utexas.tacc.tapis.jobs.utils.SelectTuple;
-import edu.utexas.tacc.tapis.jobs.utils.ObjectDiffUtils.ObjectDiff;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.ReqPostSubscription;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.RespSubscriptions;
@@ -56,6 +54,8 @@ import edu.utexas.tacc.tapis.security.client.model.SKShareDeleteShareParms;
 import edu.utexas.tacc.tapis.security.client.model.SKShareGetSharesParms;
 import edu.utexas.tacc.tapis.security.client.model.SKShareHasPrivilegeParms;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.utils.ObjectDiffUtils;
+import edu.utexas.tacc.tapis.shared.utils.ObjectDiffUtils.ObjectDiff;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;

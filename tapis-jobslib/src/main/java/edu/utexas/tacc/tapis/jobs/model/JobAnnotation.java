@@ -6,9 +6,19 @@ import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 
+/**
+ * JobAnnotation model class. 
+ * This class is used to represent the job annotation data including tags and notes.
+ * It is designed to be used mainly in patch/putJobAnnotations API.
+ * 
+ * @author wei.zhang@tacc.utexas.edu
+ */
 public class JobAnnotation {
+
+    // Constants
     public static final JsonObject EMPTY_JSON_OBJ = TapisGsonUtils.getGson().fromJson("{}", JsonObject.class);
 
+    // Fields
     private int id;
     private String uuid;
     private transient TreeSet<String> oldTags;
@@ -16,6 +26,7 @@ public class JobAnnotation {
     private TreeSet<String> tags;
     private JsonObject notes = EMPTY_JSON_OBJ;
 
+    // Getters and Setters
     public int getId() {
         return id;
     }
@@ -53,6 +64,8 @@ public class JobAnnotation {
     public void setOldNotes(JsonObject oldNotes) {
         this.oldNotes = oldNotes;
     }
+
+    // Override hashCode, equals, and toString methods
     @Override
     public int hashCode() {
         final int prime = 31;

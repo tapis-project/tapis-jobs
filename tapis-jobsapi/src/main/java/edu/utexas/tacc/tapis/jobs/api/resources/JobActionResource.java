@@ -173,17 +173,7 @@ public class JobActionResource extends AbstractResource {
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          }
        } catch (Exception e) {
-        String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR", replace ? "PUT" : "PATCH", jobUuid,
-             tenant, user, tags, notes, e);
-
-         if (e.getMessage().contains("jobs_tags_count_ck")) {
-            msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_LIMIT_EXCEEDED", jobUuid, 128, user, tenant);
-         } else if (e.getMessage().contains("jobs_tags_bytes_ck")) {
-            msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, 128 * 1024, user, tenant);
-         } else if (e.getMessage().contains("jobs_notes_bytes_ck")) {
-            msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_NOTES_SIZE_LIMIT_EXCEEDED", jobUuid, 128 * 1024, user, tenant);
-         }
-         
+        String msg = e.getMessage();
          _log.error(msg, e);
          return Response.status(Status.INTERNAL_SERVER_ERROR)
              .entity(TapisRestUtils.createErrorResponse(msg)).build();

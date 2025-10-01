@@ -27,12 +27,14 @@ import org.jooq.Result;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Tables;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -54,6 +56,8 @@ import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
 import edu.utexas.tacc.tapis.search.parser.ASTLeaf;
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
 import edu.utexas.tacc.tapis.search.parser.ASTUnaryExpression;
+import edu.utexas.tacc.tapis.shared.db.PostgresExceptionHandler;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisDBConstraintViolationException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
@@ -1573,80 +1577,99 @@ public final class JobsDao
     }
 
     /* ---------------------------------------------------------------------- */
-    /* updateJobAnnotations:                                                  */
+    /* updateJobAnnotations: */
     /* ---------------------------------------------------------------------- */
-    /** Set the visibility of the job; meaning some requests for job info
+    /**
+     * Set the visibility of the job; meaning some requests for job info
      * may exclude this job if visible is set to false.
      *
      * @param jobUuid
      * @param tenant
      * @param user
      * @param replace Determine if this is a replace or merge operation
-     * @throws TapisException 
+     * @throws TapisException
      */
-    public JobAnnotation updateJobAnnotations(String jobUuid, String tenant, String user,  TreeSet<String> tags, 
-    		JsonObject notes, boolean replace) throws TapisException {
-		JobAnnotation jobAnnotation = null;
-        try (Connection connection = getConnection()) 
-		{
-			connection.setAutoCommit(false);
-			// Set the sql command.
-            String sql = replace ? SqlStatements.REPLACE_JOB_ANNOTATIONS : SqlStatements.PATCH_JOB_ANNOTATIONS;
-			try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) 
-			{
-				if (tags == null) {
-					pstmt.setNull(1, Types.ARRAY);
-				} else {
-					Array tagsArray = TagsConverter.toJDBCArray(connection, tags);
-					pstmt.setArray(1, tagsArray);
-				}
+    public JobAnnotation updateJobAnnotations(String jobUuid, String tenant, String user, TreeSet<String> tags,
+        JsonObject notes, boolean replace) throws TapisException {
+      JobAnnotation jobAnnotation = null;
+      try (Connection connection = getConnection()) {
+        connection.setAutoCommit(false);
+        // Set the sql command.
+        String sql = replace ? SqlStatements.REPLACE_JOB_ANNOTATIONS : SqlStatements.PATCH_JOB_ANNOTATIONS;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+          if (tags == null) {
+            pstmt.setNull(1, Types.ARRAY);
+          } else {
+            Array tagsArray = TagsConverter.toJDBCArray(connection, tags);
+            pstmt.setArray(1, tagsArray);
+          }
 
-				if (notes == null) {
-					pstmt.setNull(2, Types.VARCHAR);
-				} else {
-					pstmt.setString(2, notes.toString());
-				}
-				
-				pstmt.setString(3, jobUuid);
-				pstmt.execute();
-				ResultSet rs = pstmt.getGeneratedKeys();
-				if (rs.next()) {
-					jobAnnotation = new JobAnnotation();
-					jobAnnotation.setId(rs.getInt(1));
-					jobAnnotation.setUuid(rs.getString(2));
-					jobAnnotation.setOldTags(TagsConverter.fromJDBCArray(rs.getArray(3)));
-					jobAnnotation.setOldNotes(TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class));
-					jobAnnotation.setTags(TagsConverter.fromJDBCArray(rs.getArray(5)));
-					jobAnnotation.setNotes(TapisGsonUtils.getGson().fromJson(rs.getString(6), JsonObject.class));
-				}
-				connection.commit();
-			} 
-			finally 
-			{
-				if(!connection.isClosed()) {
-					try {connection.rollback();} catch(Exception e) {
-						_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e);
-					}
-					try {connection.setAutoCommit(true);} catch (Exception e) 
-					{
-						_log.error(MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE"), e);
-					}
-				}
-			}
+          if (notes == null) {
+            pstmt.setNull(2, Types.VARCHAR);
+          } else {
+            pstmt.setString(2, notes.toString());
+          }
+
+          pstmt.setString(3, jobUuid);
+          pstmt.execute();
+          ResultSet rs = pstmt.getGeneratedKeys();
+          if (rs.next()) {
+            jobAnnotation = new JobAnnotation();
+            jobAnnotation.setId(rs.getInt(1));
+            jobAnnotation.setUuid(rs.getString(2));
+            jobAnnotation.setOldTags(TagsConverter.fromJDBCArray(rs.getArray(3)));
+            jobAnnotation.setOldNotes(TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class));
+            jobAnnotation.setTags(TagsConverter.fromJDBCArray(rs.getArray(5)));
+            jobAnnotation.setNotes(TapisGsonUtils.getGson().fromJson(rs.getString(6), JsonObject.class));
+          }
+          connection.commit();
+        } finally {
+          if (!connection.isClosed()) {
+            try {
+              connection.rollback();
+            } catch (Exception e) {
+              _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e);
+            }
+            try {
+              connection.setAutoCommit(true);
+            } catch (Exception e) {
+              _log.error(MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE"), e);
+            }
+          }
         }
-		catch (SQLException ex) 
-		{
-			String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, ex.getMessage());
-                _log.error(msg, ex);
-                throw new JobException(msg, ex);
-        } 
-		catch (Exception e) 
-		{
-			String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
-                _log.error(msg, e);
-                throw new JobException(msg, e);
-		}
-		return jobAnnotation;
+      } catch (SQLException ex) {
+
+        String msg = null;
+        // check for DB constraint violations
+        try {
+          PostgresExceptionHandler.checkDBConstraintViolation((PSQLException)ex);
+        } catch (TapisDBConstraintViolationException e) {
+          // Handle the specific constraint violation exception
+          switch (e.getConstraintName()) {
+            case "jobs_tags_count_ck":
+              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_LIMIT_EXCEEDED", jobUuid, 128, user, tenant);
+              break;
+            case "jobs_tags_bytes_ck":
+              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, 128 * 1024, user, tenant);
+              break;
+            case "jobs_notes_bytes_ck":
+              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_NOTES_SIZE_LIMIT_EXCEEDED", jobUuid, 128 * 1024, user, tenant);
+              break;
+            default:
+              msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
+          }
+          _log.error(msg, ex);
+          throw new JobInputException(msg, ex);
+        }
+        msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, ex.getMessage());
+        _log.error(msg, ex);
+        throw new JobException(msg, ex);
+      } catch (Exception e) {
+        String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
+        _log.error(msg, e);
+        throw new JobException(msg, e);
+      }
+      return jobAnnotation;
     }
     
 	/* ---------------------------------------------------------------------- */

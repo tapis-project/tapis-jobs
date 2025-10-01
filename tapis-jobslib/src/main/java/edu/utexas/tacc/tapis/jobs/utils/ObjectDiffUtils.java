@@ -21,7 +21,7 @@ public class ObjectDiffUtils {
             return addedElements;
         }
         public void setAddedElements(Map<T, Integer> addedElements) {
-            this.addedElements = addedElements; 
+            this.addedElements = addedElements;
         }
 
         public Map<T, Integer> getRemovedElements() {

@@ -7,8 +7,7 @@
         "constrainedValue": {
             "oneOf": [
                 {
-                    "type": "string",
-                    "maxLength": 1024
+                    "type": "string"
                 },
                 {
                     "type": "number"
@@ -23,15 +22,12 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/constrainedValue"
-                    },
-                    "maxItems": 128
+                    }
                 },
                 {
                     "type": "object",
                     "propertyNames": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128
+                        "type": "string"
                     },
                     "additionalProperties": {
                         "$ref": "#/definitions/constrainedValue"
@@ -45,21 +41,15 @@
             "$comment": "An array of user-chosen strings that can be associated with a job",
             "type": "array",
             "items": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
+                "type": "string"
             },
-            "minItems": 0,
-            "maxItems": 128,
             "uniqueItems": true
         },
         "notes": {
             "type": "object",
             "$comment": "User notes in JSON format with constrained string lengths",
             "propertyNames": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
+                "type": "string"
             },
             "additionalProperties": {
                 "$ref": "#/definitions/constrainedValue"

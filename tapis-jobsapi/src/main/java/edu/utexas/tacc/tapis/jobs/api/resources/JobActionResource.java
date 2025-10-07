@@ -184,7 +184,7 @@ public class JobActionResource extends AbstractResource {
              .entity(TapisRestUtils.createErrorResponse(msg)).build();
        } catch (Throwable e) {
          String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR", replace ? "PUT" : "PATCH", jobUuid,
-             tenant, user, tags, notes, e);
+             user, tenant, tags, notes, e);
          _log.error(msg, e);
          return Response.status(Status.INTERNAL_SERVER_ERROR)
              .entity(TapisRestUtils.createErrorResponse(msg)).build();

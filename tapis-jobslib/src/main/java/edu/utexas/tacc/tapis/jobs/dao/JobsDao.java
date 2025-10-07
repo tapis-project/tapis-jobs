@@ -56,7 +56,7 @@ import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
 import edu.utexas.tacc.tapis.search.parser.ASTLeaf;
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
 import edu.utexas.tacc.tapis.search.parser.ASTUnaryExpression;
-import edu.utexas.tacc.tapis.shared.db.PostgresExceptionHandler;
+
 import edu.utexas.tacc.tapis.shared.exceptions.TapisDBConstraintViolationException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
@@ -65,6 +65,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
@@ -162,9 +163,6 @@ public final class JobsDao
     
     // Initialize Jobs Table Map with column name and type;
     public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
-
-    // Limitation of max tag count per job
-    public static final int MAX_TAG_COUNT_PER_JOB = 128;
 
     // Limitation of max tags field length in bytes
     public static final int MAX_TAGS_LENGTH_BYTES = 128 * 1_024;
@@ -1655,13 +1653,10 @@ public final class JobsDao
         String msg = null;
         // check for DB constraint violations
         try {
-          PostgresExceptionHandler.checkDBConstraintViolation((PSQLException)ex);
+          TapisUtils.checkDBConstraintViolation((PSQLException) ex);
         } catch (TapisDBConstraintViolationException e) {
           // Handle the specific constraint violation exception
           switch (e.getConstraintName()) {
-            case "jobs_tags_count_ck":
-              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_LIMIT_EXCEEDED", jobUuid, MAX_TAG_COUNT_PER_JOB, user, tenant);
-              break;
             case "jobs_tags_bytes_ck":
               msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, MAX_TAGS_LENGTH_BYTES, user, tenant);
               break;

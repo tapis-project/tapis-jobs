@@ -893,19 +893,26 @@ public final class JobsImpl
         JobAnnotation jobAnnotation = null;
         try {
             jobAnnotation = getJobsDao().updateJobAnnotations(jobUuid, tenant, user, tags, notes, replace);
-            // Prepare Event Data and Details
-            String eventDetail = replace ? "UPDATE_ANNOTATION" : "PATCH_ANNOTATION";
-            String description = "{";
-            if (!jobAnnotation.getOldNotes().equals(jobAnnotation.getNotes())) {
-                description += "\"notes\": " + ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes()).toJsonString();
+            if (jobAnnotation == null) {
+                String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR", replace?"PUT":"PATCH", jobUuid, user, tenant, tags, notes, null);
+                throw new TapisImplException(msg, Condition.INTERNAL_SERVER_ERROR);
             }
-            if (!jobAnnotation.getOldTags().equals(jobAnnotation.getTags())) {
-                if (!description.equals("{")) description += ", ";
-                description += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
-            }
-            description += "}";
             // Write an annotation event record
+            String eventDetail = replace ? "UPDATE_ANNOTATION" : "PATCH_ANNOTATION";
+            String description = "";
             try {
+                // Prepare Event Data and Details
+                description += "{";
+                ObjectDiffUtils.ObjectDiff notesDiff = ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes());
+                ObjectDiffUtils.SetDiff<String> tagsDiff = ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags());
+                if (notesDiff != null && (!notesDiff.getAddedFields().isEmpty() || !notesDiff.getRemovedFields().isEmpty() || !notesDiff.getModifiedFields().isEmpty())) {
+                    description += "\"notes\": " + notesDiff.toJsonString();
+                }
+                if (tagsDiff != null && (!tagsDiff.getAddedElements().isEmpty() || !tagsDiff.getRemovedElements().isEmpty())) {
+                    if (!description.equals("{")) description += ", ";
+                    description += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
+                }
+                description += "}";
                 JobEventManager eventMgr = JobEventManager.getInstance();
                 eventMgr.recordUserEvent(jobUuid, tenant, user, description, eventDetail, null);
             } catch (Exception e) {

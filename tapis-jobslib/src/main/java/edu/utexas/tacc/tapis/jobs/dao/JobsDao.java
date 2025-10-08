@@ -164,6 +164,12 @@ public final class JobsDao
     // Initialize Jobs Table Map with column name and type;
     public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
 
+    // Limitation of max tags field length in bytes
+    public static final int MAX_TAGS_LENGTH_BYTES = 128 * 1_024;
+
+    // Limitation of max notes field length in bytes
+    public static final int MAX_NOTES_LENGTH_BYTES = 128 * 1_024;
+
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
@@ -185,8 +191,8 @@ public final class JobsDao
 	 * @throws TapisException on database errors
 	 */
 	public JobsDao() throws TapisException {}
-	  
-	/* ********************************************************************** */
+
+  /* ********************************************************************** */
 	/*                             Public Methods                             */
 	/* ********************************************************************** */
 	/* ---------------------------------------------------------------------- */
@@ -3722,7 +3728,6 @@ public final class JobsDao
                 
         return Collections.unmodifiableMap(jmap);
     }
-    
     /* ********************************************************************** */
     /*                          JobTransferInfo class                         */
     /* ********************************************************************** */

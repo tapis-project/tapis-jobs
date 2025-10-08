@@ -3,8 +3,10 @@ package edu.utexas.tacc.tapis.jobs.utils;
 import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,6 +17,7 @@ import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
@@ -54,12 +57,6 @@ public final class JobUtils
     // The regex ignores leading and trailing whitespace and groups the numeric ID.
     private static final Pattern SLURM_RESULT_PATTERN = Pattern.compile("\\s*Submitted batch job (\\d+)\\s*");
     private static final Pattern LINE_PATTERN = Pattern.compile("\n");
-
-    // Limitation of max tags field length in bytes
-    public static final int MAX_TAGS_LENGTH_BYTES = 128 * 1_024;
-
-    // Limitation of max notes field length in bytes
-    public static final int MAX_NOTES_LENGTH_BYTES = 128 * 1_024;
     
     /* **************************************************************************** */
     /*                               Public Methods                                 */
@@ -563,13 +560,11 @@ public final class JobUtils
         String msg;
         switch (cve.getConstraintName()) {
             case "jobs_tags_bytes_ck":
-                msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, MAX_TAGS_LENGTH_BYTES,
-                        user, tenant);
+                msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, JobsDao.MAX_TAGS_LENGTH_BYTES, user, tenant);
                 _log.error(msg, cve);
                 return new JobInputException(msg, cve);
             case "jobs_notes_bytes_ck":
-                msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_NOTES_SIZE_LIMIT_EXCEEDED", jobUuid,
-                        MAX_NOTES_LENGTH_BYTES, user, tenant);
+                msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_NOTES_SIZE_LIMIT_EXCEEDED", jobUuid, JobsDao.MAX_NOTES_LENGTH_BYTES, user, tenant);
                 _log.error(msg, cve);
                 return new JobInputException(msg, cve);
             default:

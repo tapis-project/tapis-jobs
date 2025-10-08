@@ -3,12 +3,16 @@ package edu.utexas.tacc.tapis.jobs.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
@@ -16,7 +20,9 @@ import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobAnnotation;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.JobQueue;
 import edu.utexas.tacc.tapis.jobs.model.JobShared;
@@ -49,6 +55,8 @@ import edu.utexas.tacc.tapis.security.client.model.SKShareDeleteShareParms;
 import edu.utexas.tacc.tapis.security.client.model.SKShareGetSharesParms;
 import edu.utexas.tacc.tapis.security.client.model.SKShareHasPrivilegeParms;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.utils.ObjectDiffUtils;
+import edu.utexas.tacc.tapis.shared.utils.ObjectDiffUtils.ObjectDiff;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException.Condition;
@@ -874,6 +882,50 @@ public final class JobsImpl
         // Return result code.
         return result;
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* doUpdateAnnotation:                                                    */
+    /* ---------------------------------------------------------------------- */
+
+    public JobAnnotation doUpdateAnnotation(String jobUuid, String tenant, String user, TreeSet<String> tags, 
+        JsonObject notes, boolean replace) throws TapisImplException
+    {
+        JobAnnotation jobAnnotation = null;
+        try {
+            jobAnnotation = getJobsDao().updateJobAnnotations(jobUuid, tenant, user, tags, notes, replace);
+            // Prepare Event Data and Details
+            String eventDetail = replace ? "UPDATE_ANNOTATION" : "PATCH_ANNOTATION";
+            String description = "{";
+            if (!jobAnnotation.getOldNotes().equals(jobAnnotation.getNotes())) {
+                description += "\"notes\": " + ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes()).toJsonString();
+            }
+            if (!jobAnnotation.getOldTags().equals(jobAnnotation.getTags())) {
+                if (!description.equals("{")) description += ", ";
+                description += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
+            }
+            description += "}";
+            // Write an annotation event record
+            try {
+                JobEventManager eventMgr = JobEventManager.getInstance();
+                eventMgr.recordUserEvent(jobUuid, tenant, user, description, eventDetail, null);
+            } catch (Exception e) {
+                String msg = JobUtils.getMsg("JOBS_JOBEVENT_ANNOTATION_EVENT_CREATE_ERROR", jobUuid, tenant, user, eventDetail, description, e);
+                _log.error(msg, e);
+            }
+        }
+        catch (JobInputException e) {
+            _log.error(e.getMessage(), e);
+            throw new TapisImplException(e.getMessage(), e, Condition.BAD_REQUEST);
+        }
+        catch (Exception e) {
+            String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR",  replace?"PUT":"PATCH", jobUuid, user, tenant, tags, notes, e);
+            _log.error(msg, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        // Could be null if not found.
+        return jobAnnotation;
+    }
+
     
     /* ---------------------------------------------------------------------- */
     /* doHideJob:                                                             */

@@ -1,0 +1,85 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "JobAnnotationRequest",
+    "description": "Payload for patching/updating tags and notes of a job.",
+    "type": "object",
+    "definitions": {
+        "constrainedValue": {
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "null"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/constrainedValue"
+                    }
+                },
+                {
+                    "type": "object",
+                    "propertyNames": {
+                        "type": "string"
+                    },
+                    "additionalProperties": {
+                        "$ref": "#/definitions/constrainedValue"
+                    }
+                }
+            ]
+        }
+    },
+    "properties": {
+        "tags": {
+            "$comment": "An array of user-chosen strings that can be associated with a job",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems": true
+        },
+        "notes": {
+            "type": "object",
+            "$comment": "User notes in JSON format with constrained string lengths",
+            "propertyNames": {
+                "type": "string"
+            },
+            "additionalProperties": {
+                "$ref": "#/definitions/constrainedValue"
+            }
+        }
+    },
+    "additionalProperties": false,
+    "examples": [
+        {
+            "tags": [
+                "project:abc",
+                "stage:analysis"
+            ],
+            "notes": {
+                "jira": "ABC-123",
+                "inputs.sha": "e1f..."
+            }
+        },
+        {
+            "tags": [
+                "project:abc",
+                "stage:analysis"
+            ]
+        },
+        {
+            "notes": {
+                "jira": "ABC-123",
+                "inputs.sha": "e1f..."
+            }
+        },
+        {}
+    ]
+}

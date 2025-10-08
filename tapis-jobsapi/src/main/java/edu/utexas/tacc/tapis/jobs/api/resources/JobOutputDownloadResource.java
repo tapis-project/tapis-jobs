@@ -232,7 +232,7 @@ public class JobOutputDownloadResource extends AbstractResource{
     		  
     		  // directory with single file
     		  if((filesList.get(0).getType() == FileTypeEnum.DIR || !pathInFileInfo.endsWith(outputPath))
-    			 || (filesList.get(0).getType() == FileTypeEnum.FILE && filesList.get(0).getSize()> ONE_GB_IN_KB )) {
+    			 || (filesList.get(0).getType() == FileTypeEnum.FILE && filesList.get(0).getSize() > ONE_GB_IN_KB * 1000 )) {
     		   compress = true;
     		  }
     	     // for single file, default is false

@@ -203,6 +203,101 @@ public class SqlStatements
         "UPDATE jobs SET remote_outcome = ?::job_remote_outcome_enum, remote_result_info = ?, last_updated = ?, remote_ended = ?"
         + " WHERE id = ?";
 
+    // language=SQL
+    public static final String REPLACE_JOB_ANNOTATIONS = """
+            WITH p(tags, notes, uuid) AS (
+                VALUES (
+                    ?::text[],
+                    ?::jsonb,
+                    ?
+                )
+            ),
+            curr AS (
+                SELECT j.id, j.uuid, j.tags AS old_tags, j.notes AS old_notes
+                FROM public.jobs j
+                JOIN p ON j.uuid = p.uuid
+                FOR UPDATE
+            )
+            UPDATE public.jobs j
+            SET
+                tags = CASE
+                        WHEN p.tags IS NULL THEN j.tags
+                        ELSE p.tags
+                    END,
+                notes = CASE
+                            WHEN p.notes IS NULL THEN j.notes
+                            ELSE p.notes
+                        END,
+                last_updated = now()
+            FROM p, curr
+            WHERE j.id = curr.id
+            RETURNING
+                j.id,
+                j.uuid,
+                curr.old_tags AS old_tags,
+                curr.old_notes AS old_notes,
+                j.tags  AS new_tags,
+                j.notes AS new_notes;
+            """;
+    // language=SQL
+    public static final String PATCH_JOB_ANNOTATIONS = """
+            WITH p(tags, notes, uuid) AS (
+            VALUES (?::text[], ?::jsonb, ?)
+            ),
+            curr AS (
+            SELECT j.id,
+                    j.uuid,
+                    j.tags  AS old_tags,
+                    j.notes AS old_notes
+            FROM public.jobs j
+            JOIN p ON j.uuid = p.uuid
+            FOR UPDATE
+            ),
+            calc AS (
+            SELECT
+                c.id,
+                c.uuid,
+                c.old_tags,
+                c.old_notes,
+                CASE
+                WHEN p.tags IS NULL THEN c.old_tags
+                ELSE (
+                    SELECT ARRAY(
+                        SELECT t
+                        FROM (
+                            SELECT DISTINCT LOWER(x) AS key, x AS t
+                            FROM unnest(COALESCE(c.old_tags, p.tags)) AS u(x)
+                            UNION ALL
+                            SELECT DISTINCT LOWER(x), x
+                            FROM unnest(p.tags) AS u(x)
+                        ) s
+                        GROUP BY key, t
+                        ORDER BY key, t
+                    )
+                )
+                END AS new_tags,
+                CASE
+                WHEN p.notes IS NULL THEN c.old_notes
+                ELSE COALESCE(c.old_notes, '{}'::jsonb) || p.notes
+                END AS new_notes
+            FROM curr c, p
+            )
+            UPDATE public.jobs j
+            SET
+                tags         = calc.new_tags,
+                notes        = calc.new_notes,
+                last_updated = now()
+            FROM calc
+            WHERE j.id = calc.id
+            RETURNING
+                j.id,
+                j.uuid,
+                calc.old_tags AS old_tags,
+                calc.old_notes AS old_notes,
+                calc.new_tags AS new_tags,
+                calc.new_notes AS new_notes;
+            """;
+
     //-------------------- Job Actions  ----------------------
     public static final String SET_JOB_VISIBLE =
         "UPDATE jobs SET visible = ?, last_updated = ? WHERE uuid = ?";

@@ -1,19 +1,25 @@
 package edu.utexas.tacc.tapis.jobs.utils;
 
 import java.lang.reflect.Constructor;
+import java.sql.SQLException;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
 import edu.utexas.tacc.tapis.jobs.exceptions.recoverable.JobRecoverableException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -24,6 +30,7 @@ import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisDBConstraintViolationException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisDBConnectionException;
@@ -540,5 +547,34 @@ public final class JobUtils
       msgValue = sb.toString();
     }
     return msgValue;
+  }
+
+
+  public static TapisException translateSQLException(SQLException sqle,
+    String jobUuid,
+    String tenant,
+    String user) {
+    try {
+      TapisUtils.checkDBConstraintViolation((PSQLException) sqle);
+    } catch (TapisDBConstraintViolationException cve) {
+        String msg;
+        switch (cve.getConstraintName()) {
+            case "jobs_tags_bytes_ck":
+                msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, JobsDao.MAX_TAGS_LENGTH_BYTES, user, tenant);
+                _log.error(msg, cve);
+                return new JobInputException(msg, cve);
+            case "jobs_notes_bytes_ck":
+                msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_NOTES_SIZE_LIMIT_EXCEEDED", jobUuid, JobsDao.MAX_NOTES_LENGTH_BYTES, user, tenant);
+                _log.error(msg, cve);
+                return new JobInputException(msg, cve);
+            default:
+                msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, cve.getMessage());
+                _log.error(msg, cve);
+                return new JobInputException(msg, cve);
+        }
+    }
+      String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, sqle.getMessage());
+      _log.error(msg, sqle);
+      return new JobException(msg, sqle);
   }
 }

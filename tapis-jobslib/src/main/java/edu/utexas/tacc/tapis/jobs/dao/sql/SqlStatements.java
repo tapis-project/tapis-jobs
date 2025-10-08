@@ -234,10 +234,10 @@ public class SqlStatements
             RETURNING
                 j.id,
                 j.uuid,
-                curr.old_tags AS old_tags,
-                curr.old_notes AS old_notes,
-                j.tags  AS new_tags,
-                j.notes AS new_notes;
+                COALESCE(curr.old_tags, '{}'::text[]) AS old_tags,
+                COALESCE(curr.old_notes, '{}'::jsonb) AS old_notes,
+                COALESCE(j.tags, '{}'::text[])  AS new_tags,
+                COALESCE(j.notes, '{}'::jsonb) AS new_notes;
             """;
     // language=SQL
     public static final String PATCH_JOB_ANNOTATIONS = """
@@ -292,10 +292,10 @@ public class SqlStatements
             RETURNING
                 j.id,
                 j.uuid,
-                calc.old_tags AS old_tags,
-                calc.old_notes AS old_notes,
-                calc.new_tags AS new_tags,
-                calc.new_notes AS new_notes;
+                COALESCE(calc.old_tags, '{}'::text[]) AS old_tags,
+                COALESCE(calc.old_notes, '{}'::jsonb) AS old_notes,
+                COALESCE(calc.new_tags, '{}'::text[]) AS new_tags,
+                COALESCE(calc.new_notes, '{}'::jsonb) AS new_notes;
             """;
 
     //-------------------- Job Actions  ----------------------

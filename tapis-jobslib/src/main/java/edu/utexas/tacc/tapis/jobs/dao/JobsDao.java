@@ -191,8 +191,8 @@ public final class JobsDao
 	 * @throws TapisException on database errors
 	 */
 	public JobsDao() throws TapisException {}
-	  
-	/* ********************************************************************** */
+
+  /* ********************************************************************** */
 	/*                             Public Methods                             */
 	/* ********************************************************************** */
 	/* ---------------------------------------------------------------------- */
@@ -1623,56 +1623,30 @@ public final class JobsDao
 
           pstmt.setString(3, jobUuid);
           pstmt.execute();
-          ResultSet rs = pstmt.getGeneratedKeys();
-          if (rs.next()) {
-            jobAnnotation = new JobAnnotation();
-            jobAnnotation.setId(rs.getInt(1));
-            jobAnnotation.setUuid(rs.getString(2));
-            jobAnnotation.setOldTags(TagsConverter.fromJDBCArray(rs.getArray(3)));
-            jobAnnotation.setOldNotes(TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class));
-            jobAnnotation.setTags(TagsConverter.fromJDBCArray(rs.getArray(5)));
-            jobAnnotation.setNotes(TapisGsonUtils.getGson().fromJson(rs.getString(6), JsonObject.class));
+          try (ResultSet rs = pstmt.getGeneratedKeys()) {
+            if (rs.next()) {
+              jobAnnotation = new JobAnnotation();
+              jobAnnotation.setId(rs.getInt(1));
+              jobAnnotation.setUuid(rs.getString(2));
+              jobAnnotation.setOldTags(TagsConverter.fromJDBCArray(rs.getArray(3)));
+              jobAnnotation.setOldNotes(TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class));
+              jobAnnotation.setTags(TagsConverter.fromJDBCArray(rs.getArray(5)));
+              jobAnnotation.setNotes(TapisGsonUtils.getGson().fromJson(rs.getString(6), JsonObject.class));
+            }
           }
           connection.commit();
-        } finally {
-          if (!connection.isClosed()) {
-            try {
-              connection.rollback();
-            } catch (Exception e) {
-              _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e);
-            }
-            try {
-              connection.setAutoCommit(true);
-            } catch (Exception e) {
-              _log.error(MsgUtils.getMsg("DB_FAILED_CONNECTION_CLOSE"), e);
-            }
-          }
+        } catch (SQLException sqle) {
+          // Rollback quietly.
+          try { if (connection != null && !connection.getAutoCommit()) connection.rollback(); }
+          catch (Exception e) { _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e); }
+          // check for DB constraint violations
+          throw JobUtils.translateSQLException(sqle, jobUuid, tenant, user);
         }
-      } catch (SQLException ex) {
-
-        String msg = null;
-        // check for DB constraint violations
-        try {
-          TapisUtils.checkDBConstraintViolation((PSQLException) ex);
-        } catch (TapisDBConstraintViolationException e) {
-          // Handle the specific constraint violation exception
-          switch (e.getConstraintName()) {
-            case "jobs_tags_bytes_ck":
-              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_TAGS_SIZE_LIMIT_EXCEEDED", jobUuid, MAX_TAGS_LENGTH_BYTES, user, tenant);
-              break;
-            case "jobs_notes_bytes_ck":
-              msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_NOTES_SIZE_LIMIT_EXCEEDED", jobUuid, MAX_NOTES_LENGTH_BYTES, user, tenant);
-              break;
-            default:
-              msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
-          }
-          _log.error(msg, ex);
-          throw new JobInputException(msg, ex);
-        }
-        msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, ex.getMessage());
-        _log.error(msg, ex);
-        throw new JobException(msg, ex);
+      } catch (TapisException e) {
+        // throw translated TapisException as is
+        throw e;
       } catch (Exception e) {
+        // deal with all other exceptions.
         String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
         _log.error(msg, e);
         throw new JobException(msg, e);
@@ -3754,7 +3728,6 @@ public final class JobsDao
                 
         return Collections.unmodifiableMap(jmap);
     }
-    
     /* ********************************************************************** */
     /*                          JobTransferInfo class                         */
     /* ********************************************************************** */

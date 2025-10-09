@@ -1613,6 +1613,7 @@ public final class JobsDao
               if (newNotes != null && newNotes.entrySet().size() > 0) {
                 _log.debug("Merging existing notes: " + existingNotes);
                 for (String key : existingNotes.keySet()) {
+                  if (newNotes.has(key)) continue; // new notes take precedence
                   TapisGsonUtils.addTo(newNotes, key, existingNotes.get(key));
                 }
               }

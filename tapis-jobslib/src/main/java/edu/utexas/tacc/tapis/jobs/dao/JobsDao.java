@@ -1,40 +1,9 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeSet;
-import javax.sql.DataSource;
 import com.google.gson.JsonObject;
-
-import org.apache.commons.lang3.StringUtils;
-import org.jooq.Condition;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.OrderField;
-import org.jooq.Result;
-import org.jooq.TableField;
-import org.jooq.impl.DSL;
-import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
-import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Tables;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
 import edu.utexas.tacc.tapis.jobs.model.Job;
@@ -56,8 +25,6 @@ import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
 import edu.utexas.tacc.tapis.search.parser.ASTLeaf;
 import edu.utexas.tacc.tapis.search.parser.ASTNode;
 import edu.utexas.tacc.tapis.search.parser.ASTUnaryExpression;
-
-import edu.utexas.tacc.tapis.shared.exceptions.TapisDBConstraintViolationException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
@@ -65,7 +32,18 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
-import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jooq.*;
+import org.jooq.impl.DSL;
+import org.postgresql.util.PGobject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
+import java.sql.*;
+import java.time.Instant;
+import java.util.*;
 
 import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
@@ -1580,7 +1558,6 @@ public final class JobsDao
           
           return result;
     }
-
     /* ---------------------------------------------------------------------- */
     /* updateJobAnnotations: */
     /* ---------------------------------------------------------------------- */
@@ -1602,46 +1579,74 @@ public final class JobsDao
      */
     public JobAnnotation updateJobAnnotations(String jobUuid, String tenant, String user, TreeSet<String> tags,
         JsonObject notes, boolean replace) throws TapisException {
-      JobAnnotation jobAnnotation = null;
+      JobAnnotation jobAnnotation = new JobAnnotation();
       try (Connection connection = getConnection()) {
         connection.setAutoCommit(false);
-        // Set the sql command.
-        String sql = replace ? SqlStatements.REPLACE_JOB_ANNOTATIONS : SqlStatements.PATCH_JOB_ANNOTATIONS;
-        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-          if (tags == null) {
-            pstmt.setNull(1, Types.ARRAY);
-          } else {
-            Array tagsArray = TagsConverter.toJDBCArray(connection, tags);
-            pstmt.setArray(1, tagsArray);
-          }
+        // select for update to lock the row. if this DB session is broken, the on-going transaction will
+        // be rolled back and the lock released.
+        TreeSet<String> newTags = tags == null ? new TreeSet<>() : tags;
+        JsonObject newNotes = notes == null ? new JsonObject() : notes;
 
-          if (notes == null) {
-            pstmt.setNull(2, Types.VARCHAR);
-          } else {
-            pstmt.setString(2, notes.toString());
-          }
-
-          pstmt.setString(3, jobUuid);
-          pstmt.execute();
-          try (ResultSet rs = pstmt.getGeneratedKeys()) {
-            if (rs.next()) {
-              jobAnnotation = new JobAnnotation();
-              jobAnnotation.setId(rs.getInt(1));
-              jobAnnotation.setUuid(rs.getString(2));
-              jobAnnotation.setOldTags(TagsConverter.fromJDBCArray(rs.getArray(3)));
-              jobAnnotation.setOldNotes(TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class));
-              jobAnnotation.setTags(TagsConverter.fromJDBCArray(rs.getArray(5)));
-              jobAnnotation.setNotes(TapisGsonUtils.getGson().fromJson(rs.getString(6), JsonObject.class));
+        try (PreparedStatement selectPstmt = connection.prepareStatement(SqlStatements.SELECT_JOB_ANNOTATIONS_BY_UUID_FOR_UPDATE)) {
+          selectPstmt.setString(1, jobUuid);
+          try (ResultSet rs = selectPstmt.executeQuery()) {
+            if (!rs.next()) {
+              String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid);
+              throw new TapisNotFoundException(msg, jobUuid);
             }
+            
+            int id = rs.getInt(1);
+            String uuid = rs.getString(2);
+            // retrieve existing tags and notes
+            // always a non-null TreeSet (might be empty) is returned here
+            TreeSet<String> existingTags = TagsConverter.fromJDBCArray(rs.getArray(3));
+            JsonObject existingNotes = TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class);
+            jobAnnotation.setOldTags(existingTags);
+            jobAnnotation.setOldNotes(existingNotes);
+
+            if (!replace) {
+              _log.debug("Merging existing ones into new annotations for job %d uuid = %s.".formatted(id, uuid));
+              if (CollectionUtils.isNotEmpty(newTags)) {
+                _log.debug("Merging existing tags: " + existingTags);
+                newTags.addAll(existingTags);
+              }
+              if (newNotes != null && newNotes.entrySet().size() > 0) {
+                _log.debug("Merging existing notes: " + existingNotes);
+                for (String key : existingNotes.keySet()) {
+                  TapisGsonUtils.addTo(newNotes, key, existingNotes.get(key));
+                }
+              }
+            }
+
           }
-          connection.commit();
+        } catch (SQLException sqle) {
+          // Rollback quietly.
+          try { if (connection != null && !connection.getAutoCommit()) connection.rollback(); }
+          catch (Exception e) { _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e); }
+          String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_LOCK_ERROR", jobUuid, tenant, user, sqle.getMessage());
+          _log.error(msg, sqle);
+          throw new JobException(msg, sqle);
+        }
+        // update the annotations.
+        try (PreparedStatement pstmt = connection.prepareStatement(SqlStatements.UPDATE_JOB_ANNOTATIONS_BY_UUID)) {
+          pstmt.setArray(1, TagsConverter.toJDBCArray(connection, newTags));
+          pstmt.setString(2, newNotes.toString());
+          pstmt.setString(3, jobUuid);
+          ResultSet rs = pstmt.executeQuery();
+          if (rs.next()) {
+            jobAnnotation.setId(rs.getInt(1));
+            jobAnnotation.setUuid(rs.getString(2));
+            jobAnnotation.setTags(TagsConverter.fromJDBCArray(rs.getArray(3)));
+            jobAnnotation.setNotes(TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class));
+          }
         } catch (SQLException sqle) {
           // Rollback quietly.
           try { if (connection != null && !connection.getAutoCommit()) connection.rollback(); }
           catch (Exception e) { _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e); }
           // check for DB constraint violations
           throw JobUtils.translateSQLException(sqle, jobUuid, tenant, user);
-        }
+        } 
+        connection.commit();
       } catch (TapisException e) {
         // throw translated TapisException as is
         throw e;

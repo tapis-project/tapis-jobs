@@ -15,7 +15,7 @@
     </parent>
 
     <artifactId>tapis-jobs</artifactId>
-    <version>1.9.1</version>
+    <version>25Q4.0</version>
     <packaging>pom</packaging>
 
     <name>TACC Tapis Jobs Service Parent POM</name>

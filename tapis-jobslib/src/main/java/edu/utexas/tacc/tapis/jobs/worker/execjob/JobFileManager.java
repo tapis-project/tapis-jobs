@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.utexas.tacc.tapis.jobs.model.TransferURI;
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -1316,8 +1317,7 @@ public final class JobFileManager
         // Are we auditing?
         if (RuntimeParameters.getInstance().isAuditingEnabled()) {
         	// Initialize audit object.
-        	var auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTION.ACTION_TRANSFER);
-        	
+        	AuditData auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTION.ACTION_TRANSFER);
         	// Stage json content.
         	var info = new TransferAuditInfo();
         	info.phase = phase.name();
@@ -1326,9 +1326,45 @@ public final class JobFileManager
         	info.CorrelationIdType = corrId.name();
         	info.CorrelationId = tag;
         	auditData.data = _gson.toJson(info);
-        	
-        	// Write the record.
-        	_audit.info(AuditUtils.auditMsg(auditData));
+
+          // For each txfr element, fill in as much source/dest info as we can.
+          for (ReqTransferElement rte : tasks.getElements())
+          {
+            // Create TransferURI objects for src and dest URLs
+            // A Transfer URI must look like tapis://{systemId}/{path}  http/s://{systemId}/{path}
+            // For protocol http/s:// the systemId is the IP address or host name
+            // For protocol tapis:// systemId is the Tapis system id.
+            // NOTE: It would be nice to look up host and type transfers involving Tapis systems, but currently
+            //   that would require an extra call to systems. It appears the Jobs service does not have a general
+            //   cache for system definitions. There is a loadSystemDefinition in JobExecutionContext, but it loads
+            //   specific purpose systems: exec, archive, dtn
+            // Source
+            TransferURI srcUri = new TransferURI(rte.getSourceURI());
+            auditData.sourcePath = srcUri.getPath();
+            if (srcUri.isTapisProtocol())
+            {
+              auditData.sourceSystemId = srcUri.getSystemId();
+            }
+            else
+            {
+              // Non-Tapis URI, we just set the host
+              auditData.sourceHost = srcUri.getSystemId();
+            }
+            // Target
+            TransferURI dstUri = new TransferURI(rte.getDestinationURI());
+            auditData.targetPath = dstUri.getPath();
+            if (dstUri.isTapisProtocol())
+            {
+              auditData.targetSystemId = dstUri.getSystemId();
+            }
+            else
+            {
+              // Non-Tapis URI, we just set the host
+              auditData.targetHost = dstUri.getSystemId();
+            }
+            // Write the record.
+            _audit.info(AuditUtils.auditMsg(auditData));
+          }
         }
         
         // Return the transfer id.

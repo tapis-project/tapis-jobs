@@ -1,3 +1,6 @@
+-- to make this idempotent, drop the constraints if they exist
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_tags_bytes_ck;
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_notes_bytes_ck;
 -- to limit the octet length of tags field of each job to 128K bytes.
 ALTER TABLE jobs
 ADD CONSTRAINT jobs_tags_bytes_ck

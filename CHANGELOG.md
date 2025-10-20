@@ -9,20 +9,22 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
-## 1.9.1 - 2025-09-18
+## 25Q4.0 - 2025-10-20
 
-Enhancement, incremental improvements and bug fix.
+Enhancements, incremental improvements and bug fixes.
 
 Log messages specific to Jobs service moved from shared catalog to a local catalog in the repository.
 Note that user of ArchiveOnAppError attribute is deprecated. It is being replaced with ArchiveMode.
 
 ### New features:
+- New endpoints to support updating *tags* and *notes* for a job: *patchJobAnnotations* and *putJobAnnotations*.
 - Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
 - Return top level notes attribute as a json attribute rather than a string with json embedded.
 - Add attribute *archiveMode* to replace attribute *archiveOnAppError*. Three modes: ALWAYS, SKIP_ON_FAIL, NEVER
 
 ### Bug fixes:
 - Fix issue with recovery from BLOCKED state. Incorrect error messages and not all authentication methods handled properly.
+- Fix issue with endpoint *getJobOutputDownload*. Error when downloading zipped output when it is less than one GB. 
 
 -----------------------
 ## 1.9.0 - 2025-06-23

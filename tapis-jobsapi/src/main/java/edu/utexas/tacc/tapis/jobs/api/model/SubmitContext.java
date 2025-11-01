@@ -994,7 +994,7 @@ public final class SubmitContext
       }
       catch (Exception e)
       {
-        String msg = MsgUtils.getMsg("JOBS_INVALID_ARCHIVEMODE", appArchiveMode.name());
+        String msg = JobUtils.getMsg("JOBS_INVALID_ARCHIVEMODE", appArchiveMode.name());
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
       }
     }

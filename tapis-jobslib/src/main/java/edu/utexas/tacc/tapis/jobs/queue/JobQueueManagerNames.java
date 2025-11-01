@@ -78,7 +78,6 @@ public class JobQueueManagerNames
   /** Create the global exchange name used to communicate with
    * the tenant's command topic queues.
    * 
-   * @param tenantId the id of a specific tenant
    * @return the tenant command topic exchange name
    */
   public static String getCmdExchangeName()
@@ -118,7 +117,6 @@ public class JobQueueManagerNames
   /** Create the global topic queue name used to communicate job 
    * commands to workers.
    * 
-   * @param tenantId the id of a specific tenant
    * @param workerName the name of the worker assigned on worker start up
    * @return the tenant command topic name
    */
@@ -133,7 +131,6 @@ public class JobQueueManagerNames
   /** Create the topic queue name used to communicate job commands to a 
    * worker handling a specific job.
    * 
-   * @param tenantId the id of a specific tenant
    * @param jobUuid the job uuid as a string
    * @return the tenant job-specific command topic name
    */
@@ -231,7 +228,7 @@ public class JobQueueManagerNames
   /* ---------------------------------------------------------------------- */
   /** Get the binding key that accepts messages targeting the worker processing 
    * a specific job.
-   * @param workerUUID the targeted job's uuid
+   * @param jobUUID the targeted job's uuid
    * @return the binding key
    */
   public static String getCmdSpecificJobBindingKey(String jobUUID)

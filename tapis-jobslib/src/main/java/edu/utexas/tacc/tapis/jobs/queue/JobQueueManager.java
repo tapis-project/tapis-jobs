@@ -87,7 +87,7 @@ public final class JobQueueManager
       }
       catch (Exception e)
       {
-        String msg = JobUtils.getMsg("JOBS_QMGR_INIT_ERROR");
+        String msg = JobUtils.getMsg("JOBS_QMGR_INITQ_ERROR", e);
         throw new TapisRuntimeException(msg, e);
       }
   }
@@ -116,9 +116,8 @@ public final class JobQueueManager
       // Create the vhost object and execute the initialization routine.
       var parms = new VHostParms(host, adminPort, adminUser, adminPass);
       var mgr   = new VHostManager(parms);
-
-      // TODO This may fail if rabbitmq is still coming up, so retry a few of times.
-      // TODO Log warning on each failure, sleep 3 seconds between each try.
+      // This may fail if rabbitmq is still coming up, so retry a few of times.
+      // Log warning on each failure, sleep 3 seconds between each try.
       int attempt_num = 0;
       String msg;
       while (true) {
@@ -126,13 +125,15 @@ public final class JobQueueManager
           mgr.initVHost(vhost, user, pass);
           return;
         } catch (Exception e) {
+          // This attempt failed, log a warning and sleep
           attempt_num++;
-          // TODO Create msg in properties
-          msg = MsgUtils.getMsg("JOBS_WORKER_QMGR_INIT_FAIL", attempt_num, e.getMessage());
+          msg = JobUtils.getMsg("JOBS_QMGR_INITV_FAIL", attempt_num, e);
           _log.warn(msg);
           try {Thread.sleep(3000);} catch (InterruptedException ie) {/* ignore */}
           if (attempt_num > 5) {
-            msg = MsgUtils.getMsg("QMGR_UNINITIALIZED_ERROR");
+            // No more attemps, fatal error.
+            msg = MsgUtils.getMsg("JOBS_QMGR_INITV_ERROR", e);
+            _log.error(msg);
             throw new TapisRuntimeException(msg, e);
           }
         }

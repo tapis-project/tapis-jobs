@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis-jobs</artifactId>
-		<version>25Q4.0</version>
+		<version>${revision}</version>
 	</parent>
 	
 	<artifactId>tapis-jobsmigrate</artifactId>

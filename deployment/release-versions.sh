@@ -2,6 +2,8 @@
 # Script to determine specific versions for a release.
 # Determine versions for: service, tapis-bom, tapis-client-java, tapis-shared-java
 
+SVC_NAME=jobs
+
 PrgName=$(basename "$0")
 
 # Determine absolute path to location from which we are running
@@ -34,7 +36,7 @@ SHARED_VER=$(ls -1 -d $FILES | tail -n 1 | xargs -n 1 basename)
 SVC_VER=$(cd ..;mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
 # Update release.properties file
-echo "${SVC_VER}" > ${RELEASE_PROP_FILE}
+echo "${SVC_NAME}=${SVC_VER}" > ${RELEASE_PROP_FILE}
 echo "${BOM_NAME}=${BOM_VER}" >> ${RELEASE_PROP_FILE}
 echo "${CLIENT_NAME}=${CLIENT_VER}" >> ${RELEASE_PROP_FILE}
 echo "${SHARED_NAME}=${SHARED_VER}" >> ${RELEASE_PROP_FILE}

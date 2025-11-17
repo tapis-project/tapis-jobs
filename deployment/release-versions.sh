@@ -37,6 +37,7 @@ SVC_VER=$(cd ..;mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
 # Update release.properties file
 echo "${SVC_NAME}=${SVC_VER}" > ${RELEASE_PROP_FILE}
+echo "-----------------------------------------------------------------" >> ${RELEASE_PROP_FILE}
 echo "${BOM_NAME}=${BOM_VER}" >> ${RELEASE_PROP_FILE}
 echo "${CLIENT_NAME}=${CLIENT_VER}" >> ${RELEASE_PROP_FILE}
 echo "${SHARED_NAME}=${SHARED_VER}" >> ${RELEASE_PROP_FILE}

@@ -1,19 +1,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	
-	<parent>
-		<groupId>edu.utexas.tacc.tapis</groupId>
-		<artifactId>tapis-jobs</artifactId>
-		<version>25Q4.0</version>
-	</parent>
-	
-	<artifactId>tapis-jobsapi</artifactId>
-	<packaging>war</packaging>
-	
-	<name>Tapis Jobs API</name>
-	<description>Tapis Jobs web application</description>
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <groupId>edu.utexas.tacc.tapis</groupId>
+    <artifactId>tapis-jobs</artifactId>
+    <version>${revision}</version>
+  </parent>
+  
+  <artifactId>tapis-jobsapi</artifactId>
+  <packaging>war</packaging>
+  
+  <name>Tapis Jobs API</name>
+  <description>Tapis Jobs web application</description>
+
+  <properties>
+    <!-- If necessary set a specific version of the shared code. -->
+    <!-- <tapis-shared-java.version>1.11.2-SNAPSHOT</tapis-shared-java.version> -->
+  </properties>
 
     <dependencies>
         <dependency>

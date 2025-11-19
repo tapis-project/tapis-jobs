@@ -7,15 +7,15 @@
     <parent>
       <groupId>edu.utexas.tacc.tapis</groupId>
       <artifactId>tapis-bom</artifactId>
-      <version>[2.0,3.0)</version>
+      <version>[2.0.51,3.0)</version>
       <!-- Set empty relative path to avoid maven warning and-->
       <!--   ensure parent is found in local repository if that-->
       <!--   is the only place it exists.-->
-      <relativePath></relativePath>
+      <relativePath/>
     </parent>
 
     <artifactId>tapis-jobs</artifactId>
-    <version>25Q4.0</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
     <name>TACC Tapis Jobs Service Parent POM</name>
@@ -27,6 +27,7 @@
     </scm>
 
     <properties>
+      <revision>25Q4.1</revision>
       <!-- Most properties set in parent tapis-bom   -->
       <!-- Properties can be overridden here         -->
       <!-- Individual projects may want to override. -->
@@ -80,7 +81,7 @@
     <resources>
       <!-- Write the project version number to the specified file. -->
       <!-- Setting the targetPath puts the file into the jar at the -->
-      <!-- specified root-relative directory. The the modified -->
+      <!-- specified root-relative directory. The modified -->
       <!-- tapis.version file is always copied to the target/classes -->
       <!-- directory. Do the same for other data that we want to -->
       <!-- capture. A jar and war file will contain these files -->

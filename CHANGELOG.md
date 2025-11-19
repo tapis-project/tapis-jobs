@@ -9,6 +9,17 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
+## 25Q4.1 - 2025-??-??
+
+Enhancement.
+
+### New features:
+- Improve handling of potentially slow startup of rabbitmq message broker.
+
+### Bug fixes:
+- None
+
+---------------------------------------------------------------------------
 ## 25Q4.0 - 2025-10-20
 
 Enhancements, incremental improvements and bug fixes.

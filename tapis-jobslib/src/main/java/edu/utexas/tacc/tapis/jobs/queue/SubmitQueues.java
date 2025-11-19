@@ -33,7 +33,7 @@ public class SubmitQueues
   /*                                 Fields                                 */
   /* ********************************************************************** */
   /** The prioritized list of queues defined for all tenants.  This list is 
-   * initialized statically and can be reloaded afterwards on demand.
+   * initialized statically and can be reloaded afterward on demand.
    */
   private static List<JobQueue> _submitQueues = loadQueues();
   

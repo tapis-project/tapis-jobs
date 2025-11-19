@@ -71,42 +71,36 @@ public final class JobQueueManager
       // Split initialization.
       super(parms);
       
-      // Initialize vhost.
+      // Initialize vhost. This method may make several attempts in case rabbitmq is slow to start.
       InitRabbitVHost();
       
       // Create the queues needed by most if not all applications.
-      try {createStandardQueues();}
-      catch (Exception e) {
-          String msg = JobUtils.getMsg("JOBS_QMGR_INIT_ERROR");
-          throw new TapisRuntimeException(msg, e);
+      try
+      {
+        // Create the standard dead-letter and alternate exchanges and queues.
+        createStandardQueues();
+        // Create the job cmd, recovery and event exchanges and queues
+        createStandardJobQueues();
+        // Create the job submit exchange and queues. NOTE: Just one exchange but possibly many queues.
+        // Queue names come from DB. As of Oct 2025 there is only one queue, tapis.jobq.submit.DefaultQueue
+        createSubmitQueues();
       }
-      
-      // Try to create the tenant event topic but allow 
-      // instance creation even in the face of failures.
-      try {createStandardJobQueues();}
-      catch (Exception e) {
-        String msg = JobUtils.getMsg("JOBS_QMGR_INIT_ERROR");
+      catch (Exception e)
+      {
+        String msg = JobUtils.getMsg("JOBS_QMGR_INITQ_ERROR", e);
         throw new TapisRuntimeException(msg, e);
-      }
-      
-      // Try to create all tenant queues but allow 
-      // instance creation even in the face of failures. 
-      try {createSubmitQueues();}
-      catch (Exception e) {
-          String msg = JobUtils.getMsg("JOBS_QMGR_INIT_ERROR");
-          throw new TapisRuntimeException(msg, e);
       }
   }
   
   /* ---------------------------------------------------------------------- */
   /* InitRabbitVHost:                                                       */
   /* ---------------------------------------------------------------------- */
-  /** Establish the Jobs virtual host on the message broker.  All interactions
-   * with the broker after this will be on the virtual host.  If the host
-   * already exists and its administrator user has been granted the proper
-   * permissions, then this method has no effect.
+  /**
+   * Establish the Jobs virtual host on the message broker. All interactions with the broker after
+   * this will be on the virtual host. If the host already exists and its administrator user has
+   * been granted the proper permissions, then this method has no effect.
    * 
-   * @throws TapisRuntimeException on error
+   * @throws JobException on error. If rabbitmq is still coming up we can retry
    */
   private void InitRabbitVHost() throws TapisRuntimeException
   {
@@ -122,10 +116,27 @@ public final class JobQueueManager
       // Create the vhost object and execute the initialization routine.
       var parms = new VHostParms(host, adminPort, adminUser, adminPass);
       var mgr   = new VHostManager(parms);
-      try {mgr.initVHost(vhost, user, pass);}
-      catch (Exception e) {
-          String msg = MsgUtils.getMsg("QMGR_UNINITIALIZED_ERROR");
-          throw new TapisRuntimeException(msg, e);
+      // This may fail if rabbitmq is still coming up, so retry a few of times.
+      // Log warning on each failure, sleep 3 seconds between each try.
+      int attempt_num = 0;
+      String msg;
+      while (true) {
+        try {
+          mgr.initVHost(vhost, user, pass);
+          return;
+        } catch (Exception e) {
+          // This attempt failed, log a warning and sleep
+          attempt_num++;
+          msg = JobUtils.getMsg("JOBS_QMGR_INITV_FAIL", attempt_num, e);
+          _log.warn(msg);
+          try {Thread.sleep(3000);} catch (InterruptedException ie) {/* ignore */}
+          if (attempt_num > 5) {
+            // No more attemps, fatal error.
+            msg = MsgUtils.getMsg("JOBS_QMGR_INITV_ERROR", e);
+            _log.error(msg);
+            throw new TapisRuntimeException(msg, e);
+          }
+        }
       }
   }
   
@@ -442,10 +453,8 @@ public final class JobQueueManager
    * exchange and logs an error in case of failure.  In all cases, the newly
    * created channel is closed.
    * 
-   * @param tenantId the worker's tenant
    * @param wkrName the worker's name assigned at startup
    * @param workerUuid the worker's uuid
-   * @param channel a channel on which to issue the command 
    */
   public void unbindWorkerSpecificCmdTopic(String wkrName, String workerUuid)
   {
@@ -488,7 +497,7 @@ public final class JobQueueManager
    * tenants.  Using these arguments both senders and receivers can create the
    * exchange since it will be created in exactly the same way in both cases.  
    * 
-   * @param tenantId the tenant who is creating an exchange
+   * @param etype the type of exchange, ALT, DEAD or OTHER
    * @return the exchange configuration arguments
    */
   public Map<String,Object> getExchangeArgs(ExchangeUse etype)
@@ -509,7 +518,6 @@ public final class JobQueueManager
    * tenants.  Using these arguments both senders and receivers can create the
    * exchange since it will be created in exactly the same way in both cases.  
    * 
-   * @param tenantId the tenant who is creating an exchange
    * @return the exchange configuration arguments
    */
   public Map<String,Object> getExchangeArgs()

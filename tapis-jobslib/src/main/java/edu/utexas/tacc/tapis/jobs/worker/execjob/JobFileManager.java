@@ -20,14 +20,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import edu.utexas.tacc.tapis.jobs.model.TransferURI;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.google.gson.Gson;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
@@ -46,7 +42,9 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
+import edu.utexas.tacc.tapis.jobs.model.TransferURI;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.utils.JobWorkerAudit;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -147,16 +145,15 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* createDirectories:                                                     */
     /* ---------------------------------------------------------------------- */
-    /** Create the directories used for I/O on this job.  The directories may
+    /**
+     * Create the directories used for I/O on this job.  The directories may
      * already exist.  This method is not expected to be called from the front-end,
      * so the JWT information is not available (there's no threadlocal variable).
-     * 
-     * 
+     *
      * @throws TapisImplException
-     * @throws TapisServiceConnectionException
      */
     public void createDirectories() 
-     throws TapisException, TapisServiceConnectionException
+     throws TapisException
     {
         // Get the client from the context.
         FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);

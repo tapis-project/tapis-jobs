@@ -51,7 +51,5 @@ ENV CATALINA_OPTS -Xms1g -Xmx3g --add-opens java.base/java.time=ALL-UNNAMED
 EXPOSE 8000
 EXPOSE 8080
 
-# Launch Tomcat on startup
-CMD ${CATALINA_HOME}/bin/catalina.sh run
-
-
+# Launch Tomcat on startup. NOTE Cannot use env variables here.
+CMD ["/usr/local/tomcat/bin/catalina.sh", "run"]

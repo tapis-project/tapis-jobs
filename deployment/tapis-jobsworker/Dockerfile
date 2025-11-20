@@ -51,7 +51,7 @@ USER tapis
 WORKDIR /home/tapis/work
 
 # Java module commands that are always needed.
-ENV JAVA_MODULE_OPTS --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED
+ENV JAVA_MODULE_OPTS --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED
 
 # Launch the class and parameters specified in the environment. 
 # Add the following tls directive to avoid a jvm bug involving certificates.

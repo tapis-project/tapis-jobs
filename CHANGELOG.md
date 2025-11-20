@@ -9,15 +9,15 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
-## 25Q4.1 - 2025-??-??
+## 25Q4.1 - 2025-11-20
 
-Enhancement.
+Enhancement and bug fix.
 
 ### New features:
 - Improve handling of potentially slow startup of rabbitmq message broker.
 
 ### Bug fixes:
-- None
+- Fix issue with auditing where some messages logged with same GUID.
 
 ---------------------------------------------------------------------------
 ## 25Q4.0 - 2025-10-20

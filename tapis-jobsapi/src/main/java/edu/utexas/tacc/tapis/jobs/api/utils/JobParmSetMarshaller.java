@@ -39,7 +39,7 @@ public final class JobParmSetMarshaller
     public static final String TAPIS_ENV_VAR_UNSET = TapisConstants.TAPIS_NOT_SET;
     public static final String TAPIS_ENV_VAR_DEFAULT_VALUE = "";
     
-    // Limit environment key names to alphnumerics and "_", starting with an alpha.
+    // Limit environment key names to alphanumerics and "_", starting with an alpha.
     public static final Pattern _envKeyPattern = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
     
     /* **************************************************************************** */

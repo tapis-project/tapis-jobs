@@ -32,6 +32,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.*;
@@ -1265,7 +1266,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* createJob:                                                             */
 	/* ---------------------------------------------------------------------- */
-	public void createJob(Job job)
+	public void createJob(ResourceRequestUser rUser, Job job)
       throws TapisException
 	{
         // ------------------------- Complete Input ----------------------
@@ -1385,7 +1386,7 @@ public final class JobsDao
           
           // Write the event table and issue the notification.
           var eventMgr = JobEventManager.getInstance();
-          eventMgr.recordStatusEvent(job, job.getStatus(), null, conn);
+          eventMgr.recordStatusEvent(rUser, job, job.getStatus(), null, conn);
     
           // Commit the transaction that may include changes to both tables.
           conn.commit();
@@ -2628,7 +2629,7 @@ public final class JobsDao
      * @return the open connection when the transaction is uncommitted; null otherwise
      * @throws JobException if the status could not be updated
      */
-    private Connection setStatus(Job job, JobStatusType newStatus, String message,
+    private Connection setStatus(ResourceRequestUser rUser, Job job, JobStatusType newStatus, String message,
                                  boolean commit, Instant updateTime)
      throws JobException
     {
@@ -2725,7 +2726,7 @@ public final class JobsDao
             
             // Write the event table and optionally send notifications (asynchronously).
             var eventMgr = JobEventManager.getInstance();
-            eventMgr.recordStatusEvent(job, newStatus, curStatus, conn);
+            eventMgr.recordStatusEvent(rUser, job, newStatus, curStatus, conn);
             
             // Conditionally commit the transaction.
             if (commit) conn.commit();

@@ -39,6 +39,7 @@ test-output
 # Intellij metadata files
 .smarttomcat
 .idea/*
+.run/*
 *.iml
 *.ids
 *.eml

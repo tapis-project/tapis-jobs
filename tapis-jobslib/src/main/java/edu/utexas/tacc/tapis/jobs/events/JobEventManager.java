@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.util.List;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +113,7 @@ public final class JobEventManager
      * @param conn existing connection or null
      * @throws TapisException on error
      */
-    public JobEvent recordStatusEvent(Job job, JobStatusType newStatus, 
+    public JobEvent recordStatusEvent(ResourceRequestUser rUser, Job job, JobStatusType newStatus,
                                       JobStatusType oldStatus, Connection conn)
      throws TapisException
     {
@@ -132,7 +133,7 @@ public final class JobEventManager
         jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, conn);
+        _jobEventsDao.createEvent(rUser, jobEvent, conn);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }

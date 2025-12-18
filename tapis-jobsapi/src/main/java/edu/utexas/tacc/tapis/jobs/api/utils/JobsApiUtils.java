@@ -1,11 +1,16 @@
 package edu.utexas.tacc.tapis.jobs.api.utils;
 
 import java.lang.reflect.Type;
+import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 
+import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import org.apache.commons.lang3.StringUtils;
 import com.google.gson.JsonObject;
@@ -34,12 +39,19 @@ import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JobsApiUtils 
 {
     /* **************************************************************************** */
     /*                                   Constants                                  */
     /* **************************************************************************** */
+    // Local logger.
+    private static final Logger _log = LoggerFactory.getLogger(JobsApiUtils.class);
+    // Location of message bundle files
+    private static final String MESSAGE_BUNDLE = "edu.utexas.tacc.tapis.jobs.api.JobsApiMessages";
+
     // The wildcard used in notifications subject filters.
     public static final String TYPE_FILTER_WILDCARD = "*";
     
@@ -49,6 +61,98 @@ public class JobsApiUtils
     /* **************************************************************************** */
     /*                                Public Methods                                */
     /* **************************************************************************** */
+    /**
+     * Get a localized message using the specified key and parameters. Locale is null.
+     * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+     * @param key - Key used to lookup message in properties file.
+     * @param parms - Parameters for template variables in message
+     * @return Resulting message
+     */
+    public static String getMsg(String key, Object... parms)
+    {
+        return getMsg(key, null, parms);
+    }
+
+    /**
+     * Get a localized message using the specified locale, key and parameters.
+     * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+     * @param locale - Locale to use when building message. If null use default locale
+     * @param key - Key used to lookup message in properties file.
+     * @param parms - Parameters for template variables in message
+     * @return Resulting message
+     */
+    public static String getMsg(String key, Locale locale, Object... parms)
+    {
+        String msgValue = null;
+
+        if (locale == null) locale = Locale.getDefault();
+
+        ResourceBundle bundle = null;
+        try { bundle = ResourceBundle.getBundle(MESSAGE_BUNDLE, locale); }
+        catch (Exception e)
+        {
+            _log.error("Unable to find resource message bundle: " + MESSAGE_BUNDLE, e);
+        }
+        if (bundle != null) try { msgValue = bundle.getString(key); }
+        catch (Exception e)
+        {
+            _log.error("Unable to find key: " + key + " in resource message bundle: " + MESSAGE_BUNDLE, e);
+        }
+
+        if (msgValue != null)
+        {
+            // No problems. If needed fill in any placeholders in the message.
+            if (parms != null && parms.length > 0) msgValue = MessageFormat.format(msgValue, parms);
+        }
+        else
+        {
+            // There was a problem. Build a message with as much info as we can give.
+            StringBuilder sb = new StringBuilder("Key: ").append(key).append(" not found in bundle: ").append(MESSAGE_BUNDLE);
+            if (parms != null && parms.length > 0)
+            {
+                sb.append("Parameters:[");
+                for (Object parm : parms) {sb.append(parm.toString()).append(",");}
+                sb.append("]");
+            }
+            msgValue = sb.toString();
+        }
+        return msgValue;
+    }
+
+    /**
+     * Get a localized message using the specified key and parameters. Locale is null.
+     * Fill in first 4 parameters with user and tenant info from AuthenticatedUser
+     * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+     * @param key - Key used to lookup message in properties file.
+     * @param parms - Parameters for template variables in message
+     * @return Resulting message
+     */
+    public static String getMsgAuth(String key, ResourceRequestUser rUser, Object... parms)
+    {
+        // Construct new array of parms. This appears to be most straightforward approach to modify and pass on varargs.
+        var newParms = new Object[4 + parms.length];
+        newParms[0] = rUser.getJwtTenantId();
+        newParms[1] = rUser.getJwtUserId();
+        newParms[2] = rUser.getOboTenantId();
+        newParms[3] = rUser.getOboUserId();
+        System.arraycopy(parms, 0, newParms, 4, parms.length);
+        return getMsg(key, newParms);
+    }
+
+    /**
+     * Trace the incoming request, include info about requesting user, op name and request URL
+     * @param rUser resource user
+     * @param opName name of operation
+     */
+    public static void logRequest(ResourceRequestUser rUser, String className, String opName, String reqUrl, String... strParms)
+    {
+        // Build list of args passed in
+        String argListStr = "";
+        if (strParms != null && strParms.length > 0) argListStr = String.join(",", strParms);
+        String msg = getMsgAuth("JOBSAPI_TRACE_REQUEST", rUser, className, opName, reqUrl, argListStr);
+        _log.trace(msg);
+    }
+
     /* ---------------------------------------------------------------------------- */
     /* toHttpStatus:                                                                */
     /* ---------------------------------------------------------------------------- */
@@ -304,6 +408,20 @@ public class JobsApiUtils
         var msg = JobUtils.getMsg("JOBS_INVALID_INPUT_CHARACTERS", objectName, fieldName, sanitized);
         throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
     }
+
+  /**
+   * Validate call checks for tenantId, user and accountType
+   * If all OK return null, else return error response.
+   * @param threadContext thread context to check
+   * @return null if all OK else error response
+   */
+  public static Response checkContext(TapisThreadContext threadContext)
+  {
+      if (threadContext.validate()) return null;
+      String msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
+      _log.error(msg);
+      return Response.status(Response.Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
+  }
 
   // Simple wrapper for checking restricted svc permissions
   public static void checkRestrictedSvcs(SecurityContext securityContext)

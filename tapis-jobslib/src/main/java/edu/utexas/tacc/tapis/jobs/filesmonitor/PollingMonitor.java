@@ -316,7 +316,7 @@ public final class PollingMonitor
             else if (job.getStatus() == JobStatusType.ARCHIVING)
                 eventMgr.recordArchivingEvent(job, transferStatus, transferId);
         } catch (Exception e) {
-            String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(),
+            String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", job.getUuid(),
                                          job.getOwner(), job.getTenant(), e.getMessage());
             _log.error(msg, e);
         }

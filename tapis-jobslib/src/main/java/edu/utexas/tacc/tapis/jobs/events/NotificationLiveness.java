@@ -490,7 +490,7 @@ public final class NotificationLiveness
             // Create the subscription.
             try {client.postSubscription(subreq);}
             catch (Exception e) {
-                String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", FAKE_JOBID,
+                String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", FAKE_JOBID,
                                  SUBSCRIPTION_OWNER, _siteAdminTenant, e.getMessage());
                 _log.error(msg, e);
                 throw new TapisException(msg, e);

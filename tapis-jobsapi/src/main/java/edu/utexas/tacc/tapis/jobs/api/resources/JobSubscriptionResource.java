@@ -205,8 +205,7 @@ public class JobSubscriptionResource
        String url = null;
        try {url = JobsApiUtils.postSubscriptionRequest(payload, oboUser, oboTenant, jobUuid);}
        catch (Exception e) {
-           String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, oboUser, oboTenant,
-                                        e.getMessage());
+           String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", rUser, jobUuid, oboUser, oboTenant, e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -219,7 +218,7 @@ public class JobSubscriptionResource
        try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.added,
                                              newSubscriptions);}
            catch (Exception e) {
-               String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
+               String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
                                             dto.getTenant(), e.getMessage());
                _log.error(msg, e);
            }
@@ -287,7 +286,7 @@ public class JobSubscriptionResource
            resp = jobsImpl.getSubscriptions(jobUuid, limit, skip, oboUser, oboTenant);
        }
        catch (Exception e) {
-           String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, oboUser, oboTenant,
+           String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", jobUuid, oboUser, oboTenant,
                                         e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
@@ -451,7 +450,7 @@ public class JobSubscriptionResource
              deleted = jobsImpl.deleteJobSubscriptions(jobUuid, oboUser, oboTenant);
          }
          catch (Exception e) {
-             String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, oboUser, oboTenant,
+             String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", jobUuid, oboUser, oboTenant,
                                           e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
@@ -465,7 +464,7 @@ public class JobSubscriptionResource
              try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.removed,
                                                    deleted);}
                  catch (Exception e) {
-                     String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
+                     String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
                                                   dto.getTenant(), e.getMessage());
                      _log.error(msg, e);
              }
@@ -524,7 +523,7 @@ public class JobSubscriptionResource
          }
          catch (Exception e) {
              var jobref = subSubject == null ? "unknown" : subSubject;
-             String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobref, oboUser, oboTenant,
+             String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", jobref, oboUser, oboTenant,
                                           e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
@@ -559,7 +558,7 @@ public class JobSubscriptionResource
              deleted = jobsImpl.deleteJobSubscription(uuid, oboUser, oboTenant);
          }
          catch (Exception e) {
-             String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", "", oboUser, oboTenant,
+             String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", "", oboUser, oboTenant,
                                           e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).

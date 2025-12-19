@@ -2,12 +2,10 @@ package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -18,6 +16,8 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +46,9 @@ public class JobStatusResource
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobStatusResource.class);
-    
+
+    private final String className = getClass().getSimpleName();
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -103,14 +105,18 @@ public class JobStatusResource
      public Response getJobStatus(@PathParam("jobUuid") String jobUuid)
                                
      {
-       // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobStatus", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+         String opName = "getJobStatus";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
 
-       JobsApiUtils.checkRestrictedSvcs(_securityContext);
+         // Create a user that collects together tenant, user and request information needed by the service call
+         ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+         // Trace this request.
+         if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid);
+
+         JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
@@ -155,7 +161,7 @@ public class JobStatusResource
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        
        } else if(!jobstatus.getVisible()) {
-    	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+    	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_VISIBLE", rUser, jobUuid);
        	   _log.warn(msg);
        	   ResultName missingName = new ResultName();
        	   missingName.name = jobUuid;

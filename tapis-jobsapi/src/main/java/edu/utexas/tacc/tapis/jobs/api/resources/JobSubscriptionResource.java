@@ -177,7 +177,7 @@ public class JobSubscriptionResource
        
        // ------------------------- Get Job Info -----------------------------
        // Get the job DTO or return with an error response.
-       Object obj = getJobDTO(jobUuid, prettyPrint);
+       Object obj = getJobDTO(rUser, jobUuid, prettyPrint);
        if (obj instanceof Response) return (Response) obj;
        
        // Get extended job status information.
@@ -267,7 +267,7 @@ public class JobSubscriptionResource
 
        // ------------------------- Get Job Info -----------------------------
        // Get the job DTO or return with an error response.
-       Object obj = getJobDTO(jobUuid, prettyPrint);
+       Object obj = getJobDTO(rUser, jobUuid, prettyPrint);
        if (obj instanceof Response) return (Response) obj;
        
        // Get extended job status information.
@@ -352,7 +352,7 @@ public class JobSubscriptionResource
       * @param prettyPrint whether to pretty print on error conditions  
       * @return a JobStatusDTO (success) or a Response (error)
       */
-     private Object getJobDTO(String jobUuid, boolean prettyPrint)
+     private Object getJobDTO(ResourceRequestUser rUser, String jobUuid, boolean prettyPrint)
      {
          // Get extended job status information.
          JobStatusDTO dto = null;
@@ -368,7 +368,7 @@ public class JobSubscriptionResource
          
          // Did we find the job?
          if (dto == null) {
-             String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid);
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_FOUND", rUser, jobUuid);
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -434,7 +434,7 @@ public class JobSubscriptionResource
      {
          // ------------------------- Get Job Info -----------------------------
          // Get the job DTO or return with an error response.
-         Object obj = getJobDTO(jobUuid, prettyPrint);
+         Object obj = getJobDTO(rUser, jobUuid, prettyPrint);
          if (obj instanceof Response) return (Response) obj;
          
          // Get extended job status information.
@@ -544,7 +544,7 @@ public class JobSubscriptionResource
          
          // ------------------------- Get Job Info -----------------------------
          // Get the job DTO or return with an error response.
-         Object obj = getJobDTO(subSubject, prettyPrint);
+         Object obj = getJobDTO(rUser, subSubject, prettyPrint);
          if (obj instanceof Response) return (Response) obj;
          
          // Get extended job status information.

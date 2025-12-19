@@ -20,6 +20,8 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +49,8 @@ public class JobOutputListingResource extends AbstractResource{
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobOutputListingResource.class);
+
+    private final String className = getClass().getSimpleName();
 
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -76,19 +80,14 @@ public class JobOutputListingResource extends AbstractResource{
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
      @Context
      private Application        _application;
-  
      @Context
      private UriInfo            _uriInfo;
-  
      @Context
      private SecurityContext    _securityContext;
-  
      @Context
      private ServletContext     _servletContext;
-  
      @Context
      private HttpServletRequest _request;
 
@@ -107,12 +106,17 @@ public class JobOutputListingResource extends AbstractResource{
     		 						  @DefaultValue("false") @QueryParam("allowIfRunning") boolean allowIfRunning)
                                
      {
-       // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobOutputList", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+         String opName = "getJobOutputList";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
+
+         // Create a user that collects together tenant, user and request information needed by the service call
+         ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+         // Trace this request.
+         if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid,
+                     "outputPath="+outputPath,"limit="+limit,"skip="+skip,"allowIfRunning="+allowIfRunning);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
@@ -152,7 +156,7 @@ public class JobOutputListingResource extends AbstractResource{
        }
        
        if (job == null) {
-           String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid, threadContext.getOboTenantId());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_FOUND", rUser, jobUuid, threadContext.getOboTenantId());
            _log.warn(msg);
            ResultName missingName = new ResultName();
            missingName.name = jobUuid;
@@ -161,10 +165,9 @@ public class JobOutputListingResource extends AbstractResource{
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
            
        } else if(!job.isVisible()) {
-           String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_VISIBLE", rUser, jobUuid);
            _log.warn(msg);
-           return Response.status(Status.NOT_FOUND).
-             entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE",jobUuid,threadContext.getOboTenantId()))).build();
+           return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
         
        // ------------------------- Check the Job's status -----------------------------

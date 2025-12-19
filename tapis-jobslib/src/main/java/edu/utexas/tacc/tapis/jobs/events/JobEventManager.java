@@ -149,7 +149,6 @@ public final class JobEventManager
      * @param job the job that generated the event
      * @param transferStatus status of transfer as reported by Files
      * @param transactionId transaction id from the Files service
-     * @param conn existing connection or null
      * @throws TapisException on error
      */
     public JobEvent recordStagingInputsEvent(Job job, TransferStatusEnum transferStatus, 
@@ -171,12 +170,11 @@ public final class JobEventManager
                 " in tenant " + job.getTenant() + ".";
         
         // Fill in the event details as a JSON object.
-        var data = JobEventData.getTransferEventData(job, msg, transferStatus,
-                                                     transactionId);
+        var data = JobEventData.getTransferEventData(job, msg, transferStatus, transactionId);
         jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, null);
+        _jobEventsDao.createEvent(null, jobEvent, null);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
@@ -192,7 +190,6 @@ public final class JobEventManager
      * @param job the job that generated the event
      * @param transferStatus status of transfer as reported by Files
      * @param transactionId transaction id from the Files service
-     * @param conn existing connection or null
      * @throws TapisException on error
      */
     public JobEvent recordArchivingEvent(Job job, TransferStatusEnum transferStatus, 
@@ -219,7 +216,7 @@ public final class JobEventManager
         jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, null);
+        _jobEventsDao.createEvent(null, jobEvent, null);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
@@ -249,7 +246,7 @@ public final class JobEventManager
         jobEvent.setDescription(data);
 		
 		// Save in db.
-		_jobEventsDao.createEvent(jobEvent, null);
+		_jobEventsDao.createEvent(null, jobEvent, null);
 		postEventToNotificationService(jobEvent);
 		return jobEvent;
     }
@@ -279,7 +276,7 @@ public final class JobEventManager
         jobEvent.setDescription(data);
         
 		// Save in db.
-		_jobEventsDao.createEvent(jobEvent, null);
+		_jobEventsDao.createEvent(null, jobEvent, null);
 		postEventToNotificationService(jobEvent);
 		return jobEvent;
    }
@@ -315,7 +312,7 @@ public final class JobEventManager
        jobEvent.setDescription(data);
        
        // Save in db and send to notifications service asynchronously.
-       _jobEventsDao.createEvent(jobEvent, null);
+       _jobEventsDao.createEvent(null, jobEvent, null);
        postEventToNotificationService(jobEvent);
        return jobEvent;
    }
@@ -371,7 +368,7 @@ public final class JobEventManager
         jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, conn);
+        _jobEventsDao.createEvent(null, jobEvent, conn);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
@@ -387,7 +384,6 @@ public final class JobEventManager
      * @param jobUuid the job that generated the event
      * @param tenant the job tenant
      * @param action added or removed
-     * @param conn existing connection or null
      * @throws TapisException on error
      */
     public JobEvent recordSubscriptionEvent(String jobUuid, String tenant, 
@@ -414,7 +410,7 @@ public final class JobEventManager
         jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, null);
+        _jobEventsDao.createEvent(null, jobEvent, null);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
@@ -450,7 +446,7 @@ public final class JobEventManager
         jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, null);
+        _jobEventsDao.createEvent(null, jobEvent, null);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
@@ -465,7 +461,6 @@ public final class JobEventManager
      * 
      * @param job the job that generated the event
      * @param finalMsg the job's final message
-     * @param conn existing connection or null
      * @throws TapisException on error
      */
     public JobEvent recordFinalMessageEvent(Job job, String finalMsg)
@@ -488,7 +483,7 @@ public final class JobEventManager
         jobEvent.setDescription(data);
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, null);
+        _jobEventsDao.createEvent(null, jobEvent, null);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
@@ -523,7 +518,7 @@ public final class JobEventManager
         jobEvent.setEventDetail(eventDetail); 
         
         // Save in db and send to notifications service asynchronously.
-        _jobEventsDao.createEvent(jobEvent, conn);
+        _jobEventsDao.createEvent(null, jobEvent, conn);
         postEventToNotificationService(jobEvent);
         return jobEvent;
     }
@@ -542,7 +537,6 @@ public final class JobEventManager
      * @param sender the tapis user that sent the event
      * @param eventData the user provided body of the event
      * @param eventDetail the event subtype or key
-     * @param conn existing connection or null
      * @return the JobEvent on success or null on failure
      * @throws TapisException on error
      */
@@ -577,15 +571,14 @@ public final class JobEventManager
      */
     private boolean postEventToNotificationService(JobEvent jobEvent)
     {
-        // Error already logged.
-        try {JobQueueManager.getInstance().postEventQueue(jobEvent);}
-            catch (Exception e) {
-            	String msg = JobUtils.getMsg("JOBS_EVENT_POST_ERROR",
-            			        jobEvent.getEvent().name(),  
-            			        JobQueueManagerNames.getEventQueueName());
-            	_log.warn(msg, e);
-            	return false;
-            }
-        return true; // success
+      // Error already logged.
+      try {JobQueueManager.getInstance().postEventQueue(jobEvent);}
+      catch (Exception e) {
+        String msg = JobUtils.getMsg("JOBS_EVENT_POST_ERROR", jobEvent.getEvent().name(),
+                                     JobQueueManagerNames.getEventQueueName());
+         _log.warn(msg, e);
+         return false;
+      }
+      return true; // success
     }
 }

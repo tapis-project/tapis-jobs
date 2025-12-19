@@ -15,10 +15,9 @@
         </encoder>
     </appender>
 
-    <!-- Rollover to a new log file on a monthly basis, set a limit to manage sizes, 
-         default output to the user's home directory. Each job JVM is expected to have
-         its own dedicated logfile (Multiple processes cannot write the same log).  
-         This constraint removes the need to run in prudent mode and deal with attendant 
+    <!-- Rollover to a new log file on a monthly basis, set a limit to manage sizes, default output to the home
+         directory. Each job JVM is expected to have its own dedicated logfile since multiple processes cannot
+         write to the same log. This constraint removes the need to run in prudent mode and deal with attendant
          scalability issues. -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${tapis.log.directory:-${user.home}}/${tapis.log.file:-tapis-jobs}.log</file>
@@ -26,15 +25,13 @@
             class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- Rollover monthly, incorporate size-triggered sequence number. -->
             <fileNamePattern>${tapis.log.directory:-${user.home}}/${tapis.log.file:-tapis-jobs}.%d{yyyy-MM}.%i.log</fileNamePattern>
-            <!-- Each file should be at most 600MB, keep 6 months worth of history, 
-                 but at most a total of 2GB across all log files. These values were
-                 adjusted when we moved to separate log files per JVM. -->
+            <!-- Cap each file at 500MB, keep 6 months, but at most 5GB across all log files. -->
             <maxFileSize>500MB</maxFileSize>
             <maxHistory>6</maxHistory>
-            <totalSizeCap>2GB</totalSizeCap>
+            <totalSizeCap>5GB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <!-- See console pattern for description. -->
+          <!-- See console pattern for description. -->
             <Pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread/%X{UNIQUE_ID}] %class{36}:%line - %msg%n</Pattern>
         </encoder>
     </appender>
@@ -92,6 +89,7 @@
     
     <!-- Control library logging. -->
     <logger name="com.zaxxer.hikari" level="ERROR"/>
+    
     <!-- Control jOOQ logging. -->
     <logger name="org.jooq" level="WARN"/>
     <!-- Don't log ssh pool trace info to stdout or normal log files.  set to trace to enable -->

@@ -445,6 +445,7 @@ public final class NotificationLiveness
         private void checkSubscription() 
          throws TapisException, TapisRuntimeException
         {
+            String opName = "checkSubscription";
         	// Get a notification client. We don't explicitly close 
         	// the client since it's cached and could be used again. 
         	NotificationsClient client;
@@ -490,8 +491,7 @@ public final class NotificationLiveness
             // Create the subscription.
             try {client.postSubscription(subreq);}
             catch (Exception e) {
-                String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", FAKE_JOBID,
-                                 SUBSCRIPTION_OWNER, _siteAdminTenant, e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_NTF_CHECK_ERR", _siteAdminTenant, e.getMessage());
                 _log.error(msg, e);
                 throw new TapisException(msg, e);
             }
@@ -697,7 +697,6 @@ public final class NotificationLiveness
         /* ---------------------------------------------------------------------------- */
         /** Send an email to alert support that a zombie job exists.
          * 
-         * @param job the job whose status update failed
          * @param livenessMsg failure message
          */
         private static void sendLivenessEmail(String livenessMsg)

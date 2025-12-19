@@ -46,10 +46,9 @@ public final class JobEventsDao
   /* ---------------------------------------------------------------------- */
   /* constructor:                                                           */
   /* ---------------------------------------------------------------------- */
-  /** This class depends on the calling code to provide a datasource for
-   * db connections since this code in not part of a free-standing service.
-   * 
-   * @param dataSource the non-null datasource 
+  /**
+   * This class depends on the calling code to provide a datasource for
+   * db connections since this code in not part of a freestanding service.
    */
   public JobEventsDao() throws TapisException {}
   
@@ -260,8 +259,14 @@ public final class JobEventsDao
           try {if (!usingCallerConn && conn != null) conn.rollback();}
           catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
 
-          String msg = JobUtils.getMsgAuth("JOBS_CREATE_EVENT_ERR", rUser,
-                                           jobEvent.getJobUuid(), jobEvent.getEvent().name(), e.getMessage());
+          String msg;
+          if (rUser != null) {
+            msg = JobUtils.getMsgAuth("JOBS_CREATE_EVENT_ERR1", rUser,
+                                      jobEvent.getJobUuid(), jobEvent.getEvent().name(), e.getMessage());
+          } else {
+            msg = JobUtils.getMsg("JOBS_CREATE_EVENT_ERR2", jobEvent.getJobUuid(), jobEvent.getEvent().name(),
+                                  e.getMessage());;
+          }
           throw new JobException(msg, e);
       }
       finally {

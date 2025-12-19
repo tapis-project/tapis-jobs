@@ -2629,7 +2629,7 @@ public final class JobsDao
      * @return the open connection when the transaction is uncommitted; null otherwise
      * @throws JobException if the status could not be updated
      */
-    private Connection setStatus(ResourceRequestUser rUser, Job job, JobStatusType newStatus, String message,
+    private Connection setStatus(Job job, JobStatusType newStatus, String message,
                                  boolean commit, Instant updateTime)
      throws JobException
     {
@@ -2726,7 +2726,7 @@ public final class JobsDao
             
             // Write the event table and optionally send notifications (asynchronously).
             var eventMgr = JobEventManager.getInstance();
-            eventMgr.recordStatusEvent(rUser, job, newStatus, curStatus, conn);
+            eventMgr.recordStatusEvent(null, job, newStatus, curStatus, conn);
             
             // Conditionally commit the transaction.
             if (commit) conn.commit();

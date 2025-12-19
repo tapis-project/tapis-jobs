@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="false">
+<configuration debug="false" scan="true">
     <!-- Set the above debug attribute to true to see logback status information. -->
 
     <!-- The encoder uses a default class.  This can be changed using the class attribute -->
@@ -15,10 +15,9 @@
         </encoder>
     </appender>
 
-    <!-- Rollover to a new log file on a monthly basis, set a limit to manage sizes, 
-         default output to the user's home directory. Each job JVM is expected to have
-         its own dedicated logfile (Multiple processes cannot write to the same log).  
-         This constraint removes the need to run in prudent mode and deal with attendant 
+    <!-- Rollover to a new log file on a monthly basis, set a limit to manage sizes, default output to the home
+         directory. Each job JVM is expected to have its own dedicated logfile since multiple processes cannot
+         write to the same log. This constraint removes the need to run in prudent mode and deal with attendant
          scalability issues. -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${tapis.log.directory:-${user.home}}/tapis-jobsapi.log</file>
@@ -90,6 +89,8 @@
     
     <!-- Control library logging. -->
     <logger name="com.zaxxer.hikari" level="ERROR"/>
+    
     <!-- Control jOOQ logging. -->
     <logger name="org.jooq" level="WARN"/>
+
 </configuration>

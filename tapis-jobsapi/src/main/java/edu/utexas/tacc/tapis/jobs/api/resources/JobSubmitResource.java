@@ -347,7 +347,7 @@ public class JobSubmitResource
                          threadContext.getJwtUser(), payload.getEventData(), payload.getEventDetail(), null);
        }
        catch (Exception e) {
-         String msg = JobUtils.getMsgAuth("JOBS_CREATE_EVENT_ERR", rUser, jobUuid, eventName, e.getMessage());
+         String msg = JobUtils.getMsgAuth("JOBS_CREATE_EVENT_ERR1", rUser, jobUuid, eventName, e.getMessage());
          _log.error(msg, e);
          return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
@@ -516,7 +516,7 @@ public class JobSubmitResource
            String url = null;
            try {url = JobsApiUtils.postSubscriptionRequest(req, job.getOwner(), job.getTenant(), job.getUuid());}
            catch (Exception e) {
-             String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", rUser, job.getUuid(), job.getOwner(), e.getMessage());
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, job.getUuid(), job.getOwner(), e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
            }
@@ -554,7 +554,7 @@ public class JobSubmitResource
          try {
           JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(job, count);
          } catch (Exception e) {
-           String msg = JobUtils.getMsgAuth("JOBS_SUBSCRIPTION_ERROR", rUser, job.getUuid(), job.getOwner(), e.getMessage());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, job.getUuid(), job.getOwner(), e.getMessage());
            _log.error(msg, e);
          }
      }
@@ -579,7 +579,7 @@ public class JobSubmitResource
          }
          catch (Exception e) {
              // Swallow exception and attempt to send an email.
-             String msg = JobUtils.getMsgAuth("JOBSAPI_ZOMBIE_ERROR", rUser, job.getUuid());
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_ZOMBIE_ERROR", rUser, job.getUuid());
              _log.error(msg, e);
              sendZombieEmail(job, msg);
          }

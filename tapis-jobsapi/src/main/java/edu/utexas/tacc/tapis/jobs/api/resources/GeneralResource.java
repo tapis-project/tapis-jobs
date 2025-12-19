@@ -52,7 +52,9 @@ public final class GeneralResource
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(GeneralResource.class);
-    
+
+    private final String className = getClass().getSimpleName();
+
     // Database check timeouts.
     private static final long DB_READY_TIMEOUT_MS  = 6000;   // 6 seconds.
     private static final long DB_HEALTH_TIMEOUT_MS = 60000;  // 1 minute.
@@ -96,19 +98,14 @@ public final class GeneralResource
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
      @Context
      private Application        _application;
-  
      @Context
      private UriInfo            _uriInfo;
-  
      @Context
      private SecurityContext    _securityContext;
-  
      @Context
      private ServletContext     _servletContext;
-  
      @Context
      private HttpServletRequest _request;
      

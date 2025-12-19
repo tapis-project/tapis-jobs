@@ -2,12 +2,10 @@ package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -18,6 +16,8 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,9 @@ public class JobCancelResource extends AbstractResource {
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobCancelResource.class);
-    
+
+    private final String className = getClass().getSimpleName();
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -97,14 +99,17 @@ public class JobCancelResource extends AbstractResource {
      @Path("/{jobUuid}/cancel")
      @Produces(MediaType.APPLICATION_JSON)
      public Response cancelJob(@PathParam("jobUuid") String jobUuid)
-                               
      {
+       String opName = "cancelJob";
+       // ------------------------- Retrieve and validate thread context -------------------------
+       Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+       if (resp != null) return resp;
+
+       // Create a user that collects together tenant, user and request information needed by the service call
+       ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
        // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "cancelJob", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+       if (_log.isTraceEnabled())
+           JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
@@ -161,10 +166,9 @@ public class JobCancelResource extends AbstractResource {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           String msg = JobUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid);
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_IN_TERM_STATE", rUser, jobUuid, job.getStatus());
            _log.warn(msg);
-    	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(
-                   JobUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), r)).build();
+    	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, r)).build();
        }
        
        //------------------------- Cancel the Job  -----------------------------

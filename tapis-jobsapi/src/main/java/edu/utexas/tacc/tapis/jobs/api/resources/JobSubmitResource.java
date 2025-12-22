@@ -333,7 +333,7 @@ public class JobSubmitResource
        // performing this check and sending the event.  This is not a big deal since we are
        // only adding an event to the job history and, possibly, sending notifications.
        if (job.getStatus().isTerminal()) {
-           String msg = JobUtils.getMsg("JOBS_IN_TERMINAL_STATE", jobUuid, job.getStatus().name());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_IN_TERM_STATE", rUser, jobUuid, job.getStatus().name());
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }

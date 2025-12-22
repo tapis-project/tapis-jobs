@@ -119,21 +119,13 @@ public class JobHistoryResource extends AbstractResource {
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
-           String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
-           _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg)).build();
+         String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
+         _log.error(msg);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
 
        // orderBy is of the format - fname1(desc), fname2, fname3(asc), ...
        // ThreadContext designed to never return null for SearchParameters
@@ -173,7 +165,7 @@ public class JobHistoryResource extends AbstractResource {
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
        
        } else if(!jobstatus.getVisible()) {
-    	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_VISIBLE", rUser, jobUuid);
+    	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
        	   _log.warn(msg);
        	   ResultName missingName = new ResultName();
        	   missingName.name = jobUuid;
@@ -185,7 +177,8 @@ public class JobHistoryResource extends AbstractResource {
        List<JobEvent> events = null;
        try {
 		 events =jobsImpl.getJobEventsByJobUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),srchParms.getLimit(), srchParms.getSkip() );
-        _log.debug("number of events: " + events.size());
+         String msg = JobsApiUtils.getMsgAuth("JOBSAPI_EVENT_COUNT", rUser, jobUuid, events.size());
+         _log.debug(msg);
        	} catch (TapisImplException e) {
     	   _log.error(e.getMessage(), e);
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).

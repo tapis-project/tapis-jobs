@@ -158,15 +158,8 @@ public class JobShareResource
          }
 
          // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
-         }
-         
+
          // ------------------------- Retrieve Job Status Information -----------------------------
 
          JobStatusDTO jobstatus = null;
@@ -197,7 +190,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_VISIBLE", rUser, jobUuid);
+      	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;
@@ -279,22 +272,14 @@ public class JobShareResource
 
          // ------------------------- Input Processing -------------------------
          if (StringUtils.isBlank(jobUuid)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+             String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
              _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                        entity(TapisRestUtils.createErrorResponse(msg)).build();
+             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
          
          // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
-         }
-         
+
          SearchParameters srchParms = threadContext.getSearchParameters();
          
          if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
@@ -331,7 +316,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_VISIBLE", rUser, jobUuid);
+      	   	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;
@@ -396,23 +381,14 @@ public class JobShareResource
 
          // ------------------------- Input Processing -------------------------
          if (StringUtils.isBlank(jobUuid)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+             String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
              _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                        entity(TapisRestUtils.createErrorResponse(msg)).build();
+             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
          
          // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
-         }
-         
-         
+
          // ------------------------- Retrieve Job Status Information -----------------------------
          JobStatusDTO jobstatus = null;
          var jobsImpl = JobsImpl.getInstance();
@@ -443,7 +419,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_VISIBLE", rUser, jobUuid);
+      	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;

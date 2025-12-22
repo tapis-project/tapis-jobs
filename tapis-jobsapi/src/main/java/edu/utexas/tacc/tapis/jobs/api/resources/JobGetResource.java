@@ -19,6 +19,8 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +48,9 @@ public class JobGetResource
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobGetResource.class);
-    
+
+    private final String className = getClass().getSimpleName();
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -75,19 +79,14 @@ public class JobGetResource
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
      @Context
      private Application        _application;
-  
      @Context
      private UriInfo            _uriInfo;
-  
      @Context
      private SecurityContext    _securityContext;
-  
      @Context
      private ServletContext     _servletContext;
-  
      @Context
      private HttpServletRequest _request;
 
@@ -102,34 +101,29 @@ public class JobGetResource
      @Consumes(MediaType.APPLICATION_JSON)
      @Produces(MediaType.APPLICATION_JSON)
      public Response getJob(@PathParam("jobUuid") String jobUuid)
-                               
      {
+       String opName = "getJob";
+       // ------------------------- Retrieve and validate thread context -------------------------
+       Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+       if (resp != null) return resp;
+
+       // Create a user that collects together tenant, user and request information needed by the service call
+       ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
        // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJob", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+       if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
-           String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
-           _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg)).build();
+         String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
+         _log.error(msg);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
 
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;

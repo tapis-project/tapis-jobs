@@ -140,21 +140,15 @@ public class JobActionResource extends AbstractResource {
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
-           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_MISSING_ARG", rUser, "jobUuid");
+           String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
-    // ------------------------- Retrieve Job Status-----------------------------
+
+       // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
        var jobsImpl = JobsImpl.getInstance();
        try {
@@ -206,7 +200,7 @@ public class JobActionResource extends AbstractResource {
        
        //------------------------- Change the visibility  -----------------------------
        // set visible to false
-		if (!jobsImpl.doHideJob(jobUuid, threadContext.getOboTenantId(), threadContext.getOboUser() ))
+		if (!jobsImpl.doHideJob(rUser, jobUuid))
         {
           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_CHANGE_VIS_ERR", rUser, jobUuid, "unhidden");
           return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -245,21 +239,13 @@ public class JobActionResource extends AbstractResource {
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
-           String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+           String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
            _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
 
        // ------------------------- Retrieve Job Status-----------------------------
        JobStatusDTO jobstatus = null;
@@ -314,7 +300,7 @@ public class JobActionResource extends AbstractResource {
        //------------------------- Change the visibility  -----------------------------
        // set visible to true
       
-		if (!jobsImpl.doUnHideJob(jobUuid, threadContext.getOboTenantId(), threadContext.getOboUser() ))
+		if (!jobsImpl.doUnHideJob(rUser, jobUuid))
         {
           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_CHANGE_VIS_ERR", rUser, jobUuid, "hidden");
           return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
@@ -358,7 +344,7 @@ public class JobActionResource extends AbstractResource {
 
         // ------------------------- Input Processing -------------------------
         if (StringUtils.isBlank(jobUuid)) {
-            String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+            String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
             _log.error(msg);
             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
         }
@@ -379,21 +365,13 @@ public class JobActionResource extends AbstractResource {
         try {
             payload = getPayload(json, FILE_JOB_ANNOTATION_REQUEST, ReqJobAnnotation.class);
         } catch (Exception e) {
-            String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR",
-                    "submitJob", e.getMessage());
+            String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "submitJob", e.getMessage());
             _log.error(msg, e);
             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
         }
 
         // ------------------------- Create Context ---------------------------
-        // Validate the threadlocal content here so no subsequent code on this request
-        // needs to.
         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-        if (!threadContext.validate()) {
-            var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-            _log.error(msg);
-            return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
-        }
 
         // ------------------- Job Status Check -----------------------------
         // There is no need for job status check for now.

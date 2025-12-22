@@ -1,7 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +24,8 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
@@ -60,10 +62,10 @@ public class JobSearchResource extends AbstractResource {
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobSearchResource.class);
-    
-    
+
+    private final String className = getClass().getSimpleName();
+
     // Json schema resource files
-    
     private static final String FILE_JOB_SEARCH_REQUEST = "/edu/utexas/tacc/tapis/jobs/api/jsonschema/JobSearchRequest.json";
     private static final int DEFAULT_TOTAL_COUNT = -1;
     private final String UUID_ATTR = "uuid";
@@ -104,19 +106,14 @@ public class JobSearchResource extends AbstractResource {
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
      @Context
      private Application        _application;
-  
      @Context
      private UriInfo            _uriInfo;
-  
      @Context
      private SecurityContext    _securityContext;
-  
      @Context
      private ServletContext     _servletContext;
-  
      @Context
      private HttpServletRequest _request;
      
@@ -139,24 +136,23 @@ public class JobSearchResource extends AbstractResource {
    		 	    @DefaultValue("MY_JOBS") @QueryParam("listType") String listType)
                               
     {
+      String opName = "getJobSearchList";
+      // ------------------------- Retrieve and validate thread context -------------------------
+      Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+      if (resp != null) return resp;
+
+      // Create a user that collects together tenant, user and request information needed by the service call
+      ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
       // Trace this request.
-      if (_log.isTraceEnabled()) {
-        String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobSearchList", 
-                                     "  " + _request.getRequestURL());
-        _log.trace(msg);
-      }
+      if (_log.isTraceEnabled())
+        JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(),
+                "limit=" + listType, "skip=" + skip, "startAfter=" + startAfter, "orderBy="+orderBy,
+                "computTotal=" + computeTotal, "select=" + select, "listType="+ listType);
 
       JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
       // ------------------------- Create Context ---------------------------
-      // Validate the threadlocal content here so no subsequent code on this request needs to.
       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-      if (!threadContext.validate()) {
-          var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-          _log.error(msg);
-          return Response.status(Status.INTERNAL_SERVER_ERROR).
-                  entity(TapisRestUtils.createErrorResponse(msg)).build();
-      }
 
       // ---------------------- Get the Search Query Parameters --------------------
       int totalCount = DEFAULT_TOTAL_COUNT;
@@ -169,7 +165,7 @@ public class JobSearchResource extends AbstractResource {
       }
       catch (Exception e)
       {
-   	    String msg = JobUtils.getMsg("JOBS_SEARCH_LIST_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(), threadContext.getOboTenantId(),threadContext.getOboUser(), e.getMessage());
+   	    String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SEARCH_LIST_ERR", rUser, e.getMessage());
         _log.error(msg, e);
         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
@@ -188,7 +184,7 @@ public class JobSearchResource extends AbstractResource {
       SelectTuple selectValid = jobsImpl.checkSelectListValidity(selectList);
       _log.debug("select Valid flag : "+ selectValid.getValidFlag() + " str: "+ selectValid.getSelectStr());
       if(!selectValid.getValidFlag()) {
-    	  String msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_SELECTLIST_ERROR",threadContext.getOboTenantId(),threadContext.getOboUser(),selectValid.getSelectStr());
+    	  String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SELECTLIST_INVALID", rUser,selectValid.getSelectStr());
           _log.error(msg);
           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
@@ -210,8 +206,7 @@ public class JobSearchResource extends AbstractResource {
       
       // Get the listType. Default Type is  MY_JOBS   
       if(!EnumUtils.isValidEnum(JobListType.class, listType)) {
-    	  String msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(),
-    			  threadContext.getOboTenantId(),threadContext.getOboUser());
+		  String msg = JobsApiUtils.getMsgAuth("JOBSAPI_LISTTYPE_INVALID", rUser, listType);
           _log.error(msg);
           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
       }
@@ -457,31 +452,28 @@ public class JobSearchResource extends AbstractResource {
    		 	    @DefaultValue("MY_JOBS") @QueryParam("listType") String listType)
                               
     {
+      String opName = "getJobSearchListByPostSqlStr";
+      // ------------------------- Retrieve and validate thread context -------------------------
+      Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+      if (resp != null) return resp;
+
+      // Create a user that collects together tenant, user and request information needed by the service call
+      ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
       // Trace this request.
-      if (_log.isTraceEnabled()) {
-        String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobSearchListByPostSqlStr", 
-                                     "  " + _request.getRequestURL());
-        _log.trace(msg);
-      }
+      if (_log.isTraceEnabled())
+        JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(),
+        "limit=" + listType, "skip=" + skip, "startAfter=" + startAfter, "orderBy="+orderBy,
+        "computTotal=" + computeTotal, "select=" + select, "listType="+ listType);
 
       JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
       // ------------------------- Create Context ---------------------------
-      // Validate the threadlocal content here so no subsequent code on this request needs to.
       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-      if (!threadContext.validate()) {
-          var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-          _log.error(msg);
-          return Response.status(Status.INTERNAL_SERVER_ERROR).
-                  entity(TapisRestUtils.createErrorResponse(msg)).build();
-      }
-
-      JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
       // ------------------------- Validate Payload -------------------------
       // Read the payload into a string.
       String rawJson = null;
-      try {rawJson = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+      try {rawJson = IOUtils.toString(payloadStream, StandardCharsets.UTF_8);}
         catch (Exception e) {
           String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job search", e.getMessage());
           _log.error(msg, e);
@@ -533,7 +525,7 @@ public class JobSearchResource extends AbstractResource {
      SelectTuple selectValid = jobsImpl.checkSelectListValidity(selectList);
      _log.debug("select Valid flag : "+ selectValid.getValidFlag() + " str: "+ selectValid.getSelectStr());
      if(!selectValid.getValidFlag()) {
-   	      msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_SELECTLIST_ERROR",threadContext.getOboTenantId(),threadContext.getOboUser(),selectValid.getSelectStr());
+   	      msg = JobsApiUtils.getMsgAuth("JOBSAPI_SELECTLIST_INVALID", rUser,selectValid.getSelectStr());
          _log.error(msg);
          return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
      }
@@ -556,10 +548,9 @@ public class JobSearchResource extends AbstractResource {
   
      // Get the listType. Default Type is  MY_JOBS   
      if(!EnumUtils.isValidEnum(JobListType.class, listType)) {
-   	  msg = JobUtils.getMsg("JOBS_SEARCH_INVALID_LISTTYPE_ERROR",threadContext.getJwtTenantId(),threadContext.getJwtUser(),
-   			  threadContext.getOboTenantId(),threadContext.getOboUser());
-         _log.error(msg);
-         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
+       msg = JobsApiUtils.getMsgAuth("JOBSAPI_LISTTYPE_INVALID", rUser, listType);
+       _log.error(msg);
+       return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
      }
      boolean sharedWithMe = false;
      if(listType.equals(JobListType.SHARED_JOBS.name()) || listType.equals(JobListType.ALL_JOBS.name() )){

@@ -930,42 +930,29 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------- */
     /* doHideJob:                                                             */
     /* ---------------------------------------------------------------------- */
-    public boolean doHideJob(ResourceRequestUser rUser, String jobUuid, String tenant, String user)
+    public boolean doHideJob(ResourceRequestUser rUser, String jobUuid)
     {
-        try { 
-        	getJobsDao().setJobVisibility(jobUuid, tenant, user,false);
-        }
-        catch (Exception e) {
-            // TODO: move msgAuth
-            // TODO: key JOBS_JOB_VISIBILITY_UPDATE_ERROR is missing!?
-            String msg = JobUtils.getMsg("JOBS_JOB_VISIBILITY_UPDATE_ERROR", jobUuid, user, tenant,e);
-            _log.error(msg, e);
-           
-        }
-        
-        // Could be null if not found.
-        return true;
+      try { getJobsDao().setJobVisibility(jobUuid, rUser.getOboTenantId(), rUser.getOboUserId(),false); }
+      catch (Exception e) {
+      String msg = JobUtils.getMsg("JOBS_VIS_UPDATE_ERR", jobUuid, e);
+      _log.error(msg, e);
+    }
+    // Could be null if not found.
+    return true;
     }
     
     /* ---------------------------------------------------------------------- */
     /* doUnHideJob:                                                           */
     /* ---------------------------------------------------------------------- */
-    public boolean doUnHideJob(ResourceRequestUser rUser, String jobUuid, String tenant, String user)
+    public boolean doUnHideJob(ResourceRequestUser rUser, String jobUuid)
     {
-        try { 
-        	getJobsDao().setJobVisibility(jobUuid, tenant, user,true);
-        }
-        catch (Exception e) {
-            // TODO: move msgAuth
-            // TODO: key JOBS_JOB_VISIBILITY_UPDATE_ERROR is missing!?
-            String msg = JobUtils.getMsgAuth("JOBS_JOB_VISIBILITY_UPDATE_ERROR", jobUuid, user,
-            		tenant,e);
-            _log.error(msg, e);
-           
-        }
-        
-        // Could be null if not found.
-        return true;
+      try { getJobsDao().setJobVisibility(jobUuid, rUser.getOboTenantId(), rUser.getOboUserId(), true); }
+      catch (Exception e) {
+        String msg = JobUtils.getMsgAuth("JOBS_VIS_UPDATE_ERR", rUser, jobUuid, e);
+        _log.error(msg, e);
+      }
+      // Could be null if not found.
+      return true;
     }
     
     /* ---------------------------------------------------------------------- */

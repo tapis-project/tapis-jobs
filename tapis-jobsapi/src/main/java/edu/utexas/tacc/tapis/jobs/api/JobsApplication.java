@@ -13,6 +13,7 @@ import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.QueryParametersRequestFilte
 import edu.utexas.tacc.tapis.sharedapi.providers.ApiExceptionMapper;
 import edu.utexas.tacc.tapis.sharedapi.providers.ObjectMapperContextResolver;
 import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
+import edu.utexas.tacc.tapis.sharedapi.servlet.filters.TapisLoggingFilter;
 import org.flywaydb.core.Flyway;
 import org.glassfish.jersey.server.ResourceConfig;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
@@ -48,7 +49,7 @@ extends ResourceConfig
        System.out.println("**** Starting tapis-jobsapi ****");
 
        // TODO/TBD instead, register specific classes.
-       //  E.g., that way we can exclude TapisLoggingFilter
+       // TODO remove
 //       // We specify what packages JAX-RS should recursively scan
 //       // to find annotations.  By setting the value to the top-level
 //       // tapis directory in all projects, we can use JAX-RS annotations
@@ -57,7 +58,7 @@ extends ResourceConfig
 //       // included as a maven dependency.
 //       packages("edu.utexas.tacc.tapis");
 
-       packages("edu.utexas.tacc.tapis.jobs.api.resources");
+//       packages("edu.utexas.tacc.tapis.jobs.api.resources");
 
        // Needed for properly returning timestamps
        // Also allows for setting a breakpoint when response is being constructed.
@@ -68,25 +69,28 @@ extends ResourceConfig
        register(ValidationExceptionMapper.class);
 
        // jax-rs filters
+       // NOTE: We deliberately exclude TapisLoggingFilter. In the future, it would be good to enable optional
+       // logging of the servlet request and response by updating TapisLoggingFilter to check an env var.
+       // register(TapisLoggingFilter.class);
        register(ClearThreadLocalRequestFilter.class);
        register(ClearThreadLocalResponseFilter.class);
        register(JWTValidateRequestFilter.class);
        register(QueryParametersRequestFilter.class);
 
        //Our APIs
-//       register(GeneralResource.class);
-//       register(JobActionResource.class);
-//       register(JobCancelResource.class);
-//       register(JobGetResource.class);
-//       register(JobHistoryResource.class);
-//       register(JobListingResource.class);
-//       register(JobOutputDownloadResource.class);
-//       register(JobOutputListingResource.class);
-//       register(JobSearchResource.class);
-//       register(JobShareResource.class);
-//       register(JobStatusResource.class);
-//       register(JobSubmitResource.class);
-//       register(JobSubscriptionResource.class);
+       register(GeneralResource.class);
+       register(JobActionResource.class);
+       register(JobCancelResource.class);
+       register(JobGetResource.class);
+       register(JobHistoryResource.class);
+       register(JobListingResource.class);
+       register(JobOutputDownloadResource.class);
+       register(JobOutputListingResource.class);
+       register(JobSearchResource.class);
+       register(JobShareResource.class);
+       register(JobStatusResource.class);
+       register(JobSubmitResource.class);
+       register(JobSubscriptionResource.class);
 
        setApplicationName(TapisConstants.SERVICE_NAME_JOBS);
        

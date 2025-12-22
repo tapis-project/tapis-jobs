@@ -185,22 +185,15 @@ public class JobSubscriptionResource
        
        // Is the job still active?
        if (dto.getStatus().isTerminal()) {
-           String msg = JobUtils.getMsg("JOBS_IN_TERMINAL_STATE", jobUuid, dto.getStatus().name());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_IN_TERM_STATE", rUser, jobUuid, dto.getStatus().name());
            _log.error(msg);
            return Response.status(Status.BAD_REQUEST).
                    entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
        }
 
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-       }
-       
+
        // ------------------------- Check Authz ------------------------------
        // Authorize the user.  Job tenant and oboTenant are guaranteed to match.
        var oboUser = threadContext.getOboUser();
@@ -274,20 +267,13 @@ public class JobSubscriptionResource
        JobStatusDTO dto = (JobStatusDTO) obj;
 
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-       }
-       
+
        // ------------------------- Check Authz ------------------------------
        // Authorize the user.  Job tenant and oboTenant are guaranteed to match.
        var oboUser = threadContext.getOboUser();
        var oboTenant = threadContext.getOboTenantId();
-       var response = checkAuthorization(oboTenant, oboUser, jobUuid, dto.getOwner(), prettyPrint);
+       var response = checkAuthorization(rUser, jobUuid, opName, jobUuid, dto.getOwner());
        if (response != null) return response;
        
        // ------------------------- Call Notifications -----------------------
@@ -368,7 +354,7 @@ public class JobSubscriptionResource
          
          // Did we find the job?
          if (dto == null) {
-             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_FOUND", rUser, jobUuid);
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_FOUND", rUser, jobUuid);
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
                      entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -385,14 +371,12 @@ public class JobSubscriptionResource
       * 
       * @return null if authorization passed, Response on failure
       */
-     private Response checkAuthorization(String oboTenant, String oboUser, 
-                                         String jobUuid, String jobOwner, boolean prettyPrint)
+     private Response checkAuthorization(ResourceRequestUser rUser, String jobUuid, String opName, String jobOwner)
      {
          try {
              // Only job owners and tenant admins can subscribe to a job.
              if (!oboUser.equals(jobOwner) && !TapisUtils.isAdmin(oboUser, oboTenant)) {
-                 var msg = JobUtils.getMsg("JOBS_JOB_ACTION_NOT_AUTHORIZED", oboUser, 
-                                           "subscription", jobUuid);
+                 var msg = JobsApiUtils.getMsgAuth("JOBSAPI_ACTION_NOT_AUTH", rUser, action, "subscription", jobUuid);
                  _log.error(msg);
                  return Response.status(Status.UNAUTHORIZED).
                          entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
@@ -441,15 +425,8 @@ public class JobSubscriptionResource
          JobStatusDTO dto = (JobStatusDTO) obj;
          
          // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
+
          // ------------------------- Check Authz ------------------------------
          // Authorize the user.  Job tenant and oboTenant are guaranteed to match.
          var oboUser = threadContext.getOboUser();
@@ -498,15 +475,8 @@ public class JobSubscriptionResource
      private Response deleteJobSubscription(ResourceRequestUser rUser, String uuid, boolean prettyPrint)
      {
          // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
+
          // Get obo info.
          var oboUser = threadContext.getOboUser();
          var oboTenant = threadContext.getOboTenantId();

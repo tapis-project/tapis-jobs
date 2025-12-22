@@ -259,6 +259,8 @@ public final class JobEventsDao
           try {if (!usingCallerConn && conn != null) conn.rollback();}
           catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
 
+          // NOTE: We may or may not have an rUser. Log accordingly. In the future, if we have an rUser available
+          //       to the worker process, we can update this to include more info.
           String msg;
           if (rUser != null) {
             msg = JobUtils.getMsgAuth("JOBS_CREATE_EVENT_ERR1", rUser,

@@ -128,21 +128,13 @@ public class JobOutputDownloadResource extends AbstractResource{
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
-           String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+           String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
            _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
 
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;
@@ -164,7 +156,7 @@ public class JobOutputDownloadResource extends AbstractResource{
        }
        
        if (job == null) {
-           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_FOUND", rUser, jobUuid, threadContext.getOboTenantId());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_FOUND", rUser, jobUuid);
            _log.warn(msg);
            ResultName missingName = new ResultName();
            missingName.name = jobUuid;
@@ -173,7 +165,7 @@ public class JobOutputDownloadResource extends AbstractResource{
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
            
        } else if(!job.isVisible()) {
-           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_NOT_VISIBLE", rUser, jobUuid);
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
            _log.warn(msg);
            return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
@@ -296,7 +288,8 @@ public class JobOutputDownloadResource extends AbstractResource{
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
-       return Response.status(Status.NOT_FOUND).
-         entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_NO_OUTPUT_FILES_TO_DOWNLOAD",jobUuid,threadContext.getOboTenantId()))).build();
+       String msg = JobsApiUtils.getMsg("JOBSAPI_NO_OUTPUT_FILES_TO_DOWNLOAD", jobUuid, outputPath,
+                                        rUser.getOboUserId(), rUser.getOboTenantId());
+       return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg)).build();
 	}
 }

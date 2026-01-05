@@ -48,17 +48,7 @@ extends ResourceConfig
        // Log our existence.
        System.out.println("**** Starting tapis-jobsapi ****");
 
-       // TODO/TBD instead, register specific classes.
-       // TODO remove
-//       // We specify what packages JAX-RS should recursively scan
-//       // to find annotations.  By setting the value to the top-level
-//       // tapis directory in all projects, we can use JAX-RS annotations
-//       // in any tapis class.  In particular, the filter classes in
-//       // tapis-sharedapi will be discovered whenever that project is
-//       // included as a maven dependency.
-//       packages("edu.utexas.tacc.tapis");
-
-//       packages("edu.utexas.tacc.tapis.jobs.api.resources");
+       // Register classes that JAX-RS should scan for annotations.
 
        // Needed for properly returning timestamps
        // Also allows for setting a breakpoint when response is being constructed.

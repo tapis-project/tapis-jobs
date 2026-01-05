@@ -393,6 +393,7 @@ public class JobSubmitResource
       */
      private Response doSubmit(ResourceRequestUser rUser, String json)
      {
+         String msg;
          // Log the incoming json
          if (_log.isTraceEnabled()) _log.trace(JobsApiUtils.getMsgAuth("JOBSAPI_SUBMIT_TRACE", rUser, json));
 
@@ -401,7 +402,7 @@ public class JobSubmitResource
          ReqSubmitJob payload = null;
          try {payload = getPayload(json, FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
          catch (Exception e) {
-             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "submitJob", e.getMessage());
+             msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "submitJob", e.getMessage());
              _log.error(msg, e);
              return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
@@ -439,16 +440,21 @@ public class JobSubmitResource
          if (response != null) return response;
          
          // ------------------------- Save Job ---------------------------------
+         Job dbJob;
          // Write the job to the database.
          try {
              var jobsDao = new JobsDao();
-             jobsDao.createJob(rUser, job);
+             dbJob = jobsDao.createJob(rUser, job);
          }
          catch (Exception e) {
            _log.error(e.getMessage(), e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
-         
+
+         // Log info for created job.
+         msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_CREATED", rUser, dbJob.getUuid(), dbJob.getOwner(), dbJob.getName(),
+                                       dbJob.getStatus());
+         _log.info(msg);
          // Save and sent any initial subscription events.
          createSubscriptionEvents(rUser, reqCtx, job);
        
@@ -457,7 +463,7 @@ public class JobSubmitResource
          try {JobQueueManager.getInstance().queueJob(job);}
          catch (Exception e) {
            // Log the error.
-           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBMIT_ERROR1", rUser, job.getUuid(), job.getAppId(), e.getMessage());
+           msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBMIT_ERROR1", rUser, job.getUuid(), job.getAppId(), e.getMessage());
            _log.error(msg, e);
 
            // Fail the job.
@@ -483,10 +489,23 @@ public class JobSubmitResource
              jobResubmitDao.createJobResubmit(jobResubmit);
          } catch (Exception e) {
              // Log the error.
-             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_FAILED_PERSIST", rUser, job.getUuid(), e.getMessage());
+             msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_FAILED_PERSIST", rUser, job.getUuid(), e.getMessage());
              _log.error(msg);
          }
-         
+         // Log success of persisting resubmit info
+         msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_PERSISTED", rUser, dbJob.getUuid(), dbJob.getOwner(),
+                                       dbJob.getName(), dbJob.getStatus());
+         _log.debug(msg);
+
+         // Trace log resolved job details for the job.
+         if (_log.isTraceEnabled())
+         {
+             String dbJobStr = TapisGsonUtils.getGson(true).toJson(dbJob, Job.class);
+             msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_DETAILS", rUser, dbJob.getUuid(), dbJob.getOwner(),
+                                           dbJob.getName(), dbJob.getStatus(), dbJobStr);
+             _log.trace(msg);
+         }
+
          // Success.
          RespSubmitJob r = new RespSubmitJob(job);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(

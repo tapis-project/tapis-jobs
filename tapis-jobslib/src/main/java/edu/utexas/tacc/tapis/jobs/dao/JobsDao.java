@@ -1266,8 +1266,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* createJob:                                                             */
 	/* ---------------------------------------------------------------------- */
-	public void createJob(ResourceRequestUser rUser, Job job)
-      throws TapisException
+	public Job createJob(ResourceRequestUser rUser, Job job) throws TapisException
 	{
         // ------------------------- Complete Input ----------------------
         // Fill in Job fields that we assure.
@@ -1281,13 +1280,13 @@ public final class JobsDao
         // Make sure notes is filled in as a JsonObject.
         JsonObject notesObj = Job.DEFAULT_NOTES;
         if (job.getNotes() != null) notesObj = (JsonObject) job.getNotes();
+		job.setNotes(notesObj);
 
         // ------------------------- Check Input -------------------------
-        // Exceptions can be throw from here.
+        // Exceptions can be thrown from here.
         validateNewJob(job);
 	
         // ------------------------- Call SQL ----------------------------
-        JobEvent jobEvent = null;
         Connection conn = null;
         try
         {
@@ -1413,6 +1412,7 @@ public final class JobsDao
                       _log.error(msg, e);
                   }
         }
+		return job;
 	}
 		   
     /* ---------------------------------------------------------------------- */

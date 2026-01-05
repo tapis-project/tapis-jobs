@@ -5,17 +5,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.ApplicationPath;
-
-import edu.utexas.tacc.tapis.jobs.api.resources.*;
-import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.ClearThreadLocalRequestFilter;
-import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.ClearThreadLocalResponseFilter;
-import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.QueryParametersRequestFilter;
-import edu.utexas.tacc.tapis.sharedapi.providers.ApiExceptionMapper;
-import edu.utexas.tacc.tapis.sharedapi.providers.ObjectMapperContextResolver;
-import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
-import edu.utexas.tacc.tapis.sharedapi.servlet.filters.TapisLoggingFilter;
 import org.flywaydb.core.Flyway;
 import org.glassfish.jersey.server.ResourceConfig;
+
+import edu.utexas.tacc.tapis.jobs.api.resources.*;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.NotificationLiveness;
@@ -26,7 +19,14 @@ import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.ClearThreadLocalRequestFilter;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.ClearThreadLocalResponseFilter;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.QueryParametersRequestFilter;
+import edu.utexas.tacc.tapis.sharedapi.providers.ApiExceptionMapper;
+import edu.utexas.tacc.tapis.sharedapi.providers.ObjectMapperContextResolver;
+import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 // The path here is appended to the context root and
@@ -46,7 +46,7 @@ extends ResourceConfig
    {
        // ------------------ Unrecoverable Errors ------------------
        // Log our existence.
-       System.out.println("**** Starting tapis-jobsapi ****");
+       System.out.printf("**** Starting Applications Service. Version: %s ****%n", TapisUtils.getTapisFullVersion());
 
        // Register classes that JAX-RS should scan for annotations.
 

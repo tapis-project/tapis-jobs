@@ -230,7 +230,7 @@ public class JobSearchResource extends AbstractResource {
       try {
 		sharedJobUuidsList = JobListUtils.getSharedJobUuids(sharedWithMe,threadContext.getOboUser(), threadContext.getOboTenantId() );
       } catch (TapisImplException e) {
-   	   _log.error(e.getMessage(), e);
+   	   _log.error(e.getMessage());
             return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                     entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
       }
@@ -254,7 +254,7 @@ public class JobSearchResource extends AbstractResource {
  	        	 totalCountOwner = JobListUtils.computeTotalCount(threadContext.getOboUser(), 
  					   threadContext.getOboTenantId(), searchList, srchParms.getOrderByList(), !SHARED);
  			 } catch (TapisImplException e) {
- 					_log.error(e.getMessage(), e);
+ 					_log.error(e.getMessage());
  			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
  			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
  			 }
@@ -265,7 +265,7 @@ public class JobSearchResource extends AbstractResource {
     	           totalCountShared = JobListUtils.computeTotalCount(threadContext.getOboUser(), 
     	 				   threadContext.getOboTenantId(), sharedSearchList, srchParms.getOrderByList(), SHARED);
     	 		 } catch (TapisImplException e) {
-    	 				_log.error(e.getMessage(), e);
+    	 				_log.error(e.getMessage());
     	 		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
     	 		                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
     	 		 }
@@ -294,7 +294,7 @@ public class JobSearchResource extends AbstractResource {
 		        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip(), !SHARED);                       
 		       }
 		       catch (TapisImplException e) {
-		           _log.error(e.getMessage(), e);
+		           _log.error(e.getMessage());
 		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 		                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 		       }
@@ -318,7 +318,7 @@ public class JobSearchResource extends AbstractResource {
 	  				diffSkip = JobListUtils.computeSkip(listType,threadContext.getOboUser(), 
 	  						   threadContext.getOboTenantId(), searchList, srchParms.getOrderByList(), srchParms.getSkip(), !SHARED );
 	  			  } catch (TapisImplException e) {
-	  				  _log.error(e.getMessage(), e);
+	  				  _log.error(e.getMessage());
 	  			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 	  			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	  			  }
@@ -332,7 +332,7 @@ public class JobSearchResource extends AbstractResource {
 						jobsImpl.getJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), sharedSearchList,
 						   srchParms.getOrderByList(), diffLimit,diffSkip, SHARED);
 			    } catch (TapisImplException e) {
-			    	 _log.error(e.getMessage(), e);
+			    	 _log.error(e.getMessage());
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			    } 
@@ -367,7 +367,7 @@ public class JobSearchResource extends AbstractResource {
 		   	   jobs = jobsImpl.getJobSearchAllAttributesByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), searchList,
 		        		   srchParms.getOrderByList(), srchParms.getLimit(),srchParms.getSkip(), !(SHARED));  // This is the list of all non-shared jobs                     
 		   } catch (TapisImplException e) {
-	           _log.error(e.getMessage(), e);
+	           _log.error(e.getMessage());
 	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 	                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	       } catch (Exception e) {
@@ -387,7 +387,7 @@ public class JobSearchResource extends AbstractResource {
 				diffSkip = JobListUtils.computeSkip(listType,threadContext.getOboUser(), 
 						   threadContext.getOboTenantId(), searchList, srchParms.getOrderByList(), srchParms.getSkip(), !SHARED );
 			  } catch (TapisImplException e) {
-				  _log.error(e.getMessage(), e);
+				  _log.error(e.getMessage());
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			  }
@@ -398,7 +398,7 @@ public class JobSearchResource extends AbstractResource {
 				jobsShared = jobsImpl.getJobSearchAllAttributesByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), sharedSearchList,
 						   srchParms.getOrderByList(), diffLimit,diffSkip, SHARED);
 			  } catch (TapisImplException e) {
-			    	 _log.error(e.getMessage(), e);
+			    	 _log.error(e.getMessage());
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			    }  
@@ -569,7 +569,7 @@ public class JobSearchResource extends AbstractResource {
      try {
 		sharedJobUuidsList = JobListUtils.getSharedJobUuids(sharedWithMe,threadContext.getOboUser(), threadContext.getOboTenantId() );
      } catch (TapisImplException e) {
-  	   _log.error(e.getMessage(), e);
+  	   _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
      }
@@ -605,7 +605,7 @@ public class JobSearchResource extends AbstractResource {
 		        	 totalCountOwner = jobsImpl.getJobsSearchListCountByUsernameUsingSqlSearchStr(threadContext.getOboUser(), threadContext.getOboTenantId(),sqlSearchStr,
 							   srchParms.getOrderByList(),!SHARED);
 				 } catch (TapisImplException e) {
-						_log.error(e.getMessage(), e);
+						_log.error(e.getMessage());
 				           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 				                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				 }
@@ -616,7 +616,7 @@ public class JobSearchResource extends AbstractResource {
 	   	           totalCountShared = jobsImpl.getJobsSearchListCountByUsernameUsingSqlSearchStr(threadContext.getOboUser(), threadContext.getOboTenantId(),sqlSearchStrShared,
 						   srchParms.getOrderByList(),SHARED);
 	   	 		 } catch (TapisImplException e) {
-	   	 				_log.error(e.getMessage(), e);
+	   	 				_log.error(e.getMessage());
 	   	 		           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 	   	 		                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	   	 		 }
@@ -647,7 +647,7 @@ public class JobSearchResource extends AbstractResource {
 	        		 srchParms.getLimit(),srchParms.getSkip(),!SHARED);                       
 	       }
 	       catch (TapisImplException e) {
-	           _log.error(e.getMessage(), e);
+	           _log.error(e.getMessage());
 	           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 	                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	       }
@@ -670,7 +670,7 @@ public class JobSearchResource extends AbstractResource {
   				diffSkip = JobListUtils.computeSkipSqlStr(listType,threadContext.getOboUser(), 
   						   threadContext.getOboTenantId(), sqlSearchStrShared, srchParms.getOrderByList(), srchParms.getSkip(), !SHARED );
   			  } catch (TapisImplException e) {
-  				  _log.error(e.getMessage(), e);
+  				  _log.error(e.getMessage());
   			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
   			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
   			  }
@@ -685,7 +685,7 @@ public class JobSearchResource extends AbstractResource {
 							jobsImpl.getJobSearchListByUsernameUsingSqlSearchStr(threadContext.getOboUser(), threadContext.getOboTenantId(), sqlSearchStrShared,
 							   srchParms.getOrderByList(), diffLimit,diffSkip, SHARED);
 				    } catch (TapisImplException e) {
-				    	 _log.error(e.getMessage(), e);
+				    	 _log.error(e.getMessage());
 				           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 				                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				    } 
@@ -739,7 +739,7 @@ public class JobSearchResource extends AbstractResource {
 					diffSkip = JobListUtils.computeSkipSqlStr(listType,threadContext.getOboUser(), 
 							   threadContext.getOboTenantId(), sqlSearchStrShared, srchParms.getOrderByList(), srchParms.getSkip(), !SHARED );
 				  } catch (TapisImplException e) {
-					  _log.error(e.getMessage(), e);
+					  _log.error(e.getMessage());
 				           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 				                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				  }
@@ -750,7 +750,7 @@ public class JobSearchResource extends AbstractResource {
 				jobsShared = jobsImpl.getJobSearchAllAttributesByUsernameUsingSqlSearchStr(threadContext.getOboUser(), threadContext.getOboTenantId(), sqlSearchStrShared,
 						   srchParms.getOrderByList(), diffLimit,diffSkip, SHARED);
 			  } catch (TapisImplException e) {
-			    	 _log.error(e.getMessage(), e);
+			    	 _log.error(e.getMessage());
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			    }  

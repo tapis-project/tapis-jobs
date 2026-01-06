@@ -169,7 +169,7 @@ public class JobShareResource
           		  
          }
          catch (TapisImplException e) {
-             _log.error(e.getMessage(), e);
+             _log.error(e.getMessage());
              return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                      entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
@@ -294,7 +294,7 @@ public class JobShareResource
           		  
          }
          catch (TapisImplException e) {
-             _log.error(e.getMessage(), e);
+             _log.error(e.getMessage());
              return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                      entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
@@ -396,7 +396,7 @@ public class JobShareResource
           		  
          }
          catch (TapisImplException e) {
-             _log.error(e.getMessage(), e);
+             _log.error(e.getMessage());
              return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                      entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }

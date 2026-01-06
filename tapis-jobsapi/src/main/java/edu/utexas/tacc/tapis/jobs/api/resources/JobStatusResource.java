@@ -135,7 +135,7 @@ public class JobStatusResource
         		   JobResourceShare.JOB_HISTORY.name(), JobTapisPermission.READ.name());
         		  
        } catch (TapisImplException e) {
-           _log.error(e.getMessage(), e);
+           _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        } catch (Exception e) {

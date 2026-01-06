@@ -136,7 +136,7 @@ public class JobOutputListingResource extends AbstractResource{
            job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
         		   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
        } catch (TapisImplException e) {
-           _log.error(e.getMessage(), e);
+           _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        } catch (Exception e) {
@@ -194,7 +194,7 @@ public class JobOutputListingResource extends AbstractResource{
 		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, 
 				srchParms.getLimit(),skip, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name(),recursiveFlag);
 	   } catch (TapisImplException e) {
-		   _log.error(e.getMessage(), e);
+		   _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	   }

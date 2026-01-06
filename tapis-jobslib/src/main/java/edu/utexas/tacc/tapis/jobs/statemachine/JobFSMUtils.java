@@ -56,7 +56,7 @@ public final class JobFSMUtils
      * and also cause a false result.
      * 
      * @param fromStatus the current job status
-     * @param newState the proposed new job status
+     * @param toStatus the proposed new job status
      * @return true if the transition is legal, false otherwise
      */
     public static synchronized boolean hasTransition(JobStatusType fromStatus, 

@@ -187,7 +187,7 @@ public class JobOutputDownloadResource extends AbstractResource{
 		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath,
 				DEFAULT_LIMIT,DEFAULT_SKIP, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name(), recursiveFlag);
 	   } catch (TapisImplException e) {
-		   _log.error(e.getMessage(), e);
+		   _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	   }
@@ -244,7 +244,7 @@ public class JobOutputDownloadResource extends AbstractResource{
 		   jobOutputFilesinfo = jobsImpl.getJobOutputDownloadInfo(job, threadContext.getOboTenantId(), threadContext.getOboUser(), 
 				  outputPath);
 	   } catch (TapisImplException e) {
-		   _log.error(e.getMessage(), e);
+		   _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	   }
@@ -256,7 +256,7 @@ public class JobOutputDownloadResource extends AbstractResource{
 			skipTapisAuthorization = jobsImpl.isJobShared(job.getUuid(), threadContext.getOboUser(), threadContext.getOboTenantId(), 
 					   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name()) || isSharedAppCtx ;
 	   } catch (TapisImplException e) {
-		   _log.error(e.getMessage(), e);
+		   _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	   }
@@ -282,7 +282,7 @@ public class JobOutputDownloadResource extends AbstractResource{
     	       return response;
     		    } 
        } catch (TapisImplException e) {
-    	   _log.error(e.getMessage(), e);
+    	   _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }

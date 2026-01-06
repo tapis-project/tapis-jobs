@@ -466,6 +466,8 @@ final class JobQueueProcessor
   private boolean doPending(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      //Log start
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -478,7 +480,9 @@ final class JobQueueProcessor
       
       // Advance job to next state.
       setState(job, JobStatusType.PROCESSING_INPUTS);
-      
+
+      //Log end
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }
@@ -503,6 +507,8 @@ final class JobQueueProcessor
   private boolean doProcessingInputs(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      //Log start
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -517,7 +523,9 @@ final class JobQueueProcessor
     
       // Advance job to next state.
       setState(job, JobStatusType.STAGING_INPUTS);
-      
+
+      //Log end
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }
@@ -542,6 +550,8 @@ final class JobQueueProcessor
   private boolean doStagingInputs(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      //Log start
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -556,7 +566,9 @@ final class JobQueueProcessor
 
       // Advance job to next state.
       setState(job, JobStatusType.STAGING_JOB);
-      
+
+      //Log end
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }
@@ -581,6 +593,8 @@ final class JobQueueProcessor
   private boolean doStagingJob(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      //Log start
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -595,7 +609,9 @@ final class JobQueueProcessor
 
       // Advance job to next state.
       setState(job, JobStatusType.SUBMITTING_JOB);
-      
+
+      //Log end
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }
@@ -619,6 +635,8 @@ final class JobQueueProcessor
   private boolean doSubmittingJob(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      //Log start
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -633,7 +651,9 @@ final class JobQueueProcessor
 
       // Advance job to next state.
       setState(job, JobStatusType.QUEUED);
-      
+
+      //Log end
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }
@@ -658,6 +678,8 @@ final class JobQueueProcessor
   private boolean doQueued(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      //Log start
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -672,7 +694,9 @@ final class JobQueueProcessor
 
       // Advance job to next state. 
       setState(job, JobStatusType.RUNNING);
-      
+
+      //Log end
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }
@@ -697,6 +721,8 @@ final class JobQueueProcessor
   private boolean doRunning(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      //Log start
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -717,7 +743,9 @@ final class JobQueueProcessor
       
       // Advance job to next state.
       setState(job, JobStatusType.ARCHIVING);
-      
+
+      //Log end
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }
@@ -742,6 +770,8 @@ final class JobQueueProcessor
   private boolean doArchiving(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      //Log start
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -761,7 +791,13 @@ final class JobQueueProcessor
     	  job.setCondition(JobConditionCode.JOB_REMOTE_OUTCOME_ERROR);
     	  setState(job, JobStatusType.FAILED);
       }
-      
+      // Log final outcome of job execution
+      // Note that even if archiveMode=NEVER we still go through this processing step.
+      String msg = JobUtils.getMsg("JOBS_JOBQ_FINAL", job.getUuid(), job.getStatus(), job.getCondition().name(),
+                                   job.getRemoteOutcome().name(), job.getLastMessage());
+      _log.info(msg);
+      //Log end
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }
@@ -1061,7 +1097,7 @@ final class JobQueueProcessor
   /** Send an email to the support address when a job not in the jobs table
    * was queued.
    * 
-   * @param jobId the unknown job uuid
+   * @param jobUuid the unknown job uuid
    */
   private void sendUnknownJobEmail(String jobUuid, String msg)
   {

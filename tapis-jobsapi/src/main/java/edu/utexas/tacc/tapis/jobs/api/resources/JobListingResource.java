@@ -163,7 +163,7 @@ extends AbstractResource
 			sharedJobUuidsList = JobListUtils.getSharedJobUuids(sharedWithMe,threadContext.getOboUser(), 
 			                                                    threadContext.getOboTenantId() );
 		} catch (TapisImplException e) {
-			_log.error(e.getMessage(), e);
+			_log.error(e.getMessage());
 			return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 					entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 		}
@@ -189,7 +189,7 @@ extends AbstractResource
 					totalCountOwner = JobListUtils.computeTotalCount(threadContext.getOboUser(), 
 							threadContext.getOboTenantId(), searchList, srchParms.getOrderByList(), !SHARED);
 				} catch (TapisImplException e) {
-					_log.error(e.getMessage(), e);
+					_log.error(e.getMessage());
 					return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 							entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				}
@@ -200,7 +200,7 @@ extends AbstractResource
 					totalCountShared = JobListUtils.computeTotalCount(threadContext.getOboUser(), 
 							threadContext.getOboTenantId(), sharedSearchList, srchParms.getOrderByList(), SHARED);
 				} catch (TapisImplException e) {
-					_log.error(e.getMessage(), e);
+					_log.error(e.getMessage());
 					return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 							entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 				}
@@ -225,7 +225,7 @@ extends AbstractResource
 
 			}
 			catch (TapisImplException e) {
-				_log.error(e.getMessage(), e);
+				_log.error(e.getMessage());
 				return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 						entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			}
@@ -251,7 +251,7 @@ extends AbstractResource
 				diffSkip = JobListUtils.computeSkip(listType,threadContext.getOboUser(), 
 						   threadContext.getOboTenantId(), searchList, srchParms.getOrderByList(), srchParms.getSkip(), !SHARED );
 			  } catch (TapisImplException e) {
-				  _log.error(e.getMessage(), e);
+				  _log.error(e.getMessage());
 			           return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 			                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			  }
@@ -266,7 +266,7 @@ extends AbstractResource
 						jobsImpl.getJobSearchListByUsername(threadContext.getOboUser(), threadContext.getOboTenantId(), sharedSearchList,
 								srchParms.getOrderByList(), diffLimit, diffSkip, SHARED);
 			} catch (TapisImplException e) {
-				_log.error(e.getMessage(), e);
+				_log.error(e.getMessage());
 				return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
 						entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 			} 

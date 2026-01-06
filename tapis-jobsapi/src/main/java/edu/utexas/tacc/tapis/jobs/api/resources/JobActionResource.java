@@ -155,7 +155,7 @@ public class JobActionResource extends AbstractResource {
                                        threadContext.getOboTenantId());
        }
        catch (TapisImplException e) {
-           _log.error(e.getMessage(), e);
+           _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
@@ -254,7 +254,7 @@ public class JobActionResource extends AbstractResource {
                                        threadContext.getOboTenantId());
        }
        catch (TapisImplException e) {
-           _log.error(e.getMessage(), e);
+           _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
@@ -392,9 +392,9 @@ public class JobActionResource extends AbstractResource {
             }
         }
         catch (TapisImplException e) {
-            String msg = e.getMessage();
-            _log.error(msg, e);
-            return Response.status(e.condition.getHttpStatus()).entity(TapisRestUtils.createErrorResponse(msg)).build();
+            _log.error(e.getMessage());
+            return Response.status(e.condition.getHttpStatus())
+                    .entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
         }
         catch (Exception e) {
             String msg = e.getMessage();

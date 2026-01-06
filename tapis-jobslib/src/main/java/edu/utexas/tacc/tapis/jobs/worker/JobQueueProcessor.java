@@ -466,8 +466,9 @@ final class JobQueueProcessor
   private boolean doPending(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -482,7 +483,7 @@ final class JobQueueProcessor
       setState(job, JobStatusType.PROCESSING_INPUTS);
 
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
       // True means continue processing the job.
       return true;
   }
@@ -507,8 +508,9 @@ final class JobQueueProcessor
   private boolean doProcessingInputs(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -525,7 +527,7 @@ final class JobQueueProcessor
       setState(job, JobStatusType.STAGING_INPUTS);
 
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
       // True means continue processing the job.
       return true;
   }
@@ -550,8 +552,9 @@ final class JobQueueProcessor
   private boolean doStagingInputs(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -568,7 +571,7 @@ final class JobQueueProcessor
       setState(job, JobStatusType.STAGING_JOB);
 
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
       // True means continue processing the job.
       return true;
   }
@@ -593,8 +596,9 @@ final class JobQueueProcessor
   private boolean doStagingJob(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -611,7 +615,7 @@ final class JobQueueProcessor
       setState(job, JobStatusType.SUBMITTING_JOB);
 
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
       // True means continue processing the job.
       return true;
   }
@@ -635,8 +639,9 @@ final class JobQueueProcessor
   private boolean doSubmittingJob(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -653,7 +658,7 @@ final class JobQueueProcessor
       setState(job, JobStatusType.QUEUED);
 
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
       // True means continue processing the job.
       return true;
   }
@@ -678,8 +683,9 @@ final class JobQueueProcessor
   private boolean doQueued(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -696,7 +702,7 @@ final class JobQueueProcessor
       setState(job, JobStatusType.RUNNING);
 
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
       // True means continue processing the job.
       return true;
   }
@@ -721,8 +727,9 @@ final class JobQueueProcessor
   private boolean doRunning(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -745,7 +752,7 @@ final class JobQueueProcessor
       setState(job, JobStatusType.ARCHIVING);
 
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
       // True means continue processing the job.
       return true;
   }
@@ -770,8 +777,9 @@ final class JobQueueProcessor
   private boolean doArchiving(Job job)
    throws TapisException, JobAsyncCmdException
   {
+      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -793,11 +801,11 @@ final class JobQueueProcessor
       }
       // Log final outcome of job execution
       // Note that even if archiveMode=NEVER we still go through this processing step.
-      String msg = JobUtils.getMsg("JOBS_JOBQ_FINAL", job.getUuid(), job.getStatus(), job.getCondition().name(),
+      String msg = JobUtils.getMsg("JOBS_JOBQ_FINAL", job.getUuid(), state, job.getCondition().name(),
                                    job.getRemoteOutcome().name(), job.getLastMessage());
       _log.info(msg);
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
       // True means continue processing the job.
       return true;
   }

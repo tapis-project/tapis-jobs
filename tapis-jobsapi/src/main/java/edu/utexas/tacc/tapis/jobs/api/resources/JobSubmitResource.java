@@ -2,6 +2,7 @@ package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.model.SubmitContext;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqUserEvent;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetResubmit;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
@@ -473,6 +475,9 @@ public class JobSubmitResource
            return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
 
+         // Log that message sent to MessageBroker
+         _log.debug(JobsApiUtils.getMsgAuth("JOBSAPI_POST_MBQ", rUser, job.getUuid()));
+
          // ------------------------- Save Resubmit Info -----------------------
          // Save the valid job json definition for resubmission in the future
          // table is indexed on id & uuid.  If the actual job submission below
@@ -524,12 +529,13 @@ public class JobSubmitResource
       */
      private Response createSubscriptions(ResourceRequestUser rUser, SubmitContext reqCtx, Job job)
      {
+         List<ReqSubscribe> subscriptions = reqCtx.getSubmitReq().getSubscriptions();
          // Does the job have any subscriptions?
-         if (reqCtx.getSubmitReq().getSubscriptions().isEmpty()) return null;
+         if (subscriptions.isEmpty()) return null;
          
          // We assume the subscription requests are validated, so any failure create
          // a subscription in Notifications is a system problem that aborts the job.
-         for (var req : reqCtx.getSubmitReq().getSubscriptions()) {
+         for (var req : subscriptions) {
            String url = null;
            try {url = JobsApiUtils.postSubscriptionRequest(req, job.getOwner(), job.getTenant(), job.getUuid());}
            catch (Exception e) {
@@ -545,7 +551,8 @@ public class JobSubmitResource
              _log.debug(msg);
            }
          }
-         
+         _log.debug(JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCR_CREATED", rUser, job.getUuid(), subscriptions.size()));
+
          // Success.
          return null;
      }
@@ -568,9 +575,8 @@ public class JobSubmitResource
          
          // Record the event in the database and send notifications to the 
          // just established subscribers.
-         try {
-          JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(job, count);
-         } catch (Exception e) {
+         try { JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(job, count); }
+         catch (Exception e) {
            String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, job.getUuid(), job.getOwner(), e.getMessage());
            _log.error(msg, e);
          }

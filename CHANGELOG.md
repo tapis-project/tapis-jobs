@@ -8,6 +8,17 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
+## 25Q4.2 - 2025-??-??
+
+Refactor logging. Reduce logging of SQL activity and detailed servlet request and response information.
+Add log messages providing information previously only available in the trace SQL logging.
+
+### New features:
+- None.
+
+### Bug fixes:
+- None.
+
 ---------------------------------------------------------------------------
 ## 25Q4.1 - 2025-11-20
 

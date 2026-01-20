@@ -7,6 +7,8 @@ import java.util.Set;
 import javax.ws.rs.ApplicationPath;
 import org.flywaydb.core.Flyway;
 import org.glassfish.jersey.server.ResourceConfig;
+
+import edu.utexas.tacc.tapis.jobs.api.resources.*;
 import edu.utexas.tacc.tapis.jobs.config.RuntimeParameters;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.NotificationLiveness;
@@ -17,7 +19,14 @@ import edu.utexas.tacc.tapis.shared.security.ServiceContext;
 import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.ssh.apache.SSHConnection;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
+import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.ClearThreadLocalRequestFilter;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.ClearThreadLocalResponseFilter;
 import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.JWTValidateRequestFilter;
+import edu.utexas.tacc.tapis.sharedapi.jaxrs.filters.QueryParametersRequestFilter;
+import edu.utexas.tacc.tapis.sharedapi.providers.ApiExceptionMapper;
+import edu.utexas.tacc.tapis.sharedapi.providers.ObjectMapperContextResolver;
+import edu.utexas.tacc.tapis.sharedapi.providers.ValidationExceptionMapper;
 import edu.utexas.tacc.tapis.tenants.client.gen.model.Tenant;
 
 // The path here is appended to the context root and
@@ -37,16 +46,43 @@ extends ResourceConfig
    {
        // ------------------ Unrecoverable Errors ------------------
        // Log our existence.
-       System.out.println("**** Starting tapis-jobsapi ****");
-       
-       // We specify what packages JAX-RS should recursively scan
-       // to find annotations.  By setting the value to the top-level
-       // tapis directory in all projects, we can use JAX-RS annotations
-       // in any tapis class.  In particular, the filter classes in 
-       // tapis-sharedapi will be discovered whenever that project is
-       // included as a maven dependency.
-       packages("edu.utexas.tacc.tapis");
-       setApplicationName(TapisConstants.SERVICE_NAME_JOBS); 
+       System.out.printf("**** Starting Applications Service. Version: %s ****%n", TapisUtils.getTapisFullVersion());
+
+       // Register classes that JAX-RS should scan for annotations.
+
+       // Needed for properly returning timestamps
+       // Also allows for setting a breakpoint when response is being constructed.
+       register(ObjectMapperContextResolver.class);
+
+       // Register classes needed for returning a standard Tapis response for non-Tapis exceptions.
+       register(ApiExceptionMapper.class);
+       register(ValidationExceptionMapper.class);
+
+       // jax-rs filters
+       // NOTE: We deliberately exclude TapisLoggingFilter. In the future, it would be good to enable optional
+       // logging of the servlet request and response by updating TapisLoggingFilter to check an env var.
+       // register(TapisLoggingFilter.class);
+       register(ClearThreadLocalRequestFilter.class);
+       register(ClearThreadLocalResponseFilter.class);
+       register(JWTValidateRequestFilter.class);
+       register(QueryParametersRequestFilter.class);
+
+       //Our APIs
+       register(GeneralResource.class);
+       register(JobActionResource.class);
+       register(JobCancelResource.class);
+       register(JobGetResource.class);
+       register(JobHistoryResource.class);
+       register(JobListingResource.class);
+       register(JobOutputDownloadResource.class);
+       register(JobOutputListingResource.class);
+       register(JobSearchResource.class);
+       register(JobShareResource.class);
+       register(JobStatusResource.class);
+       register(JobSubmitResource.class);
+       register(JobSubscriptionResource.class);
+
+       setApplicationName(TapisConstants.SERVICE_NAME_JOBS);
        
        // Initialize our parameters.  A failure here is unrecoverable.
        RuntimeParameters parms = null;

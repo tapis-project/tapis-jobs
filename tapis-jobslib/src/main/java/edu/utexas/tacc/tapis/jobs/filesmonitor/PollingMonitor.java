@@ -1,6 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.filesmonitor;
 
-import java.sql.Connection;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -19,7 +18,6 @@ import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
@@ -27,7 +25,6 @@ import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.recoverable.TapisServiceConnectionException;
-import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 
 public final class PollingMonitor
@@ -319,8 +316,8 @@ public final class PollingMonitor
             else if (job.getStatus() == JobStatusType.ARCHIVING)
                 eventMgr.recordArchivingEvent(job, transferStatus, transferId);
         } catch (Exception e) {
-            String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
-                                         job.getOwner(), job.getTenant(), e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_MONITOR_POSTEVENT_ERROR", job.getUuid(), job.getTenant(), job.getOwner(),
+                                         transferStatus.name(), transferId, e.getMessage());
             _log.error(msg, e);
         }
     }

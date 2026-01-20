@@ -292,13 +292,17 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     public void archiveOutputs() throws TapisException, TapisClientException
     {
-        // If archiving turned off return now.
-        if (getJobFileManager().isArchivingOff()) return;
-        // Load the exec, archive and dtn systems now
-        // to avoid double faults in FileManager.
-        initSystems();
-        getJobFileManager().archiveOutputs();
-        archivePostProcess();
+      // If archiving turned off return now.
+      if (getJobFileManager().isArchivingOff())
+      {
+        _log.info(JobUtils.getMsg("JOBS_JOBQ_ARCHIVE_OFF", _job.getUuid(), _job.getStatus(), _job.getArchiveMode().name()));
+        return;
+      }
+      // Load the exec, archive and dtn systems now
+      // to avoid double faults in FileManager.
+      initSystems();
+      getJobFileManager().archiveOutputs();
+      archivePostProcess();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -491,7 +495,8 @@ public final class JobExecutionContext
         CmdMsg cmdMsg = _job.getAndSetCmdMsg();
         // Null means there was no cmdMsg so simply return.
         if (cmdMsg == null) return;
-        
+
+        // NOTE: executeCmdMsg does a log.info with cmdMsg details.
         // Process each message based on type. The cancel and pause commands change the job state and
         // throw a JobAsyncCmdException to terminate or postpone job processing.
         switch (cmdMsg.msgType)

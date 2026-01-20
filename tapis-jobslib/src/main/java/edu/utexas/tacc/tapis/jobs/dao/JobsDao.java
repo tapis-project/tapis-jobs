@@ -32,6 +32,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.*;
@@ -1265,8 +1266,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* createJob:                                                             */
 	/* ---------------------------------------------------------------------- */
-	public void createJob(Job job)
-      throws TapisException
+	public Job createJob(ResourceRequestUser rUser, Job job) throws TapisException
 	{
         // ------------------------- Complete Input ----------------------
         // Fill in Job fields that we assure.
@@ -1280,13 +1280,13 @@ public final class JobsDao
         // Make sure notes is filled in as a JsonObject.
         JsonObject notesObj = Job.DEFAULT_NOTES;
         if (job.getNotes() != null) notesObj = (JsonObject) job.getNotes();
+		job.setNotes(notesObj);
 
         // ------------------------- Check Input -------------------------
-        // Exceptions can be throw from here.
+        // Exceptions can be thrown from here.
         validateNewJob(job);
 	
         // ------------------------- Call SQL ----------------------------
-        JobEvent jobEvent = null;
         Connection conn = null;
         try
         {
@@ -1385,7 +1385,7 @@ public final class JobsDao
           
           // Write the event table and issue the notification.
           var eventMgr = JobEventManager.getInstance();
-          eventMgr.recordStatusEvent(job, job.getStatus(), null, conn);
+          eventMgr.recordStatusEvent(rUser, job, job.getStatus(), null, conn);
     
           // Commit the transaction that may include changes to both tables.
           conn.commit();
@@ -1412,6 +1412,7 @@ public final class JobsDao
                       _log.error(msg, e);
                   }
         }
+		return job;
 	}
 		   
     /* ---------------------------------------------------------------------- */
@@ -2725,7 +2726,7 @@ public final class JobsDao
             
             // Write the event table and optionally send notifications (asynchronously).
             var eventMgr = JobEventManager.getInstance();
-            eventMgr.recordStatusEvent(job, newStatus, curStatus, conn);
+            eventMgr.recordStatusEvent(null, job, newStatus, curStatus, conn);
             
             // Conditionally commit the transaction.
             if (commit) conn.commit();

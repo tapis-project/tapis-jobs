@@ -397,7 +397,7 @@ public class JobSubmitResource
      {
          String msg;
          // Log the incoming json
-         if (_log.isTraceEnabled()) _log.trace(JobsApiUtils.getMsgAuth("JOBSAPI_SUBMIT_TRACE", rUser, json));
+         if (_log.isDebugEnabled()) _log.debug(JobsApiUtils.getMsgAuth("JOBSAPI_SUBMIT_JSON", rUser, json));
 
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.

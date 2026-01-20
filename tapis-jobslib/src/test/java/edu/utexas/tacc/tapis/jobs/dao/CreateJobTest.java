@@ -20,7 +20,7 @@ public class CreateJobTest
 				
 		// Insert job record.
 		Job job = initJob();
-		dao.createJob(job);
+		dao.createJob(null, job);
 		
 		// Get all job records.
 		jobList = dao.getJobs();

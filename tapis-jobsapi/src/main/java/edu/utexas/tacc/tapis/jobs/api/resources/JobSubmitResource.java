@@ -1,9 +1,8 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-
+import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -20,10 +19,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
-
 import com.google.gson.JsonObject;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
-import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -31,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.jobs.api.model.SubmitContext;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
+import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqUserEvent;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespGetResubmit;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespSubmitJob;
@@ -45,6 +42,7 @@ import edu.utexas.tacc.tapis.jobs.model.JobResubmit;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisNotFoundException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -53,7 +51,10 @@ import edu.utexas.tacc.tapis.shared.providers.email.EmailClientFactory;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.shared.utils.HTMLizer;
+import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespBasic;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 import static edu.utexas.tacc.tapis.jobs.model.Job.NOTES_FIELD;
@@ -72,9 +73,9 @@ public class JobSubmitResource
     private static final String FILE_JOB_SUBMIT_REQUEST = 
         "/edu/utexas/tacc/tapis/jobs/api/jsonschema/SubmitJobRequest.json";
     private static final String FILE_USER_EVENT_REQUEST = 
-            "/edu/utexas/tacc/tapis/jobs/api/jsonschema/UserEventRequest.json";
+        "/edu/utexas/tacc/tapis/jobs/api/jsonschema/UserEventRequest.json";
 
-    private static boolean prettyPrint = false;
+    private final String className = getClass().getSimpleName();
 
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -104,19 +105,14 @@ public class JobSubmitResource
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
      @Context
      private Application        _application;
-  
      @Context
      private UriInfo            _uriInfo;
-  
      @Context
      private SecurityContext    _securityContext;
-  
      @Context
      private ServletContext     _servletContext;
-  
      @Context
      private HttpServletRequest _request;
 
@@ -132,17 +128,21 @@ public class JobSubmitResource
      @Produces(MediaType.APPLICATION_JSON)
      public Response submitJob(InputStream payloadStream)
      {
+       String opName = "submitJob";
+       // ------------------------- Retrieve and validate thread context -------------------------
+       Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+       if (resp != null) return resp;
+
+       // Create a user that collects together tenant, user and request information needed by the service call
+       ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
        // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "submitJob", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+       if (_log.isTraceEnabled())
+           JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString());
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
        // The shared code takes it from here.
-       return doSubmit(prettyPrint, payloadStream);
+       return doSubmit(rUser, payloadStream);
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -154,12 +154,16 @@ public class JobSubmitResource
      @Produces(MediaType.APPLICATION_JSON)
      public Response resubmitJob(@PathParam("jobUuid") String jobUuid)
      {
-    	 // Trace this request.
-    	 if (_log.isTraceEnabled()) {
-    		 String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "resubmit",
-    				 				      "  " + _request.getRequestURL());
-    		 _log.trace(msg);
-    	 }
+       String opName = "resubmitJob";
+       // ------------------------- Retrieve and validate thread context -------------------------
+       Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+       if (resp != null) return resp;
+
+       // Create a user that collects together tenant, user and request information needed by the service call
+       ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+       // Trace this request.
+       if (_log.isTraceEnabled())
+           JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
@@ -167,33 +171,30 @@ public class JobSubmitResource
        if (StringUtils.isAllBlank(jobUuid)) {
          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit", "jobuuid");
          _log.error(msg);
-         return Response.status(Status.BAD_REQUEST).
-                 entity(TapisRestUtils.createErrorResponse(msg)).build();
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Get Resubmit -----------------------------
        // We have a job to resubmit now go lookup the stored job definition
-       JobResubmit jobResubmit = null;
+       JobResubmit jobResubmit;
        try {
            var jobResubmitDao = new JobResubmitDao();
            jobResubmit = jobResubmitDao.getJobResubmitByUUID(jobUuid);
        } catch (Exception e) {
-           String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_NOT_FOUND", rUser, jobUuid, e.getMessage());
            _log.error(msg, e);
-           return Response.status(Status.BAD_REQUEST).
-                 entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // Make sure we got something.
        if (jobResubmit == null) {
-           String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_NOT_FOUND", rUser, jobUuid, "unknown job uuid");
            _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // The shared code takes it from here.
-       return doSubmit(prettyPrint, jobResubmit.getJobDefinition());
+       return doSubmit(rUser, jobResubmit.getJobDefinition());
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -204,12 +205,16 @@ public class JobSubmitResource
      @Produces(MediaType.APPLICATION_JSON)
      public Response getResubmitRequestJson(@PathParam("jobUuid") String jobUuid)
      {
-    	 // Trace this request.
-    	 if (_log.isTraceEnabled()) {
-    		 String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getResubmitRequestJson",
-    				 				      "  " + _request.getRequestURL());
-    		 _log.trace(msg);
-    	 }
+       String opName = "getResubmitRequest";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
+
+       // Create a user that collects together tenant, user and request information needed by the service call
+       ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+       // Trace this request.
+       if (_log.isTraceEnabled())
+           JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(),"jobUuid="+jobUuid);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
@@ -217,29 +222,26 @@ public class JobSubmitResource
        if (StringUtils.isAllBlank(jobUuid)) {
          String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "resubmit_reques_json", "jobuuid");
          _log.error(msg);
-         return Response.status(Status.BAD_REQUEST).
-                 entity(TapisRestUtils.createErrorResponse(msg)).build();
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Get Resubmit -----------------------------
        // We need resubmit request now go lookup the stored job definition
-       JobResubmit jobResubmit = null;
+       JobResubmit jobResubmit;
        try {
            var jobResubmitDao = new JobResubmitDao();
            jobResubmit = jobResubmitDao.getJobResubmitByUUID(jobUuid);
        } catch (Exception e) {
-           String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, e.getMessage());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_NOT_FOUND", rUser, jobUuid, e.getMessage());
            _log.error(msg, e);
-           return Response.status(Status.BAD_REQUEST).
-                 entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // Make sure we got something.
        if (jobResubmit == null) {
-           String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_NOT_FOUND", jobUuid, "unknown job uuid");
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_NOT_FOUND", rUser, jobUuid, "unknown job uuid");
            _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Input Processing -------------------------
@@ -247,23 +249,11 @@ public class JobSubmitResource
        ReqSubmitJob payload = null;
        try {payload = getPayload(jobResubmit.getJobDefinition(), FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
        catch (Exception e) {
-           String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                        "resubmitrequestjson", e.getMessage());
+           String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "resubmitrequestjson", e.getMessage());
            _log.error(msg, e);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
-       // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
-       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
-      
        RespGetResubmit r = new RespGetResubmit(payload);
        return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
                JobUtils.getMsg("JOBS_RESUBMIT_REQUEST_RETRIEVED", jobUuid), r)).build();
@@ -278,24 +268,30 @@ public class JobSubmitResource
      @Produces(MediaType.APPLICATION_JSON)
      public Response sendEvent(@PathParam("jobUuid") String jobUuid, InputStream payloadStream)
      {
+       String opName = "sendEvent";
+       // ------------------------- Retrieve and validate thread context -------------------------
+       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
+       // Check that we have all we need from the context, the jwtTenantId and jwtUserId
+       // Utility method returns null if all OK and appropriate error response if there was a problem.
+       Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+       if (resp != null) return resp;
+
+       // Create a user that collects together tenant, user and request information needed by the service call
+       ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
        // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "sendEvent", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+       if (_log.isTraceEnabled())
+           JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString());
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
        // ------------------------- Validate Payload -------------------------
        // Read the payload into a string.
        String json = null;
-       try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+       try {json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8);}
          catch (Exception e) {
            String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job send event", e.getMessage());
            _log.error(msg, e);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
        
        // ------------------------- Input Processing -------------------------
@@ -305,57 +301,41 @@ public class JobSubmitResource
        catch (Exception e) {
            String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "sendEvent", e.getMessage());
            _log.error(msg, e);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
-       // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
-       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
-       
        // ------------------------- Inspect Job ------------------------------
        // Retrieve the target job.
        Job job = null;
        try {
-           final boolean throwNotFound = true;
-           var jobsDao = new JobsDao();
-           job = jobsDao.getJobByUUID(jobUuid, throwNotFound);
+         final boolean throwNotFound = true;
+         var jobsDao = new JobsDao();
+         job = jobsDao.getJobByUUID(jobUuid, throwNotFound);
        }
        catch (TapisNotFoundException e) {
-           _log.error(e.getMessage(), e);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
+         _log.error(e.getMessage(), e);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        catch (Exception e) {
-           _log.error(e.getMessage(), e);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
+         _log.error(e.getMessage(), e);
+         return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
        
-       // Make sure the job is in the same tenant as the requestor.  Note that this restriction
-       // applies even to services, which shouldn't be sending user events anyway.
+       // Make sure the job is in the same tenant as the requester. Note that this restriction
+       // applies even to services, which should not be sending user events anyway.
        if (!job.getTenant().equals(threadContext.getJwtTenantId())) {
-           String msg = JobUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getJwtTenantId(),
-                                        job.getTenant());
-           _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
+         String msg = JobUtils.getMsg("JOBS_MISMATCHED_TENANT", threadContext.getJwtTenantId(), job.getTenant());
+         _log.error(msg);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
        // Don't send events to terminated jobs. The job could terminate in the window between 
        // performing this check and sending the event.  This is not a big deal since we are
        // only adding an event to the job history and, possibly, sending notifications.
        if (job.getStatus().isTerminal()) {
-           String msg = JobUtils.getMsg("JOBS_IN_TERMINAL_STATE", jobUuid, job.getStatus().name());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_IN_TERM_STATE", rUser, jobUuid, job.getStatus().name());
            _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Send Event -------------------------------
@@ -367,10 +347,9 @@ public class JobSubmitResource
                          threadContext.getJwtUser(), payload.getEventData(), payload.getEventDetail(), null);
        }
        catch (Exception e) {
-           String msg = JobUtils.getMsg("JOBS_CREATE_JOB_EVENT", eventName, jobUuid, e.getMessage());
-           _log.error(msg, e);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
+         String msg = JobUtils.getMsgAuth("JOBS_CREATE_EVENT_ERR1", rUser, jobUuid, eventName, e.getMessage());
+         _log.error(msg, e);
+         return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // Success.
@@ -391,21 +370,19 @@ public class JobSubmitResource
       * @param payloadStream the request's payload
       * @return the response to the user
       */
-     private Response doSubmit(boolean prettyPrint, InputStream payloadStream)
+     private Response doSubmit(ResourceRequestUser rUser, InputStream payloadStream)
      {
          // ------------------------- Validate Payload -------------------------
          // Read the payload into a string.
-         String json = null;
+         String json;
          try {json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8);}
-           catch (Exception e) {
-             String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job submission", e.getMessage());
-             _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
-           }
-         
+         catch (Exception e) {
+           String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job submission", e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
+         }
          // The real submit.
-         return doSubmit(prettyPrint, json);
+         return doSubmit(rUser, json);
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -413,32 +390,23 @@ public class JobSubmitResource
      /* ---------------------------------------------------------------------------- */
      /** All the work gets done here from both submit and resubmit.
       * 
-      * @param prettyPrint the request's query parameter
       * @param json the request's payload as json
       * @return the response to the user
       */
-     private Response doSubmit(boolean prettyPrint, String json)
+     private Response doSubmit(ResourceRequestUser rUser, String json)
      {
+         String msg;
+         // Log the incoming json
+         if (_log.isTraceEnabled()) _log.trace(JobsApiUtils.getMsgAuth("JOBSAPI_SUBMIT_TRACE", rUser, json));
+
          // ------------------------- Input Processing -------------------------
          // Parse and validate the json in the request payload, which must exist.
          ReqSubmitJob payload = null;
          try {payload = getPayload(json, FILE_JOB_SUBMIT_REQUEST, ReqSubmitJob.class);} 
          catch (Exception e) {
-             String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                          "submitJob", e.getMessage());
+             msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "submitJob", e.getMessage());
              _log.error(msg, e);
-             return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
-         }
-
-         // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
+             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
 
          // Extract Notes from the raw json. Notes require special handling. Else they end up as a LinkedTreeMap which
@@ -454,7 +422,7 @@ public class JobSubmitResource
          Job job = null;
          try {job = reqCtx.initNewJob();}
          catch (TapisImplException e) {
-             _log.error(e.getMessage(), e);
+             _log.error(e.getMessage());
              return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                      entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
@@ -470,40 +438,46 @@ public class JobSubmitResource
          // of subscriptions are guaranteed by context initialization to have been
          // calculated and non-null by this point. Subscriptions are created before
          // we make any database changes so the caller can access any events generated.
-         var response = createSubscriptions(reqCtx, job, prettyPrint);
+         var response = createSubscriptions(rUser, reqCtx, job);
          if (response != null) return response;
          
          // ------------------------- Save Job ---------------------------------
+         Job dbJob;
          // Write the job to the database.
          try {
              var jobsDao = new JobsDao();
-             jobsDao.createJob(job);
+             dbJob = jobsDao.createJob(rUser, job);
          }
          catch (Exception e) {
-             _log.error(e.getMessage(), e);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
+           _log.error(e.getMessage(), e);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
-         
+
+         // Log info for created job.
+         msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_CREATED", rUser, dbJob.getUuid(), dbJob.getOwner(), dbJob.getName(),
+                                       dbJob.getStatus());
+         _log.info(msg);
          // Save and sent any initial subscription events.
-         createSubscriptionEvents(reqCtx, job);
+         createSubscriptionEvents(rUser, reqCtx, job);
        
          // -------------------------- Queue Request ---------------------------
          // Submit the job to the worker queue. Exceptions are mapped to HTTP error codes.
          try {JobQueueManager.getInstance().queueJob(job);}
-           catch (Exception e) {
-               // Log the error.
-               String msg = JobUtils.getMsg("JOBS_SUBMIT_ERROR1", job.getName(), job.getAppId(), e.getMessage());
-               _log.error(msg, e);
-               
-               // Fail the job.  
-               failJob(job, msg);
-               
-               // Let the user know the job failed.
-               return Response.status(Status.INTERNAL_SERVER_ERROR).
-                       entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
-           }
-         
+         catch (Exception e) {
+           // Log the error.
+           msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBMIT_ERROR1", rUser, job.getUuid(), job.getAppId(), e.getMessage());
+           _log.error(msg, e);
+
+           // Fail the job.
+           failJob(rUser, job, msg);
+
+           // Let the user know the job failed.
+           return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
+         }
+
+         // Log that message sent to MessageBroker
+         _log.debug(JobsApiUtils.getMsgAuth("JOBSAPI_POST_MBQ", rUser, job.getUuid()));
+
          // ------------------------- Save Resubmit Info -----------------------
          // Save the valid job json definition for resubmission in the future
          // table is indexed on id & uuid.  If the actual job submission below
@@ -519,10 +493,24 @@ public class JobSubmitResource
              var jobResubmitDao = new JobResubmitDao();
              jobResubmitDao.createJobResubmit(jobResubmit);
          } catch (Exception e) {
-             String msg = JobUtils.getMsg("JOBS_JOBRESUBMIT_FAILED_PERSIST", "resubmit", e.getMessage());
+             // Log the error.
+             msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_FAILED_PERSIST", rUser, job.getUuid(), e.getMessage());
              _log.error(msg);
          }
-         
+         // Log success of persisting resubmit info
+         msg = JobsApiUtils.getMsgAuth("JOBSAPI_RESUBMIT_PERSISTED", rUser, dbJob.getUuid(), dbJob.getOwner(),
+                                       dbJob.getName(), dbJob.getStatus());
+         _log.debug(msg);
+
+         // Trace log resolved job details for the job.
+         if (_log.isTraceEnabled())
+         {
+             String dbJobStr = TapisGsonUtils.getGson(true).toJson(dbJob, Job.class);
+             msg = JobsApiUtils.getMsgAuth("JOBSAPI_JOB_DETAILS", rUser, dbJob.getUuid(), dbJob.getOwner(),
+                                           dbJob.getName(), dbJob.getStatus(), dbJobStr);
+             _log.trace(msg);
+         }
+
          // Success.
          RespSubmitJob r = new RespSubmitJob(job);
          return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
@@ -537,36 +525,34 @@ public class JobSubmitResource
       * 
       * @param reqCtx submit request context
       * @param job the populated job object
-      * @param prettyPrint user output preference
       * @return null if ok, a response object on error
       */
-     private Response createSubscriptions(SubmitContext reqCtx, Job job, boolean prettyPrint)
+     private Response createSubscriptions(ResourceRequestUser rUser, SubmitContext reqCtx, Job job)
      {
+         List<ReqSubscribe> subscriptions = reqCtx.getSubmitReq().getSubscriptions();
          // Does the job have any subscriptions?
-         if (reqCtx.getSubmitReq().getSubscriptions().isEmpty()) return null;
+         if (subscriptions.isEmpty()) return null;
          
          // We assume the subscription requests are validated, so any failure create
          // a subscription in Notifications is a system problem that aborts the job.
-         for (var req : reqCtx.getSubmitReq().getSubscriptions()) {
-             String url = null;
-             try {url = JobsApiUtils.postSubscriptionRequest(req, job.getOwner(), job.getTenant(), job.getUuid());}
-             catch (Exception e) {
-                 String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
-                                              job.getOwner(), job.getTenant(), e.getMessage());
-                 _log.error(msg, e);
-                 return Response.status(Status.INTERNAL_SERVER_ERROR).
-                         entity(TapisRestUtils.createErrorResponse(msg)).build();
-             }
+         for (var req : subscriptions) {
+           String url = null;
+           try {url = JobsApiUtils.postSubscriptionRequest(req, job.getOwner(), job.getTenant(), job.getUuid());}
+           catch (Exception e) {
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, job.getUuid(), job.getOwner(), e.getMessage());
+             _log.error(msg, e);
+             return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
+           }
                  
-             // Log subscriptions created.
-             if (_log.isDebugEnabled()) {
-                 var typeFilter = JobsApiUtils.getNotifTypeFilter(req.getEventCategoryFilter(), 
-                                                                  JobsApiUtils.TYPE_FILTER_WILDCARD);
-                 var msg = MsgUtils.getMsg("NOTIFICATIONS_SUBSCRIPTION_CREATED", job.getUuid(), typeFilter);
-                 _log.debug(msg);
-             }
+           // Log subscriptions created.
+           if (_log.isDebugEnabled()) {
+             var typeFilter = JobsApiUtils.getNotifTypeFilter(req.getEventCategoryFilter(), JobsApiUtils.TYPE_FILTER_WILDCARD);
+             var msg = MsgUtils.getMsg("NOTIFICATIONS_SUBSCRIPTION_CREATED", job.getUuid(), typeFilter);
+             _log.debug(msg);
+           }
          }
-         
+         _log.debug(JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCR_CREATED", rUser, job.getUuid(), subscriptions.size()));
+
          // Success.
          return null;
      }
@@ -581,7 +567,7 @@ public class JobSubmitResource
       * @param reqCtx submit request context
       * @param job the populated job object
       */
-     private void createSubscriptionEvents(SubmitContext reqCtx, Job job)
+     private void createSubscriptionEvents(ResourceRequestUser rUser, SubmitContext reqCtx, Job job)
      {
          // Does the job have any subscriptions?
          int count = reqCtx.getSubmitReq().getSubscriptions().size();
@@ -589,12 +575,10 @@ public class JobSubmitResource
          
          // Record the event in the database and send notifications to the 
          // just established subscribers.
-         try {
-            JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(job, count);
-         } catch (Exception e) {
-             String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", job.getUuid(), 
-                                          job.getOwner(), job.getTenant(), e.getMessage());
-             _log.error(msg, e);
+         try { JobEventManager.getInstance().recordJobSubmitSubscriptionsEvent(job, count); }
+         catch (Exception e) {
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, job.getUuid(), job.getOwner(), e.getMessage());
+           _log.error(msg, e);
          }
      }
      
@@ -606,7 +590,7 @@ public class JobSubmitResource
       * @param job the failed job
       * @param failMsg the failure message
      */
-     private static void failJob(Job job, String failMsg)
+     private static void failJob(ResourceRequestUser rUser, Job job, String failMsg)
      {
          // Fail the job.  Note that current status used in the transition 
          // to FAILED is the status of the job as defined in the db.
@@ -617,12 +601,9 @@ public class JobSubmitResource
              jobsDao.failJob("submitJob", job, failMsg);
          }
          catch (Exception e) {
-             // Swallow exception.
-             String msg = JobUtils.getMsg("JOBS_ZOMBIE_ERROR", 
-                                          job.getUuid(), job.getTenant(), "submitJob");
+             // Swallow exception and attempt to send an email.
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_ZOMBIE_ERROR", rUser, job.getUuid());
              _log.error(msg, e);
-                 
-             // Try to send the zombie email.
              sendZombieEmail(job, msg);
          }
      }

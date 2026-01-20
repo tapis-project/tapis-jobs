@@ -118,14 +118,13 @@ abstract class AbstractProcessor
    * There are 3 ways for this method to end:
    * 
    *  1. Normal exit on shutdown interrupt.
-   *  2. AloeRuntimeException when we want a new thread to replace this one
+   *  2. TapisRuntimeException when we want a new thread to replace this one
    *      because of some problem that we have detected.
    *  3. Any other runtime exception, which will also cause a new thread
    *      to replace this one.
    * 
    * @param p read parameters specific to processor
-   * @throws AloeRuntimeException runtime error that ends this thread and  
-   *            starts a new replacement thread
+   * @throws TapisRuntimeException runtime error that ends this thread and starts a new replacement thread
    */
   protected void getNextMessage(NextMessageParms p)
   {
@@ -176,14 +175,13 @@ abstract class AbstractProcessor
    * There are 3 ways for this method to end:
    * 
    *  1. Normal exit on shutdown interrupt.
-   *  2. AloeRuntimeException when we want a new thread to replace this one
+   *  2. TapisRuntimeException when we want a new thread to replace this one
    *      because of some problem that we have detected.
    *  3. Any other runtime exception, which will also cause a new thread
    *      to replace this one.
    * 
    * @param p read parameters specific to processor
-   * @throws AloeRuntimeException runtime error that ends this thread and  
-   *            starts a new replacement thread
+   * @throws TapisRuntimeException runtime error that ends this thread and starts a new replacement thread
    */
   protected void getNextJobSpecificMessage(NextMessageParms p)
   {

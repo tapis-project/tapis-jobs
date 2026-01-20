@@ -5,12 +5,10 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -25,8 +23,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
-
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -44,6 +40,7 @@ import edu.utexas.tacc.tapis.jobs.model.dto.JobShareListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobUnShareDisplay;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -51,6 +48,8 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 @Path("/")
@@ -62,7 +61,9 @@ public class JobShareResource
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobShareResource.class);
-    
+
+    private final String className = getClass().getSimpleName();
+
     // Json schema resource files.
     private static final String FILE_JOB_SHARE_REQUEST = 
         "/edu/utexas/tacc/tapis/jobs/api/jsonschema/ShareJobRequest.json";
@@ -95,19 +96,14 @@ public class JobShareResource
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
      @Context
      private Application        _application;
-  
      @Context
      private UriInfo            _uriInfo;
-  
      @Context
      private SecurityContext    _securityContext;
-  
      @Context
      private ServletContext     _servletContext;
-  
      @Context
      private HttpServletRequest _request;
 
@@ -123,12 +119,16 @@ public class JobShareResource
      @Produces(MediaType.APPLICATION_JSON)
      public Response shareJob(@PathParam("jobUuid") String jobUuid, InputStream payloadStream)
      {
+       String opName = "shareJob";
+       // ------------------------- Retrieve and validate thread context -------------------------
+       Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+       if (resp != null) return resp;
+
+       // Create a user that collects together tenant, user and request information needed by the service call
+       ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
        // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "shareJob", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+       if (_log.isTraceEnabled())
+           JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
@@ -156,15 +156,8 @@ public class JobShareResource
          }
 
          // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
-         }
-         
+
          // ------------------------- Retrieve Job Status Information -----------------------------
 
          JobStatusDTO jobstatus = null;
@@ -176,7 +169,7 @@ public class JobShareResource
           		  
          }
          catch (TapisImplException e) {
-             _log.error(e.getMessage(), e);
+             _log.error(e.getMessage());
              return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                      entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
@@ -195,7 +188,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+      	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;
@@ -261,35 +254,30 @@ public class JobShareResource
      @Produces(MediaType.APPLICATION_JSON)
      public Response getJobShare(@PathParam("jobUuid") String jobUuid, @QueryParam("limit") int limit,
 				@QueryParam("skip") int skip)
-                               
-     { 
-    	// Trace this request.
-         if (_log.isTraceEnabled()) {
-           String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobShare", 
-                                        "  " + _request.getRequestURL());
-           _log.trace(msg);
-         }
+     {
+         String opName = "getJobShare";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
+
+         // Create a user that collects together tenant, user and request information needed by the service call
+         ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+         // Trace this request.
+         if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid);
 
          JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
          // ------------------------- Input Processing -------------------------
          if (StringUtils.isBlank(jobUuid)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+             String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
              _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                        entity(TapisRestUtils.createErrorResponse(msg)).build();
+             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
          
          // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
-         }
-         
+
          SearchParameters srchParms = threadContext.getSearchParameters();
          
          if(srchParms.getLimit() == null) {srchParms.setLimit(SearchParameters.DEFAULT_LIMIT);}
@@ -306,7 +294,7 @@ public class JobShareResource
           		  
          }
          catch (TapisImplException e) {
-             _log.error(e.getMessage(), e);
+             _log.error(e.getMessage());
              return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                      entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
@@ -326,7 +314,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+      	   	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;
@@ -374,36 +362,31 @@ public class JobShareResource
      @Path("/{jobUuid}/share/{user}")
      @Produces(MediaType.APPLICATION_JSON)
      public Response deleteJobShare(@PathParam("jobUuid") String jobUuid, @PathParam("user") String user)
-                               
-     { 
-    	// Trace this request.
-         if (_log.isTraceEnabled()) {
-           String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "deleteJobShare", 
-                                        "  " + _request.getRequestURL());
-           _log.trace(msg);
-         }
+     {
+         String opName = "deleteJobShare";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
+
+         // Create a user that collects together tenant, user and request information needed by the service call
+         ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+         // Trace this request.
+         if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(),
+                                     "jobUuid="+jobUuid,"user="+user);
 
          JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
          // ------------------------- Input Processing -------------------------
          if (StringUtils.isBlank(jobUuid)) {
-             String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+             String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
              _log.error(msg);
-             return Response.status(Status.BAD_REQUEST).
-                        entity(TapisRestUtils.createErrorResponse(msg)).build();
+             return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
          
          // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
          TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg)).build();
-         }
-         
-         
+
          // ------------------------- Retrieve Job Status Information -----------------------------
          JobStatusDTO jobstatus = null;
          var jobsImpl = JobsImpl.getInstance();
@@ -413,7 +396,7 @@ public class JobShareResource
           		  
          }
          catch (TapisImplException e) {
-             _log.error(e.getMessage(), e);
+             _log.error(e.getMessage());
              return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                      entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
@@ -434,7 +417,7 @@ public class JobShareResource
                  MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
          
          } else if(!jobstatus.getVisible()) {
-      	   String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+      	   String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
          	   _log.warn(msg);
          	   ResultName missingName = new ResultName();
          	   missingName.name = jobUuid;

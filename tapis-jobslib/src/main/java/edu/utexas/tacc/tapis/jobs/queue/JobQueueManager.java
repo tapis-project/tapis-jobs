@@ -1,5 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.queue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -675,7 +676,7 @@ public final class JobQueueManager
       try {
         // Write the job to the tenant recovery queue.
         channel.basicPublish(exchangeName, routingKey, JobQueueManagerNames.PERSISTENT_JSON, 
-                             message.getBytes("UTF-8"));
+                             message.getBytes(StandardCharsets.UTF_8));
         
         // Tracing.
         if (_log.isDebugEnabled()) {

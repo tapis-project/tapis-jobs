@@ -38,6 +38,7 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisRunCommand;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 
 public final class JobUtils 
 {
@@ -548,9 +549,29 @@ public final class JobUtils
     }
     return msgValue;
   }
+    /**
+     * Get a localized message using the specified key and parameters. Locale is null.
+     * Fill in first 4 parameters with user and tenant info from AuthenticatedUser
+     * If there is a problem an error is logged and a special message is constructed with as much info as can be provided.
+     * @param key message key
+     * @param parms message parameters
+     * @return localized message
+     */
+    public static String getMsgAuth(String key, ResourceRequestUser rUser, Object... parms)
+    {
+        // Construct new array of parms. This appears to be most straightforward approach to modify and pass on varargs.
+        var newParms = new Object[4 + parms.length];
+        newParms[0] = rUser.getJwtTenantId();
+        newParms[1] = rUser.getJwtUserId();
+        newParms[2] = rUser.getOboTenantId();
+        newParms[3] = rUser.getOboUserId();
+        System.arraycopy(parms, 0, newParms, 4, parms.length);
+        return getMsg(key, newParms);
+    }
 
 
-  public static TapisException translateSQLException(SQLException sqle,
+
+    public static TapisException translateSQLException(SQLException sqle,
     String jobUuid,
     String tenant,
     String user) {

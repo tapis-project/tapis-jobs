@@ -10,7 +10,8 @@ https://tapis-project.github.io/live-docs
 
 ## 25Q4.2 - 2025-??-??
 
-Refactor logging.
+Refactor logging. Reduce logging of SQL activity and detailed servlet request and response information.
+Add log messages providing information previously only available in the trace SQL logging.
 
 ### New features:
 - None.

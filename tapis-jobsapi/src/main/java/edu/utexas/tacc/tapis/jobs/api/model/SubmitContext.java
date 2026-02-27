@@ -23,15 +23,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInput;
-import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
-import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSetLogConfig;
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
-import edu.utexas.tacc.tapis.apps.client.gen.model.JobAttributes;
-import edu.utexas.tacc.tapis.apps.client.gen.model.ParameterSet;
+import edu.utexas.tacc.tapis.apps.client.gen.model.*;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
+import edu.utexas.tacc.tapis.systems.client.gen.model.*;
+import edu.utexas.tacc.tapis.systems.client.SystemsClient;
+import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
+
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubmitJob;
 import edu.utexas.tacc.tapis.jobs.api.requestBody.ReqSubscribe;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobParmSetMarshaller;
@@ -64,12 +61,6 @@ import edu.utexas.tacc.tapis.shared.utils.MacroResolver;
 import edu.utexas.tacc.tapis.shared.utils.PathSanitizer;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
-import edu.utexas.tacc.tapis.systems.client.SystemsClient;
-import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
-import edu.utexas.tacc.tapis.systems.client.gen.model.LogicalQueue;
-import edu.utexas.tacc.tapis.systems.client.gen.model.ReqMatchConstraints;
-import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerProfile;
-import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 import static edu.utexas.tacc.tapis.jobs.model.Job.DEFAULT_ARCHIVE_MODE;
 import static edu.utexas.tacc.tapis.jobs.model.Job.DEFAULT_NOTES;
@@ -137,6 +128,7 @@ public final class SubmitContext
     private TapisSystem _execSystem;
     private TapisSystem _dtnSystem;
     private TapisSystem _archiveSystem;
+    private List<AppArgSpec> _systemQueueSchedulerOptions;
     
     // Shared application context is initialized after the application is loaded.
     private JobSharedAppCtx _sharedAppCtx;
@@ -179,7 +171,10 @@ public final class SubmitContext
         
         // Get the app. App is validated. From here-on, _app, _appJobAttrs and _appParmSet will be non-null
         assignApp();
-        
+
+        // Get system scheduler options. Method should never return null.
+        _systemQueueSchedulerOptions = getSystemSchedulerOptions();
+
         // Calculate all job arguments.
         resolveArgs();
         
@@ -336,6 +331,65 @@ public final class SubmitContext
         _sharedAppCtx = new JobSharedAppCtx(_app);
     }
 
+    /*
+     * Fill in any schedulerOptions defined in the system logicalQueue associated with the Job
+     * Never return null
+     */
+    private List<AppArgSpec> getSystemSchedulerOptions()
+    {
+      // Create an empty list, so we never return null, even in the case of a non-batch job
+       List<AppArgSpec> schedOpts = new ArrayList<AppArgSpec>();
+      // If not a batch job then we are done
+      if (!JobType.BATCH.name().equals(_submitReq.getJobType())) return schedOpts;
+      // If no logical queues defined in the system we are done.
+      List<LogicalQueue> logicalQueues = _execSystem.getBatchLogicalQueues();
+      if (logicalQueues == null || logicalQueues.isEmpty()) return schedOpts;
+      // Iterate over logical queues looking for the one associated with the job
+      for (LogicalQueue q : logicalQueues)
+      {
+        // If this is not the queue associated with the job then continue
+        if (!_submitReq.getExecSystemLogicalQueue().equals(q.getName())) continue;
+        // So now we have the queue we are looking for.
+        // If no scheduler options associated with the queue then return
+        List<SysArgSpec> soList = q.getSchedulerOptions();
+        if (soList == null || soList.isEmpty()) return schedOpts;
+        // So we have scheduler options defined for the queue associated with the job.
+        // Convert each system scheduler option to AppArgSpec for consistent processing in the merge method.
+        for (SysArgSpec sso : soList)
+        {
+          AppArgSpec aso = new AppArgSpec();
+          aso.setName(sso.getName());
+          aso.setArg(sso.getArg());
+          aso.setDescription(sso.getDescription());
+          aso.setNotes(sso.getNotes());
+          // Special handling for inputMode.
+          // NOTE: Too many explicit dependencies. Might be a better way to do this.
+          //       This is fragile and prone to breaking, but at the moment cannot think of a better way.
+          SysArgInputModeEnum sime = sso.getInputMode();
+          if (sime == null) sime = SysArgInputModeEnum.INCLUDE_BY_DEFAULT;
+          switch (sime)
+          {
+            case SysArgInputModeEnum.REQUIRED:
+              aso.setInputMode(ArgInputModeEnum.REQUIRED);
+              break;
+            case SysArgInputModeEnum.FIXED:
+              aso.setInputMode(ArgInputModeEnum.FIXED);
+              break;
+            case SysArgInputModeEnum.INCLUDE_ON_DEMAND:
+              aso.setInputMode(ArgInputModeEnum.INCLUDE_ON_DEMAND);
+              break;
+            case SysArgInputModeEnum.INCLUDE_BY_DEFAULT:
+              aso.setInputMode(ArgInputModeEnum.INCLUDE_BY_DEFAULT);
+              break;
+            default:
+              aso.setInputMode(ArgInputModeEnum.INCLUDE_BY_DEFAULT);
+          }
+          schedOpts.add(aso);
+        }
+      }
+      return schedOpts;
+    }
+
     /* ---------------------------------------------------------------------------- */
     /* resolveArgs:                                                                 */
     /* ---------------------------------------------------------------------------- */
@@ -369,7 +423,8 @@ public final class SubmitContext
         resolveArchiveMode();
 
         // Merge tapis-defined logical queue value only when we are running in batch mode.
-        if (JobType.BATCH.name().equals(_submitReq.getJobType())) 
+        // Precedence: 1 Job submit request, 2 App definition, 3 System definition
+        if (JobType.BATCH.name().equals(_submitReq.getJobType()))
         {
             if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
                 _submitReq.setExecSystemLogicalQueue(_appJobAttrs.getExecSystemLogicalQueue());
@@ -550,6 +605,9 @@ public final class SubmitContext
         marshaller.mergeArgSpecList(_jobReqParmSet.getAppArgs(), _appParmSet.getAppArgs(), ArgTypeEnum.APP_ARGS);
         marshaller.mergeArgSpecList(_jobReqParmSet.getContainerArgs(), _appParmSet.getContainerArgs(), ArgTypeEnum.CONTAINER_ARGS);
         marshaller.mergeArgSpecList(_jobReqParmSet.getSchedulerOptions(), _appParmSet.getSchedulerOptions(), ArgTypeEnum.SCHEDULER_OPTIONS);
+        // Merge in any schedulerOptions from the system logical queue that we are using
+        marshaller.mergeArgSpecList(_jobReqParmSet.getSchedulerOptions(), _systemQueueSchedulerOptions, ArgTypeEnum.SCHEDULER_OPTIONS);
+
         marshaller.mergeTapisProfileFromSystem(_jobReqParmSet.getSchedulerOptions(), _execSystem.getBatchSchedulerProfile());
         
         // Merge environment variables from systems, apps and the job request.
@@ -2644,7 +2702,7 @@ public final class SubmitContext
     /* loadSystemDefinition:                                                        */
     /* ---------------------------------------------------------------------------- */
     /** Load the system but don't check for availability.  This approach allows jobs
-     * to be queue to a worker who will then verify that the system is enabled and,
+     * to be queued to a worker who will then verify that the system is enabled and,
      * if necessary, attempt recovery.
      * 
      * @param systemsClient

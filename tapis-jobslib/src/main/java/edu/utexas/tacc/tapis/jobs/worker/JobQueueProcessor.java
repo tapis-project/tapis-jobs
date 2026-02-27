@@ -777,9 +777,8 @@ final class JobQueueProcessor
   private boolean doArchiving(Job job)
    throws TapisException, JobAsyncCmdException
   {
-      JobStatusType state = job.getStatus();
       //Log start
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), state));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_START", job.getUuid(), job.getStatus()));
       // *** Async command check ***
       var jobCtx = job.getJobCtx(); 
       jobCtx.checkCmdMsg();
@@ -793,19 +792,22 @@ final class JobQueueProcessor
       }
 
       // Advance job to next state depending on what the remote outcome is.
-      if (job.getRemoteOutcome() == JobRemoteOutcome.FINISHED)
+      if (job.getRemoteOutcome() == JobRemoteOutcome.FINISHED) {
           setState(job, JobStatusType.FINISHED);
+          job.setStatus(JobStatusType.FINISHED);
+      }
       else {
     	  job.setCondition(JobConditionCode.JOB_REMOTE_OUTCOME_ERROR);
     	  setState(job, JobStatusType.FAILED);
+          job.setStatus(JobStatusType.FAILED);
       }
       // Log final outcome of job execution
       // Note that even if archiveMode=NEVER we still go through this processing step.
-      String msg = JobUtils.getMsg("JOBS_JOBQ_FINAL", job.getUuid(), state, job.getCondition().name(),
+      String msg = JobUtils.getMsg("JOBS_JOBQ_FINAL", job.getUuid(), job.getStatus(), job.getCondition().name(),
                                    job.getRemoteOutcome().name(), job.getLastMessage());
       _log.info(msg);
       //Log end
-      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), state));
+      _log.info(JobUtils.getMsg("JOBS_JOBQ_END", job.getUuid(), job.getStatus()));
       // True means continue processing the job.
       return true;
   }

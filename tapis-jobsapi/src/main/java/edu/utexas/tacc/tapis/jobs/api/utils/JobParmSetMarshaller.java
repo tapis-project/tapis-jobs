@@ -58,13 +58,11 @@ public final class JobParmSetMarshaller
      * schedulerOptions list if (1) the option isn't already present and (2) it was 
      * specified in the execution system definition.
      * 
-     * @param schedulerOptions the request scheduler option AFTER merging with app
-     *                         scheduler options.
+     * @param schedulerOptions the request scheduler option AFTER merging with app scheduler options.
      * @param batchSchedulerProfile the tapis-profile specified by the execution system
      * @throws TapisImplException 
      */
-    public void mergeTapisProfileFromSystem(List<JobArgSpec> schedulerOptions,
-                                            String batchSchedulerProfile) 
+    public void mergeTapisProfileFromSystem(List<JobArgSpec> schedulerOptions, String batchSchedulerProfile)
      throws TapisImplException
     {
         // Maybe there's nothing to merge.
@@ -72,7 +70,7 @@ public final class JobParmSetMarshaller
         final String key = Job.TAPIS_PROFILE_KEY + " ";
         
         // See if tapis-profile is already specified as a job request option.
-        // The scheduler option list is never null.  If tapis-profile is found, 
+        // The scheduler option list is never null. If tapis-profile is found,
         // we ignore the value defined in the system and immediately return.
         for (var opt : schedulerOptions) 
             if (opt.getArg().startsWith(key)) return;
@@ -80,9 +78,8 @@ public final class JobParmSetMarshaller
         // Validate the exec system's profile before using it.
         JobsApiUtils.detectControlCharacters("schedulerOptions", "batchSchedulerProfile", batchSchedulerProfile);
         
-        // If we get here then a tapis-profile option was not specified in
-        // neither the app definition nor the job request, so the one in 
-        // system wins the day.
+        // If we get here then a tapis-profile option was not specified in either the app definition
+        // or the job request, so the one in system wins the day.
         var spec = new JobArgSpec();
         spec.setArg(key + batchSchedulerProfile);
         spec.setDescription("The tapis-profile value set in execution system.");
@@ -110,7 +107,7 @@ public final class JobParmSetMarshaller
     throws TapisImplException
     {
         // See if there's anything to do.
-        int appListSize = (appList != null && appList.size() > 0) ? appList.size() : 0;
+        int appListSize = (appList != null && !appList.isEmpty()) ? appList.size() : 0;
         int totalSize = reqList.size() + appListSize;
         if (totalSize == 0) return;
         

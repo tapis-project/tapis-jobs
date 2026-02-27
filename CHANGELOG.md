@@ -14,7 +14,7 @@ Refactor logging. Reduce logging of SQL activity and detailed servlet request an
 Add log messages providing information previously only available in the trace SQL logging.
 
 ### New features:
-- None.
+- Add support for merging in of *schedulerOptions* defined as part of a *LogicalQueue* for a system.
 
 ### Bug fixes:
 - None.

@@ -172,12 +172,10 @@ public final class SubmitContext
         // Get the app. App is validated. From here-on, _app, _appJobAttrs and _appParmSet will be non-null
         assignApp();
 
-        // Get system scheduler options. Method should never return null.
-        _systemQueueSchedulerOptions = getSystemSchedulerOptions();
-
-        // Calculate all job arguments.
+        // Calculate all job arguments. NOTE: Calls many resolve methods to fill in many of the attributes,
+        // include the execSystem properties.
         resolveArgs();
-        
+
         // Substitute values for tapis macros.
         assignMacros();
         
@@ -395,7 +393,7 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /**
      * Resolve all request arguments by folding in argument inherited from systems
-     * and applications.  Validation and macro substitution are handled in later calls.
+     * and applications. Validation and macro substitution are handled in later calls.
      *
      */
     private void resolveArgs() throws TapisImplException
@@ -404,11 +402,31 @@ public final class SubmitContext
         resolveConstraints();
         
         // Resolve all systems, their sharing attributes and dtn directories.
+        // NOTE: Fills in in various attributes for the systems, including the execSystem properties.
         resolveSystems();
         
         // Resolve job type.
         resolveJobType();
-        
+
+        // Resolve execSystemLogicalQueue.
+        // Merge tapis-defined logical queue value only when we are running in batch mode.
+        // Precedence: 1 Job submit request, 2 App definition, 3 System definition
+        if (JobType.BATCH.name().equals(_submitReq.getJobType()))
+        {
+            if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
+                _submitReq.setExecSystemLogicalQueue(_appJobAttrs.getExecSystemLogicalQueue());
+            if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
+                _submitReq.setExecSystemLogicalQueue(_execSystem.getBatchDefaultLogicalQueue());
+            var hpcQueueName = validateExecSystemLogicalQueue(_submitReq.getExecSystemLogicalQueue());
+            if (hpcQueueName != null) _submitReq.setHpcQueueName(hpcQueueName);
+        }
+
+        // Get system scheduler options. Method should never return null.
+        // NOTE: This must happen after resolveSystems so that execSystem definition attributes are set
+        //       and before resolveParameterSet where it is used.
+        // TODO can this and resolveParameterSet go after below after the section where execSystemLogicalQueue is set?
+        _systemQueueSchedulerOptions = getSystemSchedulerOptions();
+
         // Combine various components that make up the job's parameterSet from
         // the system, app and request definitions.
         resolveParameterSet();
@@ -422,18 +440,6 @@ public final class SubmitContext
         // Resolve archiveMode
         resolveArchiveMode();
 
-        // Merge tapis-defined logical queue value only when we are running in batch mode.
-        // Precedence: 1 Job submit request, 2 App definition, 3 System definition
-        if (JobType.BATCH.name().equals(_submitReq.getJobType()))
-        {
-            if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
-                _submitReq.setExecSystemLogicalQueue(_appJobAttrs.getExecSystemLogicalQueue());
-            if (StringUtils.isBlank(_submitReq.getExecSystemLogicalQueue()))
-                _submitReq.setExecSystemLogicalQueue(_execSystem.getBatchDefaultLogicalQueue());
-            var hpcQueueName = validateExecSystemLogicalQueue(_submitReq.getExecSystemLogicalQueue());
-            if (hpcQueueName != null) _submitReq.setHpcQueueName(hpcQueueName);
-        }
-        
         // Merge job description.
         if (StringUtils.isBlank(_submitReq.getDescription()))
             _submitReq.setDescription(_appJobAttrs.getDescription());
@@ -2105,7 +2111,7 @@ public final class SubmitContext
         
         // Designate the execSystemInputDir as the default when asterisk is used.
         if ("*".equals(reqInput.getTargetDir())) reqInput.setTargetDir("/");
-        // The app definition should not allow this, but we double check.
+        // The app definition should not allow this, but we double-check.
         if (StringUtils.isBlank(reqInput.getTargetDir()))
         {
             String msg = JobUtils.getMsg("JOBS_NO_TARGET_PATH", _app.getId(), 

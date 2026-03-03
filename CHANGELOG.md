@@ -8,13 +8,13 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
-## 26Q1.0 - 2026-03-02
+## 26Q1.0 - 2026-03-03
 
 Refactor logging. Reduce logging of SQL activity and detailed servlet request and response information.
 Add log messages providing information previously only available in the trace SQL logging.
 
 ### New features:
-- Add support for merging in of *schedulerOptions* defined as part of a *LogicalQueue* for a system.
+- Add support for merging in of *SchedulerOptions* defined as part of a *LogicalQueue* for a system.
 
 ### Bug fixes:
 - None.

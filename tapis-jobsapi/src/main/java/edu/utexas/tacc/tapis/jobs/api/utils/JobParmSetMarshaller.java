@@ -91,23 +91,21 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* mergeArgSpecList:                                                            */
     /* ---------------------------------------------------------------------------- */
-    /** The list of arguments from the submit request, reqList, is never null but could
-     * be empty.  This list will be updated with the merged arguments completely 
-     * replacing the original contents.
+    /**
+     * The list of arguments from the submit request, reqList, is never null but could be empty.
+     * This list will be updated with the merged arguments completely replacing the original contents.
      * 
-     * The list of arguments from the application, appList, can be null, empty or 
-     * populated. 
-     * 
+     * The list of arguments from the application or system, argList, can be null, empty or populated.
+     *
      * @param reqList non-null submit request arguments (input/output)
-     * @param appList application arguments (input only, possibly null)
+     * @param argList arguments (input only, possibly null). Could be from App or from System
      * @param argType the type of list whose args are being processed
      */
-    public void mergeArgSpecList(List<JobArgSpec> reqList, List<AppArgSpec> appList,
-                                 ArgTypeEnum argType)
+    public void mergeArgSpecList(List<JobArgSpec> reqList, List<AppArgSpec> argList, ArgTypeEnum argType)
     throws TapisImplException
     {
         // See if there's anything to do.
-        int appListSize = (appList != null && !appList.isEmpty()) ? appList.size() : 0;
+        int appListSize = (argList != null && !argList.isEmpty()) ? argList.size() : 0;
         int totalSize = reqList.size() + appListSize;
         if (totalSize == 0) return;
         
@@ -122,11 +120,11 @@ public final class JobParmSetMarshaller
         // Maybe there's nothing to merge.
         if (appListSize > 0) {
             // Make sure there are no duplicate names among the app args.
-            detectDuplicateAppArgNames(appList);
+            detectDuplicateAppArgNames(argList);
             
             // Include each qualifying app argument in the temporary list
             // preserving the original ordering.
-            for (var appArg : appList) {
+            for (var appArg : argList) {
                 // Set the input mode to the default if it's not set.
                 // Args that originate from the application definition
                 // always get a non-null inputMode. 

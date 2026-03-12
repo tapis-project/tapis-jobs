@@ -152,8 +152,7 @@ public final class JobFileManager
      *
      * @throws TapisImplException
      */
-    public void createDirectories() 
-     throws TapisException
+    public void createDirectories() throws TapisException
     {
         // Get the client from the context.
         FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
@@ -322,11 +321,13 @@ public final class JobFileManager
         
         // ---------------------- Archive System Dir ---------------------
         // See if the archive dir is the same as any previously created dir.
-        // There is no mkdir command on S3 systems, so we skip those systems. 
+        // There is no mkdir command on S3 systems, so we skip those systems.
+        // If archiveMode set to NEVER we skip this
         var archiveSysDirKey = getDirectoryKey(_job.getArchiveSystemId(), 
                                                _job.getArchiveSystemDir());
         if (!createdSet.contains(archiveSysDirKey) && 
-        	_jobCtx.getArchiveSystem().getSystemType() != SystemTypeEnum.S3) 
+            _jobCtx.getArchiveSystem().getSystemType() != SystemTypeEnum.S3 &&
+            !Job.ArchiveModeEnum.NEVER.equals(_job.getArchiveMode()))
         {
             // Create the directory on the system.
             try {
@@ -436,9 +437,9 @@ public final class JobFileManager
     /* isArchivingOff:                                                        */
     /* ---------------------------------------------------------------------- */
     /*
-     * Determine if archiving should be skipped.
+     * Determine if archiving should be skipped during the archiving step.
      */
-    public boolean isArchivingOff()
+    public boolean isArchivingOffDuringArchivePhase()
     {
       if (JobRemoteOutcome.FAILED_SKIP_ARCHIVE.equals(_job.getRemoteOutcome()) ||
           Job.ArchiveModeEnum.NEVER.equals(_job.getArchiveMode()))

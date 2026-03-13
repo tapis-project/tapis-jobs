@@ -832,10 +832,11 @@ public final class JobsImpl
     /* ---------------------------------------------------------------------------- */
     /* doCancelJob:                                                                 */
     /* ---------------------------------------------------------------------------- */
-    /** Perform the cancellation operation and return whether we succeeded or not.
-     * 
+    /**
+     * Perform the cancellation operation and return whether we succeeded or not.
+     * Send msg to both normal worker queue and recovery queue in case job is currently in recovery.
+     *
      * @param jobUuid the job to be cancelled
-     * @param prettyPrint whether to pretty print the response
      * @param threadContext the previously retrieved thread context
      * @return true for success or false if an error was encountered 
      */
@@ -845,19 +846,18 @@ public final class JobsImpl
         boolean result = true;
         
         try {
+            // Send to normal worker queue
             // get a JobQueueManager instance and prep a JobCancelMsg
             JobQueueManager queueManager = JobQueueManager.getInstance();
-          
             // set correlation id and sender
             JobCancelMsg jobCancelMsg = new JobCancelMsg();
             jobCancelMsg.jobuuid = jobUuid;
             jobCancelMsg.correlationId = jobUuid;
             jobCancelMsg.senderId = this.getClass().getSimpleName() + "-cancelCmdStatus";
-          
             // post a cmd to our job to cancel
             queueManager.postCmdToJob(jobCancelMsg, jobUuid);
             
-            //TODO How do we know if a job is in recovery queue?
+            // Send msg to recovery queue in case job is currently in recovery.
             JobCancelRecoverMsg jobCancelRecoverMsg = new JobCancelRecoverMsg();
             jobCancelRecoverMsg.jobUuid = jobUuid;
             jobCancelRecoverMsg.tenantId = threadContext.getOboTenantId();

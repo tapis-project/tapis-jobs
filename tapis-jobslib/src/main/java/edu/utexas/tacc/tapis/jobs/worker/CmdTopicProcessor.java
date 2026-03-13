@@ -193,7 +193,7 @@ class CmdTopicProcessor
           return true;
       }
       
-      // TODO: implement force=false
+      // NOTE: TBD implement force=false
       
       // Send the shutdown signal to the main worker thread.
       _jobWorker.shutdown();
@@ -210,7 +210,7 @@ class CmdTopicProcessor
       if (_log.isDebugEnabled())
           _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
-           
+      // NOTE:  needs implementing. See github issue: https://github.com/tapis-project/tapis-jobs/issues/167
       return true;
   }
   
@@ -223,9 +223,7 @@ class CmdTopicProcessor
       if (_log.isDebugEnabled())
           _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
-      
-      // TODO:  process cmd
-      
+      // NOTE:  needs implementing. See github issue: https://github.com/tapis-project/tapis-jobs/issues/167
       return true;
   }
   
@@ -238,9 +236,7 @@ class CmdTopicProcessor
       if (_log.isDebugEnabled())
           _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
-      
-      // TODO:  process cmd
-      
+      // NOTE:  needs implementing. See github issue: https://github.com/tapis-project/tapis-jobs/issues/167
       return true;
   }
   

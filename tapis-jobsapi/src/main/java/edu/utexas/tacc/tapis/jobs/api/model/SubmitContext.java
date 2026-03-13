@@ -424,7 +424,6 @@ public final class SubmitContext
         // Get system scheduler options. Method should never return null.
         // NOTE: This must happen after resolveSystems so that execSystem definition attributes are set
         //       and before resolveParameterSet where it is used.
-        // TODO can this and resolveParameterSet go after below after the section where execSystemLogicalQueue is set?
         _systemQueueSchedulerOptions = getSystemSchedulerOptions();
 
         // Combine various components that make up the job's parameterSet from
@@ -981,9 +980,9 @@ public final class SubmitContext
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
         
-        // TODO: Invent optimization strategies.
-        // Select the best candidate.  For now, the only selection policy is the 
-        // hardcoded random policy. This will change in future releases.
+        // NOTE: TBD Need to invent optimization strategies.
+        // Select the best candidate. For now, the only selection policy is the hardcoded random policy.
+        // This will change in future releases.
         _execSystem = execSystems.get(new Random().nextInt(execSystems.size()));
         _submitReq.setExecSystemId(_execSystem.getId());
     }
@@ -1664,7 +1663,7 @@ public final class SubmitContext
             String msg = JobUtils.getMsg("JOBS_NO_SOURCE_URL", _app.getId(), reqInput.getName());
             throw new TapisImplException(msg, Status.BAD_REQUEST.getStatusCode());
         }
-        // TODO comment
+        // If necessary set the shared app context for the src of the file input. Only set under certain conditions.
         calculateSrcSharedCtx(reqInput, appDef.getSourceUrl());
         
         // ---- targetPath
@@ -2334,9 +2333,10 @@ public final class SubmitContext
     /* ---------------------------------------------------------------------------- */
     /* calculateSrcSharedCtx:                                                       */
     /* ---------------------------------------------------------------------------- */
-    /** Set the source file input shared flag only if we are in a shared app context
+    /**
+     * Set the source file input shared flag only if we are in a shared app context
      * and the request's effective source url string is the same as the one specified
-     * in the application.  No action is taken unless both conditions are satisfied.  
+     * in the application. No action is taken unless both conditions are satisfied.
      * 
      * The request source url must be non-null by the time this method is called.
      * 
@@ -2349,8 +2349,7 @@ public final class SubmitContext
         if (!_sharedAppCtx.isSharingEnabled()) return;
         
         // Only tapis urls involve systems and share checking.
-        if (!reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX))
-            return;
+        if (!reqInput.getSourceUrl().startsWith(TapisUrl.TAPIS_PROTOCOL_PREFIX)) return;
         
         // Only set the shared flag if the app source is in effect.
         if (reqInput.getSourceUrl().equals(appSource)) 

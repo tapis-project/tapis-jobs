@@ -1,7 +1,6 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.util.List;
-
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DefaultValue;
@@ -18,8 +17,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
-
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +28,7 @@ import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobResourceShare;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobTapisPermission;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.SearchParameters;
@@ -38,6 +36,8 @@ import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 @Path("/")
@@ -47,6 +47,8 @@ public class JobOutputListingResource extends AbstractResource{
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobOutputListingResource.class);
+
+    private final String className = getClass().getSimpleName();
 
     /* **************************************************************************** */
     /*                                    Fields                                    */
@@ -76,19 +78,14 @@ public class JobOutputListingResource extends AbstractResource{
      */ 
      @Context
      private HttpHeaders        _httpHeaders;
-  
      @Context
      private Application        _application;
-  
      @Context
      private UriInfo            _uriInfo;
-  
      @Context
      private SecurityContext    _securityContext;
-  
      @Context
      private ServletContext     _servletContext;
-  
      @Context
      private HttpServletRequest _request;
 
@@ -107,32 +104,29 @@ public class JobOutputListingResource extends AbstractResource{
     		 						  @DefaultValue("false") @QueryParam("allowIfRunning") boolean allowIfRunning)
                                
      {
-       // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getJobOutputList", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+         String opName = "getJobOutputList";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
+
+         // Create a user that collects together tenant, user and request information needed by the service call
+         ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+         // Trace this request.
+         if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid,
+                     "outputPath="+outputPath,"limit="+limit,"skip="+skip,"allowIfRunning="+allowIfRunning);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
-           String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
+           String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
            _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
 
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;
@@ -142,7 +136,7 @@ public class JobOutputListingResource extends AbstractResource{
            job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId(),
         		   JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name());
        } catch (TapisImplException e) {
-           _log.error(e.getMessage(), e);
+           _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        } catch (Exception e) {
@@ -152,7 +146,7 @@ public class JobOutputListingResource extends AbstractResource{
        }
        
        if (job == null) {
-           String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid, threadContext.getOboTenantId());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_FOUND", rUser, jobUuid, threadContext.getOboTenantId());
            _log.warn(msg);
            ResultName missingName = new ResultName();
            missingName.name = jobUuid;
@@ -161,10 +155,9 @@ public class JobOutputListingResource extends AbstractResource{
                MsgUtils.getMsg("TAPIS_NOT_FOUND", "Job", jobUuid), r)).build();
            
        } else if(!job.isVisible()) {
-           String msg = JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE", jobUuid, threadContext.getOboTenantId());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_VISIBLE", rUser, jobUuid);
            _log.warn(msg);
-           return Response.status(Status.NOT_FOUND).
-             entity(TapisRestUtils.createErrorResponse(JobUtils.getMsg("JOBS_JOB_NOT_VISIBLE",jobUuid,threadContext.getOboTenantId()))).build();
+           return Response.status(Status.NOT_FOUND).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
         
        // ------------------------- Check the Job's status -----------------------------
@@ -201,7 +194,7 @@ public class JobOutputListingResource extends AbstractResource{
 		filesList = jobsImpl.getJobOutputList(job, threadContext.getOboTenantId(), threadContext.getOboUser(), outputPath, 
 				srchParms.getLimit(),skip, JobResourceShare.JOB_OUTPUT.name(), JobTapisPermission.READ.name(),recursiveFlag);
 	   } catch (TapisImplException e) {
-		   _log.error(e.getMessage(), e);
+		   _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
 	   }

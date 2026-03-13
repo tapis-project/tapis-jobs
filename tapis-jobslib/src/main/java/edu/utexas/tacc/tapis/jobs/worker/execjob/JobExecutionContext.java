@@ -1,16 +1,12 @@
 package edu.utexas.tacc.tapis.jobs.worker.execjob;
 
-import java.util.ArrayList;
-
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.utexas.tacc.tapis.apps.client.AppsClient;
-import edu.utexas.tacc.tapis.apps.client.gen.model.JobTypeEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
-import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeOptionEnum;
 import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.FilesClient;
@@ -38,7 +34,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.runtime.TapisRuntimeException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.security.ServiceClients;
 import edu.utexas.tacc.tapis.shared.ssh.apache.system.TapisSSH;
-import edu.utexas.tacc.tapis.shared.utils.AuditUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient;
 import edu.utexas.tacc.tapis.systems.client.SystemsClient.AuthnMethod;
@@ -297,11 +292,17 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     public void archiveOutputs() throws TapisException, TapisClientException
     {
-        // Load the exec, archive and dtn systems now
-        // to avoid double faults in FileManager.
-        initSystems();
-        getJobFileManager().archiveOutputs();
-        archivePostProcess();
+      // If archiving turned off return now.
+      if (getJobFileManager().isArchivingOff())
+      {
+        _log.info(JobUtils.getMsg("JOBS_JOBQ_ARCHIVE_OFF", _job.getUuid(), _job.getStatus(), _job.getArchiveMode().name()));
+        return;
+      }
+      // Load the exec, archive and dtn systems now
+      // to avoid double faults in FileManager.
+      initSystems();
+      getJobFileManager().archiveOutputs();
+      archivePostProcess();
     }
     
     /* ---------------------------------------------------------------------------- */
@@ -494,7 +495,8 @@ public final class JobExecutionContext
         CmdMsg cmdMsg = _job.getAndSetCmdMsg();
         // Null means there was no cmdMsg so simply return.
         if (cmdMsg == null) return;
-        
+
+        // NOTE: executeCmdMsg does a log.info with cmdMsg details.
         // Process each message based on type. The cancel and pause commands change the job state and
         // throw a JobAsyncCmdException to terminate or postpone job processing.
         switch (cmdMsg.msgType)

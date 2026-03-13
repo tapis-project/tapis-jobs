@@ -1,25 +1,14 @@
 package edu.utexas.tacc.tapis.jobs.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.google.gson.JsonObject;
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
 import edu.utexas.tacc.tapis.files.client.gen.model.FileInfo;
 import edu.utexas.tacc.tapis.jobs.dao.JobQueuesDao;
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
-import edu.utexas.tacc.tapis.jobs.model.Job;
-import edu.utexas.tacc.tapis.jobs.model.JobEvent;
-import edu.utexas.tacc.tapis.jobs.model.JobQueue;
-import edu.utexas.tacc.tapis.jobs.model.JobShared;
+import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
+import edu.utexas.tacc.tapis.jobs.model.*;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobHistoryDisplayDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobShareListDTO;
@@ -33,6 +22,7 @@ import edu.utexas.tacc.tapis.jobs.queue.messages.cmd.JobCancelMsg;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobCancelRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.utils.DataLocator;
 import edu.utexas.tacc.tapis.jobs.utils.JobOutputInfo;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.utils.SelectTuple;
 import edu.utexas.tacc.tapis.notifications.client.NotificationsClient;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.ReqPostSubscription;
@@ -59,6 +49,17 @@ import edu.utexas.tacc.tapis.shared.security.TenantManager;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
+import edu.utexas.tacc.tapis.shared.utils.ObjectDiffUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 
 
 public final class JobsImpl 
@@ -874,42 +875,84 @@ public final class JobsImpl
         // Return result code.
         return result;
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* doUpdateAnnotation:                                                    */
+    /* ---------------------------------------------------------------------- */
+
+    public JobAnnotation doUpdateAnnotation(String jobUuid, String tenant, String user, TreeSet<String> tags, 
+        JsonObject notes, boolean replace) throws TapisImplException
+    {
+        JobAnnotation jobAnnotation = null;
+        try {
+            jobAnnotation = getJobsDao().updateJobAnnotations(jobUuid, tenant, user, tags, notes, replace);
+            if (jobAnnotation == null) {
+                String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR", replace?"PUT":"PATCH", jobUuid, user, tenant, tags, notes, null);
+                throw new TapisImplException(msg, Condition.INTERNAL_SERVER_ERROR);
+            }
+            // Write an annotation event record
+            String eventDetail = replace ? "UPDATE_ANNOTATION" : "PATCH_ANNOTATION";
+            String description = "";
+            try {
+                // Prepare Event Data and Details
+                description += "{";
+                ObjectDiffUtils.ObjectDiff notesDiff = ObjectDiffUtils.computeObjectDiff(jobAnnotation.getOldNotes(), jobAnnotation.getNotes());
+                ObjectDiffUtils.SetDiff<String> tagsDiff = ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags());
+                if (notesDiff != null && (!notesDiff.getAddedFields().isEmpty() || !notesDiff.getRemovedFields().isEmpty() || !notesDiff.getModifiedFields().isEmpty())) {
+                    description += "\"notes\": " + notesDiff.toJsonString();
+                }
+                if (tagsDiff != null && (!tagsDiff.getAddedElements().isEmpty() || !tagsDiff.getRemovedElements().isEmpty())) {
+                    if (!description.equals("{")) description += ", ";
+                    description += "\"tags\": " + ObjectDiffUtils.computeSetDiff(jobAnnotation.getOldTags(), jobAnnotation.getTags()).toJsonString();
+                }
+                description += "}";
+                JobEventManager eventMgr = JobEventManager.getInstance();
+                eventMgr.recordUserEvent(jobUuid, tenant, user, description, eventDetail, null);
+            } catch (Exception e) {
+                String msg = JobUtils.getMsg("JOBS_JOBEVENT_ANNOTATION_EVENT_CREATE_ERROR", jobUuid, tenant, user, eventDetail, description, e);
+                _log.error(msg, e);
+            }
+        }
+        catch (JobInputException e) {
+            _log.error(e.getMessage(), e);
+            throw new TapisImplException(e.getMessage(), e, Condition.BAD_REQUEST);
+        }
+        catch (Exception e) {
+            String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_UPDATE_ERROR",  replace?"PUT":"PATCH", jobUuid, user, tenant, tags, notes, e);
+            _log.error(msg, e);
+            throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
+        }
+        // Could be null if not found.
+        return jobAnnotation;
+    }
+
     
     /* ---------------------------------------------------------------------- */
     /* doHideJob:                                                             */
     /* ---------------------------------------------------------------------- */
-    public boolean doHideJob(String jobUuid, String tenant, String user) 
+    public boolean doHideJob(ResourceRequestUser rUser, String jobUuid)
     {
-        try { 
-        	getJobsDao().setJobVisibility(jobUuid, tenant, user,false);
-        }
-        catch (Exception e) {
-            String msg = JobUtils.getMsg("JOBS_JOB_VISIBILITY_UPDATE_ERROR", jobUuid, user, tenant,e);
-            _log.error(msg, e);
-           
-        }
-        
-        // Could be null if not found.
-        return true;
+      try { getJobsDao().setJobVisibility(jobUuid, rUser.getOboTenantId(), rUser.getOboUserId(),false); }
+      catch (Exception e) {
+      String msg = JobUtils.getMsg("JOBS_VIS_UPDATE_ERR", jobUuid, e);
+      _log.error(msg, e);
+    }
+    // Could be null if not found.
+    return true;
     }
     
     /* ---------------------------------------------------------------------- */
     /* doUnHideJob:                                                           */
     /* ---------------------------------------------------------------------- */
-    public boolean doUnHideJob(String jobUuid, String tenant, String user) 
+    public boolean doUnHideJob(ResourceRequestUser rUser, String jobUuid)
     {
-        try { 
-        	getJobsDao().setJobVisibility(jobUuid, tenant, user,true);
-        }
-        catch (Exception e) {
-            String msg = JobUtils.getMsg("JOBS_JOB_VISIBILITY_UPDATE_ERROR", jobUuid, user,
-            		tenant,e);
-            _log.error(msg, e);
-           
-        }
-        
-        // Could be null if not found.
-        return true;
+      try { getJobsDao().setJobVisibility(jobUuid, rUser.getOboTenantId(), rUser.getOboUserId(), true); }
+      catch (Exception e) {
+        String msg = JobUtils.getMsgAuth("JOBS_VIS_UPDATE_ERR", rUser, jobUuid, e);
+        _log.error(msg, e);
+      }
+      // Could be null if not found.
+      return true;
     }
     
     /* ---------------------------------------------------------------------- */

@@ -25,7 +25,7 @@ public class CreateJobWithConstraintsTest
 		// Insert job record.
 		for (int i = 0; i < ITERATIONS; i++) {
 			Job job = initJob(i);
-			dao.createJob(job);
+			dao.createJob(null, job);
 		}
 		
 		// Get all job records.

@@ -6,7 +6,6 @@ import java.util.List;
 import edu.utexas.tacc.tapis.apps.client.gen.model.AppFileInputArray;
 import edu.utexas.tacc.tapis.apps.client.gen.model.FileInputModeEnum;
 import edu.utexas.tacc.tapis.jobs.model.Job;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 public class JobFileInputArray 
 {
@@ -17,11 +16,8 @@ public class JobFileInputArray
     private String       targetDir;
     private Object       notes;
     
-    @Schema(hidden = true)
     private boolean      optional = false;
-    @Schema(hidden = true)
     private String       srcSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
-    @Schema(hidden = true)
     private String       destSharedAppCtx = Job.DEFAULT_SHARED_APP_CTX;
     
     public boolean emptySourceUrls()
@@ -97,27 +93,21 @@ public class JobFileInputArray
     public void setTargetDir(String targetDir) {
         this.targetDir = targetDir;
     }
-    @Schema(hidden = true)
     public boolean isOptional() {
         return optional;
     }
-    @Schema(hidden = true)
     public void setOptional(boolean optional) {
         this.optional = optional;
     }
-    @Schema(hidden = true)
     public String getSrcSharedAppCtx() {
         return srcSharedAppCtx;
     }
-    @Schema(hidden = true)
     public void setSrcSharedAppCtx(String srcSharedAppCtx) {
         this.srcSharedAppCtx = srcSharedAppCtx;
     }
-    @Schema(hidden = true)
     public String getDestSharedAppCtx() {
         return destSharedAppCtx;
     }
-    @Schema(hidden = true)
     public void setDestSharedAppCtx(String destSharedAppCtx) {
         this.destSharedAppCtx = destSharedAppCtx;
     }

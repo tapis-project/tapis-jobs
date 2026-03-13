@@ -39,7 +39,7 @@ public final class JobParmSetMarshaller
     public static final String TAPIS_ENV_VAR_UNSET = TapisConstants.TAPIS_NOT_SET;
     public static final String TAPIS_ENV_VAR_DEFAULT_VALUE = "";
     
-    // Limit environment key names to alphnumerics and "_", starting with an alpha.
+    // Limit environment key names to alphanumerics and "_", starting with an alpha.
     public static final Pattern _envKeyPattern = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
     
     /* **************************************************************************** */
@@ -58,13 +58,11 @@ public final class JobParmSetMarshaller
      * schedulerOptions list if (1) the option isn't already present and (2) it was 
      * specified in the execution system definition.
      * 
-     * @param schedulerOptions the request scheduler option AFTER merging with app
-     *                         scheduler options.
+     * @param schedulerOptions the request scheduler option AFTER merging with app scheduler options.
      * @param batchSchedulerProfile the tapis-profile specified by the execution system
      * @throws TapisImplException 
      */
-    public void mergeTapisProfileFromSystem(List<JobArgSpec> schedulerOptions,
-                                            String batchSchedulerProfile) 
+    public void mergeTapisProfileFromSystem(List<JobArgSpec> schedulerOptions, String batchSchedulerProfile)
      throws TapisImplException
     {
         // Maybe there's nothing to merge.
@@ -72,7 +70,7 @@ public final class JobParmSetMarshaller
         final String key = Job.TAPIS_PROFILE_KEY + " ";
         
         // See if tapis-profile is already specified as a job request option.
-        // The scheduler option list is never null.  If tapis-profile is found, 
+        // The scheduler option list is never null. If tapis-profile is found,
         // we ignore the value defined in the system and immediately return.
         for (var opt : schedulerOptions) 
             if (opt.getArg().startsWith(key)) return;
@@ -80,9 +78,8 @@ public final class JobParmSetMarshaller
         // Validate the exec system's profile before using it.
         JobsApiUtils.detectControlCharacters("schedulerOptions", "batchSchedulerProfile", batchSchedulerProfile);
         
-        // If we get here then a tapis-profile option was not specified in
-        // neither the app definition nor the job request, so the one in 
-        // system wins the day.
+        // If we get here then a tapis-profile option was not specified in either the app definition
+        // or the job request, so the one in system wins the day.
         var spec = new JobArgSpec();
         spec.setArg(key + batchSchedulerProfile);
         spec.setDescription("The tapis-profile value set in execution system.");
@@ -94,23 +91,21 @@ public final class JobParmSetMarshaller
     /* ---------------------------------------------------------------------------- */
     /* mergeArgSpecList:                                                            */
     /* ---------------------------------------------------------------------------- */
-    /** The list of arguments from the submit request, reqList, is never null but could
-     * be empty.  This list will be updated with the merged arguments completely 
-     * replacing the original contents.
+    /**
+     * The list of arguments from the submit request, reqList, is never null but could be empty.
+     * This list will be updated with the merged arguments completely replacing the original contents.
      * 
-     * The list of arguments from the application, appList, can be null, empty or 
-     * populated. 
-     * 
+     * The list of arguments from the application or system, argList, can be null, empty or populated.
+     *
      * @param reqList non-null submit request arguments (input/output)
-     * @param appList application arguments (input only, possibly null)
+     * @param argList arguments (input only, possibly null). Could be from App or from System
      * @param argType the type of list whose args are being processed
      */
-    public void mergeArgSpecList(List<JobArgSpec> reqList, List<AppArgSpec> appList,
-                                 ArgTypeEnum argType)
+    public void mergeArgSpecList(List<JobArgSpec> reqList, List<AppArgSpec> argList, ArgTypeEnum argType)
     throws TapisImplException
     {
         // See if there's anything to do.
-        int appListSize = (appList != null && appList.size() > 0) ? appList.size() : 0;
+        int appListSize = (argList != null && !argList.isEmpty()) ? argList.size() : 0;
         int totalSize = reqList.size() + appListSize;
         if (totalSize == 0) return;
         
@@ -125,11 +120,11 @@ public final class JobParmSetMarshaller
         // Maybe there's nothing to merge.
         if (appListSize > 0) {
             // Make sure there are no duplicate names among the app args.
-            detectDuplicateAppArgNames(appList);
+            detectDuplicateAppArgNames(argList);
             
             // Include each qualifying app argument in the temporary list
             // preserving the original ordering.
-            for (var appArg : appList) {
+            for (var appArg : argList) {
                 // Set the input mode to the default if it's not set.
                 // Args that originate from the application definition
                 // always get a non-null inputMode. 

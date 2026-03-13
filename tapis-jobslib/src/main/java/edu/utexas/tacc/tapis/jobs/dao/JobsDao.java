@@ -17,6 +17,7 @@ import java.util.TreeSet;
 import javax.sql.DataSource;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -28,6 +29,8 @@ import org.jooq.impl.DSL;
 import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+// TODO/TBD import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
@@ -66,6 +69,26 @@ import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
 import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
+
+/* TODO/TBD remove after merge
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jooq.*;
+import org.jooq.impl.DSL;
+import org.postgresql.util.PGobject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
+import java.sql.*;
+import java.time.Instant;
+import java.util.*;
+
+import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
+*/
 
 /** A note about querying our JSON data types. The jobs database schema currently defines these
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
@@ -187,8 +210,8 @@ public final class JobsDao
 	 * @throws TapisException on database errors
 	 */
 	public JobsDao() throws TapisException {}
-	  
-	/* ********************************************************************** */
+
+  /* ********************************************************************** */
 	/*                             Public Methods                             */
 	/* ********************************************************************** */
 	/* ---------------------------------------------------------------------- */
@@ -1304,7 +1327,6 @@ public final class JobsDao
         validateNewJob(job);
 	
         // ------------------------- Call SQL ----------------------------
-        JobEvent jobEvent = null;
         Connection conn = null;
         try
         {
@@ -1357,20 +1379,14 @@ public final class JobsDao
           pstmt.setString(28, job.getFileInputs());                 
           pstmt.setString(29, TapisGsonUtils.getGson().toJson(job.getParameterSet()));
           pstmt.setString(30, job.getExecSystemConstraints());                 
-          pstmt.setString(31, job.getSubscriptions());             
+          pstmt.setString(31, job.getSubscriptions().toString()); // TODO
 
           pstmt.setString(32, job.getTapisQueue());
           pstmt.setString(33, job.getCreatedby());
           pstmt.setString(34, job.getCreatedbyTenant());
           
           var tags = job.getTags();
-          Array tagsArray;
-          if (tags == null || tags.isEmpty()) 
-              tagsArray = conn.createArrayOf("text", new String[0]);
-            else {
-                String[] sarray = tags.toArray(new String[tags.size()]);
-                tagsArray = conn.createArrayOf("text", sarray);
-            }
+          Array tagsArray = TagsConverter.toJDBCArray(conn, tags);
           pstmt.setArray(35, tagsArray);
           pstmt.setString(36, job.getJobType().name());
           
@@ -1399,7 +1415,9 @@ public final class JobsDao
 
           // Tracking ID from request header can be null.
           pstmt.setString(43, job.getTrackingId());             // could be null  
-          
+          // ArchiveMode
+          pstmt.setString(44, job.getArchiveMode().name());
+
           // Issue the call and clean up statement.
           int rows = pstmt.executeUpdate();
           if (rows != 1) _log.warn(MsgUtils.getMsg("DB_INSERT_UNEXPECTED_ROWS", "jobs", rows, 1));
@@ -1407,7 +1425,7 @@ public final class JobsDao
           
           // Write the event table and issue the notification.
           var eventMgr = JobEventManager.getInstance();
-          eventMgr.recordStatusEvent(job, job.getStatus(), null, conn);
+          eventMgr.recordStatusEvent(rUser, job, job.getStatus(), null, conn);
     
           // Commit the transaction that may include changes to both tables.
           conn.commit();
@@ -1434,6 +1452,7 @@ public final class JobsDao
                       _log.error(msg, e);
                   }
         }
+		return job;
 	}
 		   
     /* ---------------------------------------------------------------------- */
@@ -1579,6 +1598,107 @@ public final class JobsDao
           }
           
           return result;
+    }
+    /* ---------------------------------------------------------------------- */
+    /* updateJobAnnotations: */
+    /* ---------------------------------------------------------------------- */
+    /**
+     * Update the annotations (tags and notes) of a job.
+     * <p>
+     * This method updates the tags and notes associated with a job. The update can either
+     * replace the existing annotations entirely or merge the new values with the existing ones,
+     * depending on the value of the {@code replace} parameter.
+     *
+     * @param jobUuid the UUID of the job to update
+     * @param tenant the tenant in which the job resides
+     * @param user the user performing the update
+     * @param tags the set of tags to associate with the job (may be null)
+     * @param notes the notes to associate with the job as a JsonObject (may be null)
+     * @param replace if true, replace existing annotations; if false, merge with existing
+     * @return the updated JobAnnotation object, or null if the update failed
+     * @throws TapisException if a database or other error occurs
+     */
+    public JobAnnotation updateJobAnnotations(String jobUuid, String tenant, String user, TreeSet<String> tags,
+        JsonObject notes, boolean replace) throws TapisException {
+      JobAnnotation jobAnnotation = new JobAnnotation();
+      try (Connection connection = getConnection()) {
+        connection.setAutoCommit(false);
+        // select for update to lock the row. if this DB session is broken, the on-going transaction will
+        // be rolled back and the lock released.
+        TreeSet<String> newTags = tags == null ? new TreeSet<>() : tags;
+        JsonObject newNotes = notes == null ? new JsonObject() : notes;
+
+        try (PreparedStatement selectPstmt = connection.prepareStatement(SqlStatements.SELECT_JOB_ANNOTATIONS_BY_UUID_FOR_UPDATE)) {
+          selectPstmt.setString(1, jobUuid);
+          try (ResultSet rs = selectPstmt.executeQuery()) {
+            if (!rs.next()) {
+              String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid);
+              throw new TapisNotFoundException(msg, jobUuid);
+            }
+            
+            int id = rs.getInt(1);
+            String uuid = rs.getString(2);
+            // retrieve existing tags and notes
+            // always a non-null TreeSet (might be empty) is returned here
+            TreeSet<String> existingTags = TagsConverter.fromJDBCArray(rs.getArray(3));
+            JsonObject existingNotes = TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class);
+            jobAnnotation.setOldTags(existingTags);
+            jobAnnotation.setOldNotes(existingNotes);
+
+            if (!replace) {
+              _log.debug("Merging existing ones into new annotations for job %d uuid = %s.".formatted(id, uuid));
+              if (CollectionUtils.isNotEmpty(newTags)) {
+                _log.debug("Merging existing tags: " + existingTags);
+                newTags.addAll(existingTags);
+              }
+              if (newNotes != null && newNotes.entrySet().size() > 0) {
+                _log.debug("Merging existing notes: " + existingNotes);
+                for (String key : existingNotes.keySet()) {
+                  if (newNotes.has(key)) continue; // new notes take precedence
+                  TapisGsonUtils.addTo(newNotes, key, existingNotes.get(key));
+                }
+              }
+            }
+
+          }
+        } catch (SQLException sqle) {
+          // Rollback quietly.
+          try { if (connection != null && !connection.getAutoCommit()) connection.rollback(); }
+          catch (Exception e) { _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e); }
+          String msg = JobUtils.getMsg("JOBS_JOB_ANNOTATION_LOCK_ERROR", jobUuid, tenant, user, sqle.getMessage());
+          _log.error(msg, sqle);
+          throw new JobException(msg, sqle);
+        }
+        // update the annotations.
+        try (PreparedStatement pstmt = connection.prepareStatement(SqlStatements.UPDATE_JOB_ANNOTATIONS_BY_UUID)) {
+          pstmt.setArray(1, TagsConverter.toJDBCArray(connection, newTags));
+          pstmt.setString(2, newNotes.toString());
+          pstmt.setString(3, jobUuid);
+          ResultSet rs = pstmt.executeQuery();
+          if (rs.next()) {
+            jobAnnotation.setId(rs.getInt(1));
+            jobAnnotation.setUuid(rs.getString(2));
+            jobAnnotation.setTags(TagsConverter.fromJDBCArray(rs.getArray(3)));
+            jobAnnotation.setNotes(TapisGsonUtils.getGson().fromJson(rs.getString(4), JsonObject.class));
+          }
+        } catch (SQLException sqle) {
+          // Rollback quietly.
+          try { if (connection != null && !connection.getAutoCommit()) connection.rollback(); }
+          catch (Exception e) { _log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e); }
+          // check for DB constraint violations
+          throw JobUtils.translateSQLException(sqle, jobUuid, tenant, user);
+        } 
+        connection.commit();
+      } catch (TapisException e) {
+        // throw translated TapisException as is
+        throw e;
+      } catch (Exception e) {
+        // deal with all other exceptions.
+        String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, e.getMessage());
+        _log.error(msg, e);
+        throw new JobException(msg, e);
+      }
+      return jobAnnotation;
     }
     
 	/* ---------------------------------------------------------------------- */
@@ -2185,7 +2305,7 @@ public final class JobsDao
 	 throws JobException, TapisNotFoundException
 	{
         // ------------------------- Check Input -------------------------
-        // Exceptions can be throw from here.
+        // Exceptions can be thrown from here.
         if (StringUtils.isBlank(jobUuid)) {
             String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "getTransferInfo", "jobUuid");
             throw new JobException(msg);
@@ -2646,7 +2766,7 @@ public final class JobsDao
             
             // Write the event table and optionally send notifications (asynchronously).
             var eventMgr = JobEventManager.getInstance();
-            eventMgr.recordStatusEvent(job, newStatus, curStatus, conn);
+            eventMgr.recordStatusEvent(null, job, newStatus, curStatus, conn);
             
             // Conditionally commit the transaction.
             if (commit) conn.commit();
@@ -3291,6 +3411,10 @@ public final class JobsDao
 	        // Tracking ID is null unless the X-TAPIS-TRACKING-ID header was set.
 	        String trackingId = rs.getString(70);
 	        if (trackingId != null) obj.setTrackingId(trackingId);
+
+          String archiveModeStr = rs.getString(71);
+          if (!StringUtils.isBlank(archiveModeStr)) obj.setArchiveMode(Job.ArchiveModeEnum.valueOf(archiveModeStr));
+
 	    } 
 	    catch (Exception e) {
 	      String msg = MsgUtils.getMsg("DB_TYPE_CAST_ERROR", e.getMessage());
@@ -3596,7 +3720,7 @@ public final class JobsDao
             // Issue the call for the 1 row result set.
             ResultSet rs = pstmt.executeQuery();
             if (!rs.next()) {
-                String msg = MsgUtils.getMsg("SEARCH_ABORT_UNABLE_TO_GET_DB_FIELD_AND_TYPE", tableName);
+                String msg = JobUtils.getMsg("JOBS_SEARCH_SCHEMA_ERR", "getDBJobColumnAndType", tableName);
                 _log.error(msg);
                 throw new JobException(msg);
             }
@@ -3624,7 +3748,7 @@ public final class JobsDao
                 catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
             
             //AloeThreadContext threadContext = AloeThreadLocal.aloeThreadContext.get();
-            String msg = MsgUtils.getMsg("DB_TABLE_INFORMATION_SCHEMA_ERROR");
+            String msg = JobUtils.getMsg("JOBS_DB_TABLE_INFO_SCHEMA_ERR", e.getMessage());
             _log.error(msg, e);
            
         }
@@ -3654,7 +3778,6 @@ public final class JobsDao
                 
         return Collections.unmodifiableMap(jmap);
     }
-    
     /* ********************************************************************** */
     /*                          JobTransferInfo class                         */
     /* ********************************************************************** */

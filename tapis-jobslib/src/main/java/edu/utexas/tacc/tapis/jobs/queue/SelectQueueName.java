@@ -52,6 +52,7 @@ public final class SelectQueueName
         properties.put("appVersion", job.getAppVersion());
         
         properties.put("archiveOnAppError", job.isArchiveOnAppError());
+        properties.put("archiveMode", job.getArchiveMode().name());
         properties.put("dynamicExecSystem", job.isDynamicExecSystem());
         
         properties.put("execSystemId", job.getExecSystemId());

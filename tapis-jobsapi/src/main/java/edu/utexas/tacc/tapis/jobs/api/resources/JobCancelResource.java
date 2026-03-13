@@ -2,12 +2,10 @@ package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
@@ -16,8 +14,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
-
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +23,15 @@ import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobCancelDisplay;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadLocal;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespName;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 @Path("/")
@@ -42,7 +41,9 @@ public class JobCancelResource extends AbstractResource {
     /* **************************************************************************** */
     // Local logger.
     private static final Logger _log = LoggerFactory.getLogger(JobCancelResource.class);
-    
+
+    private final String className = getClass().getSimpleName();
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -97,34 +98,29 @@ public class JobCancelResource extends AbstractResource {
      @Path("/{jobUuid}/cancel")
      @Produces(MediaType.APPLICATION_JSON)
      public Response cancelJob(@PathParam("jobUuid") String jobUuid)
-                               
      {
+       String opName = "cancelJob";
+       // ------------------------- Retrieve and validate thread context -------------------------
+       Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+       if (resp != null) return resp;
+
+       // Create a user that collects together tenant, user and request information needed by the service call
+       ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
        // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "cancelJob", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+       if (_log.isTraceEnabled())
+           JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
-           String msg = MsgUtils.getMsg("SK_MISSING_PARAMETER", "jobUuid");
-           _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                      entity(TapisRestUtils.createErrorResponse(msg)).build();
+         String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
+         _log.error(msg);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg)).build();
-       }
 
        // ------------------------- Retrieve Job -----------------------------
        Job job = null;
@@ -135,7 +131,7 @@ public class JobCancelResource extends AbstractResource {
                                        threadContext.getOboTenantId());
        }
        catch (TapisImplException e) {
-           _log.error(e.getMessage(), e);
+           _log.error(e.getMessage());
            return Response.status(JobsApiUtils.toHttpStatus(e.condition)).
                    entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
        }
@@ -161,10 +157,9 @@ public class JobCancelResource extends AbstractResource {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           String msg = JobUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid);
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_IN_TERM_STATE", rUser, jobUuid, job.getStatus());
            _log.warn(msg);
-    	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(
-                   JobUtils.getMsg("JOBS_JOB_IN_TERMINAL_STATE", jobUuid,threadContext.getOboTenantId(),threadContext.getOboUser(),job.getStatus()), r)).build();
+    	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, r)).build();
        }
        
        //------------------------- Cancel the Job  -----------------------------

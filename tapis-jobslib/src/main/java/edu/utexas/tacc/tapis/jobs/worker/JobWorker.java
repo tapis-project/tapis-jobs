@@ -16,6 +16,7 @@ import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManager;
 import edu.utexas.tacc.tapis.jobs.queue.JobQueueManagerNames;
 import edu.utexas.tacc.tapis.jobs.queue.messages.event.WkrStatusResp;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.worker.JobQueueProcessor.JobTopicThread;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
@@ -128,7 +129,7 @@ public final class JobWorker
         JobWorkerParameters parms = null;
         try {parms = new JobWorkerParameters(args);}
           catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_START_ERROR", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_START_ERROR", e.getMessage());
             _log.error(msg, e);
             throw e;
           }
@@ -176,7 +177,7 @@ public final class JobWorker
       
       // Announce our demise.
       if (_log.isInfoEnabled()) 
-        _log.info(MsgUtils.getMsg("JOBS_WORKER_TERMINATING", _parms.name, _uuid.toString()));
+        _log.info(JobUtils.getMsg("JOBS_WORKER_TERMINATING", _parms.name, _uuid.toString()));
     }
     
     /* ********************************************************************** */
@@ -194,7 +195,7 @@ public final class JobWorker
       // threads (i.e., the main thread) that the shutdown condition has changed.
       _shutdownLock.lock();
       try { 
-        _log.info(MsgUtils.getMsg("JOBS_WORKER_SIGNALING_SHUTDOWN", 
+        _log.info(JobUtils.getMsg("JOBS_WORKER_SIGNALING_SHUTDOWN",
                                   Thread.currentThread().getName()));
         _shuttingDown = true;
         _shutdownCondition.signalAll();
@@ -289,7 +290,7 @@ public final class JobWorker
             String url = parms.getTenantBaseUrl();
             tenantMap = TenantManager.getInstance(url).getTenants();
         } catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", e.getMessage());
             throw new JobException(msg, e);
         }
         if (!tenantMap.isEmpty()) {
@@ -297,7 +298,7 @@ public final class JobWorker
             for (String tenant : tenantMap.keySet()) msg += "  " + tenant + "\n";
             _log.info(msg);
         } else {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "TenantManager", "Empty tenant map.");
             throw new JobException(msg);
         }
         
@@ -308,7 +309,7 @@ public final class JobWorker
                                            parms.getServicePassword());
         }
         catch (Exception e) {
-            String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
+            String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "ServiceContext", e.getMessage());
             throw new JobException(msg, e);
         }
         // Print site info.
@@ -325,24 +326,22 @@ public final class JobWorker
         // ----- Database Initialization
         try {JobsImpl.getInstance().ensureDefaultQueueIsDefined();}
          catch (Exception e) {
-             String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "JobQueuesDao", e.getMessage());
+             String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "JobQueuesDao", e.getMessage());
              throw new JobException(msg, e);
          }
         
         // ------ Queue Initialization 
-        // Establish our connection to the queue broker.
-        // and initialize queues and topics.  There is 
-        // some redundancy here since each front-end and
-        // each worker initialize all queue artifacts.  
-        // Not a problem, but there's room for improvement.
+        // Establish our connection to the queue broker and initialize queues and topics.
+        // There is some redundancy here since the api front-end and each worker initialize
+        // all queue artifacts. Not a problem, but there's room for improvement.
         try {JobQueueManager.getInstance(JobQueueManager.initParmsFromRuntime());}
             catch (Exception e) {
-                String msg = MsgUtils.getMsg("JOBS_WORKER_INIT_ERROR", "JobQueueManager", e.getMessage());
+                String msg = JobUtils.getMsg("JOBS_WORKER_INIT_ERROR", "JobQueueManager", e.getMessage());
                 throw new JobException(msg, e);
         }   
         
         // We're done.
-        _log.info(MsgUtils.getMsg("JOBS_WORKER_INIT_COMPLETE"));
+        _log.info(JobUtils.getMsg("JOBS_WORKER_INIT_COMPLETE"));
     }
     
     /* ---------------------------------------------------------------------- */
@@ -458,11 +457,11 @@ public final class JobWorker
             }
             
             // We're going down.
-            _log.info(MsgUtils.getMsg("JOBS_WORKER_SHUTDOWN_SIGNAL", _parms.name));
+            _log.info(JobUtils.getMsg("JOBS_WORKER_SHUTDOWN_SIGNAL", _parms.name));
         } 
         catch (InterruptedException e) {
             // We're going down.
-            _log.info(MsgUtils.getMsg("JOBS_WORKER_SHUTDOWN_INTERRUPT", _parms.name));
+            _log.info(JobUtils.getMsg("JOBS_WORKER_SHUTDOWN_INTERRUPT", _parms.name));
         }
         finally {
             // Free ownership of the lock.

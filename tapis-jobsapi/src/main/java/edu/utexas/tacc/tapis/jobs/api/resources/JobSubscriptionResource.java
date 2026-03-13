@@ -1,8 +1,7 @@
 package edu.utexas.tacc.tapis.jobs.api.resources;
 
 import java.io.InputStream;
-import java.nio.charset.Charset;
-
+import java.nio.charset.StandardCharsets;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -22,8 +21,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
-
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -37,6 +34,7 @@ import edu.utexas.tacc.tapis.jobs.events.JobEventManager;
 import edu.utexas.tacc.tapis.jobs.events.JobEventManager.SubscriptionActions;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.notifications.client.gen.model.RespSubscriptions;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -47,6 +45,8 @@ import edu.utexas.tacc.tapis.sharedapi.responses.RespChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.RespResourceUrl;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultChangeCount;
 import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultResourceUrl;
+import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
 
 @Path("/")
@@ -68,7 +68,9 @@ public class JobSubscriptionResource
     // Json schema resource files.
     private static final String FILE_JOB_SUBCRIBE_REQUEST = 
         "/edu/utexas/tacc/tapis/jobs/api/jsonschema/JobSubscribeRequest.json";
-    
+
+    private final String className = getClass().getSimpleName();
+
     /* **************************************************************************** */
     /*                                    Fields                                    */
     /* **************************************************************************** */
@@ -127,12 +129,16 @@ public class JobSubscriptionResource
                                @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint,
                                InputStream payloadStream)
      {
-       // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "subscribe", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+         String opName = "subscribe";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
+
+         // Create a user that collects together tenant, user and request information needed by the service call
+         ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+         // Trace this request.
+         if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "jobUuid="+jobUuid);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
@@ -140,19 +146,18 @@ public class JobSubscriptionResource
        if (StringUtils.isBlank(jobUuid)) {
            String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "subscribe", "jobUuid");
            _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Validate Payload -------------------------
        // Read the payload into a string.
        String json = null;
-       try {json = IOUtils.toString(payloadStream, Charset.forName("UTF-8"));}
+       try {json = IOUtils.toString(payloadStream, StandardCharsets.UTF_8);}
          catch (Exception e) {
            String msg = MsgUtils.getMsg("NET_INVALID_JSON_INPUT", "job subscription", e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
        
        // ------------------------- Input Processing -------------------------
@@ -160,16 +165,14 @@ public class JobSubscriptionResource
        ReqSubscribe payload = null;
        try {payload = getPayload(json, FILE_JOB_SUBCRIBE_REQUEST, ReqSubscribe.class);} 
        catch (Exception e) {
-           String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", 
-                                        "subscribe", e.getMessage());
+           String msg = MsgUtils.getMsg("NET_REQUEST_PAYLOAD_ERROR", "subscribe", e.getMessage());
            _log.error(msg, e);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Get Job Info -----------------------------
        // Get the job DTO or return with an error response.
-       Object obj = getJobDTO(jobUuid, prettyPrint);
+       Object obj = getJobDTO(rUser, jobUuid);
        if (obj instanceof Response) return (Response) obj;
        
        // Get extended job status information.
@@ -177,27 +180,16 @@ public class JobSubscriptionResource
        
        // Is the job still active?
        if (dto.getStatus().isTerminal()) {
-           String msg = JobUtils.getMsg("JOBS_IN_TERMINAL_STATE", jobUuid, dto.getStatus().name());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_IN_TERM_STATE", rUser, jobUuid, dto.getStatus().name());
            _log.error(msg);
-           return Response.status(Status.BAD_REQUEST).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+           return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
-       // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
-       TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-       }
-       
        // ------------------------- Check Authz ------------------------------
        // Authorize the user.  Job tenant and oboTenant are guaranteed to match.
-       var oboUser = threadContext.getOboUser();
-       var oboTenant = threadContext.getOboTenantId();
-       var response = checkAuthorization(oboTenant, oboUser, jobUuid, dto.getOwner(), prettyPrint);
+       var oboUser = rUser.getOboUserId();
+       var oboTenant = rUser.getOboTenantId();
+       var response = checkAuthorization(rUser, opName, dto.getOwner(), jobUuid);
        if (response != null) return response;
        
        // ------------------------- Call Notifications -----------------------
@@ -205,11 +197,10 @@ public class JobSubscriptionResource
        String url = null;
        try {url = JobsApiUtils.postSubscriptionRequest(payload, oboUser, oboTenant, jobUuid);}
        catch (Exception e) {
-           String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, oboUser, oboTenant,
-                                        e.getMessage());
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, jobUuid, dto.getOwner(), e.getMessage());
            _log.error(msg, e);
            return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
        
        // ------------------------- Event Processing -------------------------
@@ -218,19 +209,17 @@ public class JobSubscriptionResource
        var eventMgr = JobEventManager.getInstance();
        try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.added,
                                              newSubscriptions);}
-           catch (Exception e) {
-               String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
-                                            dto.getTenant(), e.getMessage());
-               _log.error(msg, e);
-           }
+       catch (Exception e) {
+         String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, jobUuid, dto.getOwner(), e.getMessage());
+         _log.error(msg, e);
+       }
 
        // Success.
        RespResourceUrl r = new RespResourceUrl(new ResultResourceUrl());
        r.result.url = url;
        var typeFilter = JobsApiUtils.getNotifTypeFilter(payload.getEventCategoryFilter(), TYPE_FILTER_WILDCARD);
-       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               MsgUtils.getMsg("NOTIFICATIONS_SUBSCRIPTION_CREATED", jobUuid, typeFilter), 
-                  prettyPrint, r)).build();
+       String msg = MsgUtils.getMsg("NOTIFICATIONS_SUBSCRIPTION_CREATED", jobUuid, typeFilter);
+       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -245,60 +234,56 @@ public class JobSubscriptionResource
                                       @DefaultValue("0")     @QueryParam("skip")  int skip,
                                       @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
-       // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "getSubscriptions", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+         String opName = "getSubscriptions";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
+
+         // Create a user that collects together tenant, user and request information needed by the service call
+         ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+         // Trace this request.
+         if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(),
+                                     "jobUuid="+jobUuid,"limit="+limit,"skip="+skip);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
        // ------------------------- Get Job Info -----------------------------
        // Get the job DTO or return with an error response.
-       Object obj = getJobDTO(jobUuid, prettyPrint);
+       Object obj = getJobDTO(rUser, jobUuid);
        if (obj instanceof Response) return (Response) obj;
        
        // Get extended job status information.
        JobStatusDTO dto = (JobStatusDTO) obj;
 
        // ------------------------- Create Context ---------------------------
-       // Validate the threadlocal content here so no subsequent code on this request needs to.
        TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-       if (!threadContext.validate()) {
-           var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-           _log.error(msg);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-       }
-       
+
        // ------------------------- Check Authz ------------------------------
        // Authorize the user.  Job tenant and oboTenant are guaranteed to match.
        var oboUser = threadContext.getOboUser();
        var oboTenant = threadContext.getOboTenantId();
-       var response = checkAuthorization(oboTenant, oboUser, jobUuid, dto.getOwner(), prettyPrint);
+       var response = checkAuthorization(rUser, opName, dto.getOwner(), jobUuid);
        if (response != null) return response;
        
        // ------------------------- Call Notifications -----------------------
        // Marshal the request parameters and create a new subscription in Notifications.
-       RespSubscriptions resp = null;
+       RespSubscriptions respSubscriptions = null;
        try {
            var jobsImpl = JobsImpl.getInstance(); 
-           resp = jobsImpl.getSubscriptions(jobUuid, limit, skip, oboUser, oboTenant);
+           respSubscriptions = jobsImpl.getSubscriptions(jobUuid, limit, skip, oboUser, oboTenant);
        }
        catch (Exception e) {
-           String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, oboUser, oboTenant,
-                                        e.getMessage());
-           _log.error(msg, e);
-           return Response.status(Status.INTERNAL_SERVER_ERROR).
-                   entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+         String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, jobUuid, dto.getOwner(), e.getMessage());
+         _log.error(msg, e);
+         return Response.status(Status.INTERNAL_SERVER_ERROR).
+                   entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
 
        // Success.
-       var r = new RespGetSubscriptions(resp);
-       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-               JobUtils.getMsg("JOBS_SUBSCRIPTIONS_RETRIEVED", jobUuid, r.result.size()),
-                  prettyPrint, r)).build();
+       var r = new RespGetSubscriptions(respSubscriptions);
+       String msg = JobUtils.getMsg("JOBS_SUBSCRIPTIONS_RETRIEVED", jobUuid, r.result.size());
+       return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg, r)).build();
      }
      
      /* ---------------------------------------------------------------------------- */
@@ -311,18 +296,22 @@ public class JobSubscriptionResource
      public Response deleteSubscriptions(@PathParam("uuid") String uuid,
                                          @DefaultValue("false") @QueryParam("pretty") boolean prettyPrint)
      {
-       // Trace this request.
-       if (_log.isTraceEnabled()) {
-         String msg = MsgUtils.getMsg("TAPIS_TRACE_REQUEST", getClass().getSimpleName(), "deleteSubscriptions", 
-                                      "  " + _request.getRequestURL());
-         _log.trace(msg);
-       }
+         String opName = "deleteSubscriptions";
+         // ------------------------- Retrieve and validate thread context -------------------------
+         Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
+         if (resp != null) return resp;
+
+         // Create a user that collects together tenant, user and request information needed by the service call
+         ResourceRequestUser rUser = new ResourceRequestUser((AuthenticatedUser) _securityContext.getUserPrincipal());
+         // Trace this request.
+         if (_log.isTraceEnabled())
+             JobsApiUtils.logRequest(rUser, className, opName, _request.getRequestURL().toString(), "uuid="+uuid);
 
        JobsApiUtils.checkRestrictedSvcs(_securityContext);
 
        // Determine which type of deletion takes place based on whether a job uuid is passed in.
-       if (uuid.endsWith(JOB_UUID_SUFFIX)) return deleteJobSubscriptions(uuid, prettyPrint);
-         else return deleteJobSubscription(uuid, prettyPrint);
+       if (uuid.endsWith(JOB_UUID_SUFFIX)) return deleteJobSubscriptions(rUser, opName, uuid);
+         else return deleteJobSubscription(rUser, opName, uuid);
      }
      
      /* **************************************************************************** */
@@ -335,10 +324,9 @@ public class JobSubscriptionResource
       * an error.
       * 
       * @param jobUuid the job uuid
-      * @param prettyPrint whether to pretty print on error conditions  
       * @return a JobStatusDTO (success) or a Response (error)
       */
-     private Object getJobDTO(String jobUuid, boolean prettyPrint)
+     private Object getJobDTO(ResourceRequestUser rUser, String jobUuid)
      {
          // Get extended job status information.
          JobStatusDTO dto = null;
@@ -349,15 +337,15 @@ public class JobSubscriptionResource
          catch (Exception e) {
              _log.error(e.getMessage(), e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
          
          // Did we find the job?
          if (dto == null) {
-             String msg = JobUtils.getMsg("JOBS_JOB_NOT_FOUND", jobUuid);
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_NOT_FOUND", rUser, jobUuid);
              _log.error(msg);
              return Response.status(Status.BAD_REQUEST).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
          
          // Success.
@@ -371,23 +359,22 @@ public class JobSubscriptionResource
       * 
       * @return null if authorization passed, Response on failure
       */
-     private Response checkAuthorization(String oboTenant, String oboUser, 
-                                         String jobUuid, String jobOwner, boolean prettyPrint)
+     private Response checkAuthorization(ResourceRequestUser rUser, String opName, String jobOwner, String jobUuid)
      {
+         String oboUser = rUser.getOboUserId();
+         String oboTenant = rUser.getOboTenantId();
          try {
              // Only job owners and tenant admins can subscribe to a job.
              if (!oboUser.equals(jobOwner) && !TapisUtils.isAdmin(oboUser, oboTenant)) {
-                 var msg = JobUtils.getMsg("JOBS_JOB_ACTION_NOT_AUTHORIZED", oboUser, 
-                                           "subscription", jobUuid);
+                 var msg = JobsApiUtils.getMsgAuth("JOBSAPI_ACTION_NOT_AUTH", rUser, opName, jobOwner, jobUuid);
                  _log.error(msg);
-                 return Response.status(Status.UNAUTHORIZED).
-                         entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                 return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg)).build();
              }
          }
          catch (Exception e) {
              _log.error(e.getMessage(), e);
              return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(e.getMessage(), prettyPrint)).build();
+                     entity(TapisRestUtils.createErrorResponse(e.getMessage())).build();
          }
 
          // Authorization succeeded.
@@ -397,16 +384,17 @@ public class JobSubscriptionResource
      /* ---------------------------------------------------------------------------- */
      /* checkSubscriptionTenant:                                                     */
      /* ---------------------------------------------------------------------------- */
-     private Response checkSubscriptionTenant(String subTenant, String oboTenant, 
-                                              String jobTenant, boolean prettyPrint)
+     private Response checkSubscriptionTenant(ResourceRequestUser rUser, JobStatusDTO dto, String subTenant)
      {
+         String oboTenant = rUser.getOboTenantId();
+         String jobTenant = dto.getTenant();
+         String jobUuid = dto.getJobUuid();
          // Make sure the subscription is in the same tenant in which the user is
          // authenticated and the job resides in.
          if (!oboTenant.equals(subTenant) || !jobTenant.equals(subTenant)) {
-             var msg = JobUtils.getMsg("JOBS_MISMATCHED_SUBSCRIPTION_TENANT", subTenant, jobTenant); 
+             var msg = JobsApiUtils.getMsgAuth("JOBSAPI_MISMATCH_SUBSCR_TENANT", rUser, subTenant, jobTenant, jobUuid);
              _log.error(msg);
-             return Response.status(Status.UNAUTHORIZED).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+             return Response.status(Status.UNAUTHORIZED).entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
 
          // Authorization succeeded.
@@ -416,31 +404,21 @@ public class JobSubscriptionResource
      /* ---------------------------------------------------------------------------- */
      /* deleteJobSubscriptions:                                                      */
      /* ---------------------------------------------------------------------------- */
-     private Response deleteJobSubscriptions(String jobUuid, boolean prettyPrint)
+     private Response deleteJobSubscriptions(ResourceRequestUser rUser, String opName, String jobUuid)
      {
          // ------------------------- Get Job Info -----------------------------
          // Get the job DTO or return with an error response.
-         Object obj = getJobDTO(jobUuid, prettyPrint);
+         Object obj = getJobDTO(rUser, jobUuid);
          if (obj instanceof Response) return (Response) obj;
          
          // Get extended job status information.
          JobStatusDTO dto = (JobStatusDTO) obj;
          
-         // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // ------------------------- Check Authz ------------------------------
          // Authorize the user.  Job tenant and oboTenant are guaranteed to match.
-         var oboUser = threadContext.getOboUser();
-         var oboTenant = threadContext.getOboTenantId();
-         var response = checkAuthorization(oboTenant, oboUser, jobUuid, dto.getOwner(), prettyPrint);
+         var oboUser = rUser.getOboUserId();
+         var oboTenant = rUser.getOboTenantId();
+         var response = checkAuthorization(rUser, opName, dto.getOwner(), jobUuid);
          if (response != null) return response;
          
          // ------------------------- Call Notifications -----------------------
@@ -451,53 +429,40 @@ public class JobSubscriptionResource
              deleted = jobsImpl.deleteJobSubscriptions(jobUuid, oboUser, oboTenant);
          }
          catch (Exception e) {
-             String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, oboUser, oboTenant,
-                                          e.getMessage());
-             _log.error(msg, e);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, jobUuid, dto.getOwner(), e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
 
          // ------------------------- Event Processing -------------------------
          // Best effort processing.
          if (deleted > 0) {
-             var eventMgr = JobEventManager.getInstance();
-             try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.removed,
-                                                   deleted);}
-                 catch (Exception e) {
-                     String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobUuid, dto.getOwner(),
-                                                  dto.getTenant(), e.getMessage());
-                     _log.error(msg, e);
-             }
+           var eventMgr = JobEventManager.getInstance();
+           try {eventMgr.recordSubscriptionEvent(jobUuid, dto.getTenant(), SubscriptionActions.removed,
+                                                 deleted);}
+           catch (Exception e) {
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, jobUuid, dto.getOwner(), e.getMessage());
+             _log.error(msg, e);
+           }
          }
 
          // Success.
          ResultChangeCount count = new ResultChangeCount();
          count.changes = deleted;
          RespChangeCount r = new RespChangeCount(count);
-         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_DELETED", "subscriptions", jobUuid),
-                    prettyPrint, r)).build();
+         String msg = MsgUtils.getMsg("TAPIS_DELETED", "subscriptions", jobUuid);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg, r)).build();
      }
 
      /* ---------------------------------------------------------------------------- */
      /* deleteJobSubscription:                                                       */
      /* ---------------------------------------------------------------------------- */
-     private Response deleteJobSubscription(String uuid, boolean prettyPrint)
+     private Response deleteJobSubscription(ResourceRequestUser rUser, String opName, String uuid)
      {
-         // ------------------------- Create Context ---------------------------
-         // Validate the threadlocal content here so no subsequent code on this request needs to.
-         TapisThreadContext threadContext = TapisThreadLocal.tapisThreadContext.get();
-         if (!threadContext.validate()) {
-             var msg = MsgUtils.getMsg("TAPIS_INVALID_THREADLOCAL_VALUE", "validate");
-             _log.error(msg);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
-         }
-         
          // Get obo info.
-         var oboUser = threadContext.getOboUser();
-         var oboTenant = threadContext.getOboTenantId();
+         var oboUser = rUser.getOboUserId();
+         var oboTenant = rUser.getOboTenantId();
          
          // ------------------------- Get Subscription -------------------------
          // We need to get the owner and subject from the subscription.
@@ -514,7 +479,7 @@ public class JobSubscriptionResource
                  String msg = MsgUtils.getMsg("TAPIS_NOT_FOUND", "subscription", uuid);
                  _log.error(msg);
                  return Response.status(Status.BAD_REQUEST).
-                         entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+                         entity(TapisRestUtils.createErrorResponse(msg)).build();
              }
              
              // Extract subscription information.
@@ -523,17 +488,16 @@ public class JobSubscriptionResource
              subTenant  = subscription.getTenant();
          }
          catch (Exception e) {
-             var jobref = subSubject == null ? "unknown" : subSubject;
-             String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", jobref, oboUser, oboTenant,  
-                                          e.getMessage());
-             _log.error(msg, e);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+           var jobref = subSubject == null ? "unknown" : subSubject;
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, jobref, subOwner, e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
          
          // ------------------------- Get Job Info -----------------------------
          // Get the job DTO or return with an error response.
-         Object obj = getJobDTO(subSubject, prettyPrint);
+         Object obj = getJobDTO(rUser, subSubject);
          if (obj instanceof Response) return (Response) obj;
          
          // Get extended job status information.
@@ -544,11 +508,11 @@ public class JobSubscriptionResource
          // Note that the subscription owner may be different the job owner or tenant
          // admin, but we still want the subscription to be deleted.  If the oboUser
          // is the subscription owner, we let processing proceed.
-         var response = checkAuthorization(oboTenant, oboUser, subSubject, dto.getOwner(), prettyPrint);
+         var response = checkAuthorization(rUser, opName, dto.getOwner(), dto.getJobUuid());
          if (response != null && !oboUser.equals(subOwner)) return response;
          
          // Make sure the subscription, job and obo tenants are the same.
-         response = checkSubscriptionTenant(subTenant, oboTenant, dto.getTenant(), prettyPrint);
+         response = checkSubscriptionTenant(rUser, dto, subTenant);
          if (response != null) return response;
          
          // ------------------------- Delete Subscription ----------------------
@@ -559,32 +523,30 @@ public class JobSubscriptionResource
              deleted = jobsImpl.deleteJobSubscription(uuid, oboUser, oboTenant);
          }
          catch (Exception e) {
-             String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", "", oboUser, oboTenant,  
-                                          e.getMessage());
-             _log.error(msg, e);
-             return Response.status(Status.INTERNAL_SERVER_ERROR).
-                     entity(TapisRestUtils.createErrorResponse(msg, prettyPrint)).build();
+           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, dto.getJobUuid(), dto.getOwner(),
+                                            e.getMessage());
+           _log.error(msg, e);
+           return Response.status(Status.INTERNAL_SERVER_ERROR).
+                     entity(TapisRestUtils.createErrorResponse(msg)).build();
          }
 
          // ------------------------- Event Processing -------------------------
          // Best effort processing.
          if (deleted > 0) {
-             var eventMgr = JobEventManager.getInstance();
-             try {eventMgr.recordSubscriptionEvent(dto.getJobUuid(), dto.getTenant(), SubscriptionActions.removed,
-                                                   deleted);}
-                 catch (Exception e) {
-                     String msg = JobUtils.getMsg("JOBS_SUBSCRIPTION_ERROR", dto.getJobUuid(), dto.getOwner(),
-                                                  dto.getTenant(), e.getMessage());
-                     _log.error(msg, e);
-                 }
+           var eventMgr = JobEventManager.getInstance();
+           try {eventMgr.recordSubscriptionEvent(dto.getJobUuid(), dto.getTenant(), SubscriptionActions.removed, deleted);}
+           catch (Exception e) {
+             String msg = JobsApiUtils.getMsgAuth("JOBSAPI_SUBSCRIPTION_ERROR", rUser, dto.getJobUuid(), dto.getOwner(),
+                                                  e.getMessage());
+             _log.error(msg, e);
+           }
          }
 
          // Success.
          ResultChangeCount count = new ResultChangeCount();
          count.changes = deleted;
          RespChangeCount r = new RespChangeCount(count);
-         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(
-                 MsgUtils.getMsg("TAPIS_DELETED", "subscription", uuid),
-                    prettyPrint, r)).build();
+         String msg = MsgUtils.getMsg("TAPIS_DELETED", "subscription", uuid);
+         return Response.status(Status.OK).entity(TapisRestUtils.createSuccessResponse(msg, r)).build();
      }
 }

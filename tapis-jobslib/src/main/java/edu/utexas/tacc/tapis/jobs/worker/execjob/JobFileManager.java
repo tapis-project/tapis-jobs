@@ -20,13 +20,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.google.gson.Gson;
 
 import edu.utexas.tacc.tapis.client.shared.exceptions.TapisClientException;
@@ -45,7 +42,9 @@ import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobRemoteOutcome;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobFileInput;
+import edu.utexas.tacc.tapis.jobs.model.TransferURI;
 import edu.utexas.tacc.tapis.jobs.recover.RecoveryUtils;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.jobs.utils.JobWorkerAudit;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
@@ -146,16 +145,15 @@ public final class JobFileManager
     /* ---------------------------------------------------------------------- */
     /* createDirectories:                                                     */
     /* ---------------------------------------------------------------------- */
-    /** Create the directories used for I/O on this job.  The directories may
+    /**
+     * Create the directories used for I/O on this job.  The directories may
      * already exist.  This method is not expected to be called from the front-end,
      * so the JWT information is not available (there's no threadlocal variable).
-     * 
-     * 
+     *
      * @throws TapisImplException
-     * @throws TapisServiceConnectionException
      */
     public void createDirectories() 
-     throws TapisException, TapisServiceConnectionException
+     throws TapisException
     {
         // Get the client from the context.
         FilesClient filesClient = _jobCtx.getServiceClient(FilesClient.class);
@@ -433,7 +431,24 @@ public final class JobFileManager
         // DTN post-processing.
         if (useDtn) moveDtnInputs();
     }
-    
+
+    /* ---------------------------------------------------------------------- */
+    /* isArchivingOff:                                                        */
+    /* ---------------------------------------------------------------------- */
+    /*
+     * Determine if archiving should be skipped.
+     */
+    public boolean isArchivingOff()
+    {
+      if (JobRemoteOutcome.FAILED_SKIP_ARCHIVE.equals(_job.getRemoteOutcome()) ||
+          Job.ArchiveModeEnum.NEVER.equals(_job.getArchiveMode()))
+      {
+        _log.info(JobUtils.getMsg("JOBS_ARCHIVING_OFF", _job.getUuid(), _job.getArchiveMode(), _job.getRemoteOutcome()));
+        return true;
+      }
+      return false;
+  }
+
     /* ---------------------------------------------------------------------- */
     /* archiveOutputs:                                                        */
     /* ---------------------------------------------------------------------- */
@@ -445,9 +460,6 @@ public final class JobFileManager
      */
     public void archiveOutputs() throws TapisException, TapisClientException
     {
-        // Determine if archiving is necessary.
-        if (_job.getRemoteOutcome() == JobRemoteOutcome.FAILED_SKIP_ARCHIVE) return;
-        
         // Determine if we are restarting a previous archiving request.
         var transferInfo = _jobCtx.getJobsDao().getTransferInfo(_job.getUuid());
         String transferId = transferInfo.archiveTransactionId;
@@ -1302,8 +1314,7 @@ public final class JobFileManager
         // Are we auditing?
         if (RuntimeParameters.getInstance().isAuditingEnabled()) {
         	// Initialize audit object.
-        	var auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTION.ACTION_TRANSFER);
-        	
+        	AuditData auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTION.ACTION_TRANSFER);
         	// Stage json content.
         	var info = new TransferAuditInfo();
         	info.phase = phase.name();
@@ -1312,9 +1323,45 @@ public final class JobFileManager
         	info.CorrelationIdType = corrId.name();
         	info.CorrelationId = tag;
         	auditData.data = _gson.toJson(info);
-        	
-        	// Write the record.
-        	_audit.info(AuditUtils.auditMsg(auditData));
+
+          // For each txfr element, fill in as much source/dest info as we can.
+          for (ReqTransferElement rte : tasks.getElements())
+          {
+            // Create TransferURI objects for src and dest URLs
+            // A Transfer URI must look like tapis://{systemId}/{path}  http/s://{systemId}/{path}
+            // For protocol http/s:// the systemId is the IP address or host name
+            // For protocol tapis:// systemId is the Tapis system id.
+            // NOTE: It would be nice to look up host and type transfers involving Tapis systems, but currently
+            //   that would require an extra call to systems. It appears the Jobs service does not have a general
+            //   cache for system definitions. There is a loadSystemDefinition in JobExecutionContext, but it loads
+            //   specific purpose systems: exec, archive, dtn
+            // Source
+            TransferURI srcUri = new TransferURI(rte.getSourceURI());
+            auditData.sourcePath = srcUri.getPath();
+            if (srcUri.isTapisProtocol())
+            {
+              auditData.sourceSystemId = srcUri.getSystemId();
+            }
+            else
+            {
+              // Non-Tapis URI, we just set the host
+              auditData.sourceHost = srcUri.getSystemId();
+            }
+            // Target
+            TransferURI dstUri = new TransferURI(rte.getDestinationURI());
+            auditData.targetPath = dstUri.getPath();
+            if (dstUri.isTapisProtocol())
+            {
+              auditData.targetSystemId = dstUri.getSystemId();
+            }
+            else
+            {
+              // Non-Tapis URI, we just set the host
+              auditData.targetHost = dstUri.getSystemId();
+            }
+            // Write the record.
+            _audit.info(AuditUtils.auditMsg(auditData));
+          }
         }
         
         // Return the transfer id.

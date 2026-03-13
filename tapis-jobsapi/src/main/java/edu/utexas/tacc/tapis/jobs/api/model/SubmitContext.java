@@ -3188,6 +3188,7 @@ public final class SubmitContext
         
         // Flags already validated.
         _job.setArchiveOnAppError(_submitReq.getArchiveOnAppError());
+        _job.setArchiveMode(_submitReq.getArchiveMode());
         _job.setDynamicExecSystem(_submitReq.getDynamicExecSystem());
         
         // Exec system fields.

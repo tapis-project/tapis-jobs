@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,9 +16,11 @@ import edu.utexas.tacc.tapis.jobs.dao.sql.SqlStatements;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisJDBCException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 
 /** Lightweight DAO that uses the caller's datasource to connect to the 
  * database.  If this subproject becomes its own service, then it will
@@ -45,10 +46,9 @@ public final class JobEventsDao
   /* ---------------------------------------------------------------------- */
   /* constructor:                                                           */
   /* ---------------------------------------------------------------------- */
-  /** This class depends on the calling code to provide a datasource for
-   * db connections since this code in not part of a free-standing service.
-   * 
-   * @param dataSource the non-null datasource 
+  /**
+   * This class depends on the calling code to provide a datasource for
+   * db connections since this code in not part of a freestanding service.
    */
   public JobEventsDao() throws TapisException {}
   
@@ -186,7 +186,7 @@ public final class JobEventsDao
   /* ---------------------------------------------------------------------- */
   /* createEvent:                                                           */
   /* ---------------------------------------------------------------------- */
-  public void createEvent(JobEvent jobEvent, Connection callerConn)
+  public void createEvent(ResourceRequestUser rUser, JobEvent jobEvent, Connection callerConn)
     throws TapisException
   {
       // ------------------------- Complete Input ----------------------
@@ -257,10 +257,18 @@ public final class JobEventsDao
       {
           // Rollback transaction.
           try {if (!usingCallerConn && conn != null) conn.rollback();}
-              catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
-          
-          String msg = JobUtils.getMsg("JOBS_CREATE_JOB_EVENT", jobEvent.getEvent().name(),
-                                       jobEvent.getJobUuid(), e.getMessage());
+          catch (Exception e1){_log.error(MsgUtils.getMsg("DB_FAILED_ROLLBACK"), e1);}
+
+          // NOTE: We may or may not have an rUser. Log accordingly. In the future, if we have an rUser available
+          //       to the worker process, we can update this to include more info.
+          String msg;
+          if (rUser != null) {
+            msg = JobUtils.getMsgAuth("JOBS_CREATE_EVENT_ERR1", rUser,
+                                      jobEvent.getJobUuid(), jobEvent.getEvent().name(), e.getMessage());
+          } else {
+            msg = JobUtils.getMsg("JOBS_CREATE_EVENT_ERR2", jobEvent.getJobUuid(), jobEvent.getEvent().name(),
+                                  e.getMessage());;
+          }
           throw new JobException(msg, e);
       }
       finally {

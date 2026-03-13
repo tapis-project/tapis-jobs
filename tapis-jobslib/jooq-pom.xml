@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>edu.utexas.tacc.tapis</groupId>
 		<artifactId>tapis-jobs</artifactId>
-		<version>1.9.1</version>
+		<version>${revision}</version>
 	</parent>
 	
 	<artifactId>tapis-jooq-jobslib</artifactId>
@@ -19,7 +19,7 @@
     <db.url>jdbc:postgresql://localhost:5400/tapisjobsdb</db.url>
     <db.username>tapis</db.username>
     <db.password>password</db.password>
-    <db.schema>public</db.schema>
+    <db.schema>tapis_jobs</db.schema>
     <!-- If necessary set a specific version of the shared code. Parent pom file from tapis-bom has a range. -->
     <!-- <tapis-shared-java.version>1.11.2-SNAPSHOT</tapis-shared-java.version> -->
   </properties>
@@ -132,7 +132,7 @@
               </target>
               <database>
                 <name>org.jooq.meta.postgres.PostgresDatabase</name>
-                <inputSchema>public</inputSchema>
+                <inputSchema>tapis_jobs</inputSchema>
                 <!-- Include everything from the schema -->
                 <includes>.*</includes>
                 

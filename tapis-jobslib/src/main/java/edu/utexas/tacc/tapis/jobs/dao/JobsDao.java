@@ -1,9 +1,5 @@
 package edu.utexas.tacc.tapis.jobs.dao;
 
-import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
-import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
-
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,12 +14,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
-
 import javax.sql.DataSource;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -42,6 +35,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.Tables;
 import edu.utexas.tacc.tapis.jobs.gen.jooq.tables.records.JobsRecord;
 import edu.utexas.tacc.tapis.jobs.model.Job;
+import edu.utexas.tacc.tapis.jobs.model.JobAnnotation;
 import edu.utexas.tacc.tapis.jobs.model.JobEvent;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobListDTO;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobStatusDTO;
@@ -53,6 +47,7 @@ import edu.utexas.tacc.tapis.jobs.model.submit.JobParameterSet;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx;
 import edu.utexas.tacc.tapis.jobs.model.submit.JobSharedAppCtx.JobSharedAppCtxEnum;
 import edu.utexas.tacc.tapis.jobs.statemachine.JobFSMUtils;
+import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils;
 import edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator;
 import edu.utexas.tacc.tapis.search.parser.ASTBinaryExpression;
@@ -66,12 +61,16 @@ import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.OrderBy;
 import edu.utexas.tacc.tapis.shared.utils.CallSiteToggle;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
+import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 
+import static edu.utexas.tacc.tapis.jobs.model.Job.EMPTY_JSON_OBJ;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.CONTAINS;
+import static edu.utexas.tacc.tapis.search.SearchUtils.SearchOperator.NCONTAINS;
 
-/** A note about querying our JSON data types.  The jobs database schema currently defines these 
+/** A note about querying our JSON data types. The jobs database schema currently defines these
  * fields as jsonb:  inputs, parameters, execSystemConstraints and notifications.  See the flyway 
  * scripts in tapis-jobsmigrate for the complete definition.  The SubmitJobRequest.json schema in 
- * tapis-jobsapi defines the json dchema that validates job submission requests.  
+ * tapis-jobsapi defines the json schema that validates job submission requests.
  * 
  * The jsonb database type allows for indexed searches of json data.  Initially, only one json 
  * index is defined on the exec_system_constraints field.  All searches of json data that do not 
@@ -98,7 +97,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
  * and will result in a full table scan unless there's another where clause that uses an index.
  * 
  * DON'T USE:
- *  Q2: Select * from jobs where where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
+ *  Q2: Select * from jobs where exec_system_constraints -> 'execSystemConstraints' @> '[{"key": "key1"}]'
  * 
  * Alternate Approach (not implemented)
  * ------------------------------------
@@ -160,7 +159,13 @@ public final class JobsDao
     
     // Initialize Jobs Table Map with column name and type;
     public static final Map<String, String> JOB_REQ_DB_MAP = initializeJobFieldMap();
-    
+
+    // Limitation of max tags field length in bytes
+    public static final int MAX_TAGS_LENGTH_BYTES = 128 * 1_024;
+
+    // Limitation of max notes field length in bytes
+    public static final int MAX_NOTES_LENGTH_BYTES = 128 * 1_024;
+
     /* ********************************************************************** */
     /*                                 Enums                                  */
     /* ********************************************************************** */
@@ -189,7 +194,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* getJobs:                                                               */
 	/* ---------------------------------------------------------------------- */
-	public List<Job> getJobs()
+	public List<Job> getJobs() 
 	  throws JobException
 	{
 	    // Initialize result.
@@ -269,9 +274,9 @@ public final class JobsDao
 	          String sql = SqlStatements.SELECT_JOBS_BY_USERNAME;
 	          String orderBy="";
 	          int listsize = orderByList.size();
-	         
+
 	          for (int i = 0;i < listsize; i++) {
-	              
+
 	        	  if (orderBy.isBlank()) {
 	        		  orderBy = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
 	        	  } else {
@@ -405,7 +410,7 @@ public final class JobsDao
       	if(searchList != null) {
       		whereCondition = addSearchListToWhere(whereCondition, searchList);
       	}
-      	List<OrderField> orderList = new ArrayList<OrderField>();
+      	List<OrderField> orderList = new ArrayList<>();
       	if(orderByList != null) {
       		for(int i = 0;i < listsize; i++) {
             	String attr = SearchUtils.camelCaseToSnakeCase(orderByList.get(i).getOrderByAttr());
@@ -848,8 +853,8 @@ public final class JobsDao
 	/*  all attributes                                                        */
 	/* ---------------------------------------------------------------------- */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList,
-                                                             List<OrderBy> orderByList, Integer limit, Integer skip, boolean shared)
+	public List<Job> getJobSearchAllAttributesByUsername(String username, String tenant, List<String>searchList, 
+			List<OrderBy> orderByList,Integer limit, Integer skip, boolean shared) 
 	  throws TapisException
 	{
 	    // Initialize result.
@@ -1278,8 +1283,7 @@ public final class JobsDao
 	/* ---------------------------------------------------------------------- */
 	/* createJob:                                                             */
 	/* ---------------------------------------------------------------------- */
-	public void createJob(Job job)
-      throws TapisException
+	public Job createJob(ResourceRequestUser rUser, Job job) throws TapisException
 	{
         // ------------------------- Complete Input ----------------------
         // Fill in Job fields that we assure.
@@ -1293,9 +1297,10 @@ public final class JobsDao
         // Make sure notes is filled in as a JsonObject.
         JsonObject notesObj = Job.DEFAULT_NOTES;
         if (job.getNotes() != null) notesObj = (JsonObject) job.getNotes();
+        job.setNotes(notesObj);
 
         // ------------------------- Check Input -------------------------
-        // Exceptions can be throw from here.
+        // Exceptions can be thrown from here.
         validateNewJob(job);
 	
         // ------------------------- Call SQL ----------------------------

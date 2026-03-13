@@ -9,24 +9,61 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
-## 1.9.1 - 2025-08-29
+## 26Q1.? - 2026-??-??
 
 Enhancement, incremental improvements and bug fix.
 WIP: already done: return top level notes attr as json rather than a string with json embedded.
 Other attrs to convert: parameterSet, subscriptions, fileInputs,
 The others will take longer than the work on notes.
 
-Log messages specific to Jobs service moved from shared catalog to a local catalog in the repository.
-
 ### New features:
-- Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
 4. TODO: When fetching a job via the getJob endpoint the json type for some of the complex attributes are returned as strings
    with embedded json. The attributes treated this way are *fileInputs*, *parameterSet*, *subscriptions* and *notes*.
    These attributes are now returned as json type *object* instead of type *string*. So now the data will be returned
    as standard json making it easier to view and process.
 
 ### Bug fixes:
+- None?
+
+## 26Q1.0 - 2026-03-03
+
+Refactor logging. Reduce logging of SQL activity and detailed servlet request and response information.
+Add log messages providing information previously only available in the trace SQL logging.
+
+### New features:
+- Add support for merging in of *SchedulerOptions* defined as part of a *LogicalQueue* for a system.
+
+### Bug fixes:
+- None.
+
+---------------------------------------------------------------------------
+## 25Q4.1 - 2025-11-20
+
+Enhancement and bug fix.
+
+### New features:
+- Improve handling of potentially slow startup of rabbitmq message broker.
+
+### Bug fixes:
+- Fix issue with auditing where some messages logged with same GUID.
+
+---------------------------------------------------------------------------
+## 25Q4.0 - 2025-10-20
+
+Enhancements, incremental improvements and bug fixes.
+
+Log messages specific to Jobs service moved from shared catalog to a local catalog in the repository.
+Note that user of ArchiveOnAppError attribute is deprecated. It is being replaced with ArchiveMode.
+
+### New features:
+- New endpoints to support updating *tags* and *notes* for a job: *patchJobAnnotations* and *putJobAnnotations*.
+- Add check for restricted services. Each authenticated endpoint now checks that an incoming service request is allowed.
+- Return top level notes attribute as a json attribute rather than a string with json embedded.
+- Add attribute *archiveMode* to replace attribute *archiveOnAppError*. Three modes: ALWAYS, SKIP_ON_FAIL, NEVER
+
+### Bug fixes:
 - Fix issue with recovery from BLOCKED state. Incorrect error messages and not all authentication methods handled properly.
+- Fix issue with endpoint *getJobOutputDownload*. Error when downloading zipped output when it is less than one GB. 
 
 -----------------------
 ## 1.9.0 - 2025-06-23

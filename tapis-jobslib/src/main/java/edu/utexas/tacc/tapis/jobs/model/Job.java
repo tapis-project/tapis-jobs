@@ -25,7 +25,6 @@ import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
 import edu.utexas.tacc.tapis.shared.uuid.TapisUUID;
 import edu.utexas.tacc.tapis.shared.uuid.UUIDType;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 public final class Job
 {
@@ -39,6 +38,7 @@ public final class Job
   public static final int DEFAULT_MAX_MINUTES = 10;
   public static final int MAX_LAST_MESSAGE_LEN = 16384;
   public static final Boolean DEFAULT_ARCHIVE_ON_APP_ERROR = Boolean.TRUE;
+  public static final ArchiveModeEnum DEFAULT_ARCHIVE_MODE = ArchiveModeEnum.ALWAYS;
   public static final Boolean DEFAULT_DYNAMIC_EXEC_SYSTEM = Boolean.FALSE;
   public static final String EMPTY_JSON = "{}";
   public static final String EMPTY_JSON_ARRAY = "[]";
@@ -181,9 +181,10 @@ public final class Job
     private String   			uuid;
     private String   			appId;
     private String   			appVersion;
-    
-    private boolean  			archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
-    private boolean             dynamicExecSystem = DEFAULT_DYNAMIC_EXEC_SYSTEM;
+
+    private boolean         archiveOnAppError = DEFAULT_ARCHIVE_ON_APP_ERROR;
+    private ArchiveModeEnum archiveMode = DEFAULT_ARCHIVE_MODE;
+    private boolean       dynamicExecSystem = DEFAULT_DYNAMIC_EXEC_SYSTEM;
     
     private String   			execSystemId;
     private String   			execSystemExecDir;
@@ -256,20 +257,22 @@ public final class Job
     
     // Store a reference to the execution context as soon as the worker 
     // creates the context in TenantQueueProcessor.
-    @Schema(hidden = true)
     private transient JobExecutionContext _jobCtx;
     
     // The parsed version of the fileInputs json string cached for future use. 
-    @Schema(hidden = true)
     private List<JobFileInput>      _fileInputsSpec;
     
     // Only one command at a time is stored, so there's the possibility
     // of an unread command being overwritten, but sending multiple
     // asynchronous commands to a job is indeterminate anyway. The field
     // contains the last unread asynchronous message sent to this job.
-    @Schema(hidden = true)
     private final transient AtomicReference<CmdMsg> _cmdMsg = new AtomicReference<>(null);
-    
+
+    // ************************************************************************
+    // *********************** Enums ******************************************
+    // ************************************************************************
+    public enum ArchiveModeEnum  {ALWAYS, SKIP_ON_FAIL, NEVER}
+
     /* **************************************************************************** */
     /*                                 Constructors                                 */
     /* **************************************************************************** */
@@ -299,8 +302,7 @@ public final class Job
     /* ---------------------------------------------------------------------------- */
     /* getFileInputsSpec:                                                           */
     /* ---------------------------------------------------------------------------- */
-    @Schema(hidden = true)
-    public List<JobFileInput> getFileInputsSpec() 
+    public List<JobFileInput> getFileInputsSpec()
     {
         // Cache a version of the input spec if it doesn't exist.
         if (_fileInputsSpec == null) {
@@ -320,7 +322,6 @@ public final class Job
      * @return true if the archive and output directories are same on the same system,
      *         false otherwise
      */
-    @Schema(hidden = true)
     public boolean isArchiveSameAsOutput()
     {
         // Don't blow up if called before job is initialized.
@@ -348,7 +349,6 @@ public final class Job
      * @return true if the archive and exec directories are same on the same system,
      *         false otherwise
      */
-    @Schema(hidden = true)
     public boolean isArchiveSameAsExec()
     {
         // Don't blow up if called before job is initialized.
@@ -390,7 +390,6 @@ public final class Job
      * 
      * @return the empty string or either the mpiCmd or cmdPrefix with a trailing space
      */
-    @Schema(hidden = true)
     public String getMpiOrCmdPrefixPadded()
     {
         if (isMpi) return mpiCmd + " ";
@@ -407,7 +406,6 @@ public final class Job
      * 
      * @throws JobException on invalid job content
      */
-    @Schema(hidden = true)
     public void validateForExecution()
      throws JobException
     {
@@ -589,7 +587,6 @@ public final class Job
      * 
      * @return the total number of processors requested across all nodes
      */
-    @Schema(hidden = true)
     public int getTotalTasks()
     {
         return coresPerNode * nodeCount;
@@ -663,7 +660,6 @@ public final class Job
 		this.lastMessage = lastMessage;
 	}
 
-	@Schema(type = "string")
 	public Instant getCreated() {
 		return created;
 	}
@@ -672,7 +668,6 @@ public final class Job
 		this.created = created;
 	}
 
-	@Schema(type = "string")
 	public Instant getEnded() {
 		return ended;
 	}
@@ -681,7 +676,6 @@ public final class Job
 		this.ended = ended;
 	}
 
-	@Schema(type = "string")
 	public Instant getLastUpdated() {
 		return lastUpdated;
 	}
@@ -729,6 +723,14 @@ public final class Job
 	public void setArchiveOnAppError(boolean archiveOnAppError) {
 		this.archiveOnAppError = archiveOnAppError;
 	}
+
+  public ArchiveModeEnum getArchiveMode() {
+    return archiveMode;
+  }
+
+  public void setArchiveMode(ArchiveModeEnum archiveMode) {
+    this.archiveMode = archiveMode;
+  }
 
 	public boolean isDynamicExecSystem() {
 		return dynamicExecSystem;
@@ -930,7 +932,6 @@ public final class Job
 		this.remoteQueue = remoteQueue;
 	}
 
-	@Schema(type = "string")
 	public Instant getRemoteSubmitted() {
 		return remoteSubmitted;
 	}
@@ -939,7 +940,6 @@ public final class Job
 		this.remoteSubmitted = remoteSubmitted;
 	}
 
-	@Schema(type = "string")
 	public Instant getRemoteStarted() {
 		return remoteStarted;
 	}
@@ -948,7 +948,6 @@ public final class Job
 		this.remoteStarted = remoteStarted;
 	}
 
-	@Schema(type = "string")
 	public Instant getRemoteEnded() {
 		return remoteEnded;
 	}
@@ -981,7 +980,6 @@ public final class Job
 		this.remoteChecksFailed = remoteChecksFailed;
 	}
 
-	@Schema(type = "string")
 	public Instant getRemoteLastStatusCheck() {
 		return remoteLastStatusCheck;
 	}
@@ -1168,28 +1166,23 @@ public final class Job
     }
 
     // Get the current cmdMsg value and atomically set the field to null.
-    @Schema(hidden = true)
     public CmdMsg getAndSetCmdMsg() {
         return _cmdMsg.getAndSet(null);
     }
     
     // Get the current cmdMsg value and atomically set the field to a new value.
-    @Schema(hidden = true)
     public CmdMsg getAndSetCmdMsg(CmdMsg cmdMsg) {
         return _cmdMsg.getAndSet(cmdMsg);
     }
 
-    @Schema(hidden = true)
     public void setCmdMsg(CmdMsg cmdMsg) {
         _cmdMsg.set(cmdMsg);
     }
 
-    @Schema(hidden = true)
     public JobExecutionContext getJobCtx() {
         return _jobCtx;
     }
 
-    @Schema(hidden = true)
     public void setJobCtx(JobExecutionContext jobCtx) {
         this._jobCtx = jobCtx;
     }

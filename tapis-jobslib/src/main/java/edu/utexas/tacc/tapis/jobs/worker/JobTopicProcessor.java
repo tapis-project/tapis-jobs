@@ -177,9 +177,7 @@ final class JobTopicProcessor
       if (_log.isDebugEnabled())
           _log.debug(JobUtils.getMsg("JOBS_WORKER_CMD_RECEIVED", getProcessorName(),
                                      TapisUtils.toString(cmd)));
-      
-      // TODO:  process jobstatus cmd
-      
+      // NOTE:  needs implementing. See github issue: https://github.com/tapis-project/tapis-jobs/issues/167
       return true;
   }
   

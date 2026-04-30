@@ -200,8 +200,8 @@ public final class Job
     /* ---------------------------------------------------------------------------- */
     /* toString:                                                                    */
     /* ---------------------------------------------------------------------------- */
-// TODO    @Override
-//    public String toString() {return TapisUtils.toString(this);}
+    @Override
+    public String toString() {return TapisUtils.toString(this);}
 
     /* ---------------------------------------------------------------------------- */
     /* getFileInputsSpec:                                                           */

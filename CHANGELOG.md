@@ -8,6 +8,16 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
+## 26Q1.1 - 2026-04-30
+
+Skip fetch and mkdir for *archiveSystem* if *archiveMode* is NEVER.
+
+### New features:
+- None. 
+
+### Bug fixes:
+- None.
+
 ## 26Q1.0 - 2026-03-03
 
 Refactor logging. Reduce logging of SQL activity and detailed servlet request and response information.

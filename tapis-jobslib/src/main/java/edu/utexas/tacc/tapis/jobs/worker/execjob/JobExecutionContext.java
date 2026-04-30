@@ -292,10 +292,10 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     public void archiveOutputs() throws TapisException, TapisClientException
     {
-      // If archiving turned off return now.
-      if (getJobFileManager().isArchivingOff())
+      // If archiving not happening during archiving process then return now.
+      if (getJobFileManager().isArchivingOffDuringArchivePhase())
       {
-        _log.info(JobUtils.getMsg("JOBS_JOBQ_ARCHIVE_OFF", _job.getUuid(), _job.getStatus(), _job.getArchiveMode().name()));
+        _log.info(JobUtils.getMsg("JOBS_JOBQ_ARCHIVE_OFF", _job.getUuid(), _job.getArchiveMode().name(), _job.getStatus()));
         return;
       }
       // Load the exec, archive and dtn systems now
@@ -772,7 +772,8 @@ public final class JobExecutionContext
         // Load the jobs systems to force any exceptions
         // to be surfaced at this point.
         getExecutionSystem();
-        getArchiveSystem();
+        // Skip fetch of archiveSys if ArchiveMode is NEVER
+        if (!Job.ArchiveModeEnum.NEVER.equals(_job.getArchiveMode())) getArchiveSystem();
         getDtnSystem();
     }
 }

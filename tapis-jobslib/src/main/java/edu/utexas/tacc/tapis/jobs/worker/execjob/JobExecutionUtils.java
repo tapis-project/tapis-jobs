@@ -155,10 +155,6 @@ public final class JobExecutionUtils
             try {
             	JobCanceler canceler = JobCancelerFactory.getInstance(jobCtx);
             	canceler.cancel();
-                // We never know if the attack worked.
-                /*JobKiller killer = JobKillerFactory.getInstance(jobCtx);
-                killer.attack();
-                */
             } catch (Exception e) {
                 _log.warn(JobUtils.getMsg("JOBS_CMD_KILL_ERROR", job.getUuid(), e.getMessage()));
             }

@@ -217,21 +217,20 @@ public final class RecoveryManager
     /* ---------------------------------------------------------------------- */
     /* cancelRecovery:                                                        */
     /* ---------------------------------------------------------------------- */
-    /** Remove the job specified in the input message from recovery. If the 
+    /**
+     * Remove the job specified in the input message from recovery. If the
      * job's recovery is cancelled, return true, otherwise return false.
      * 
      * This method runs on a short-lived thread and runs concurrent to the
      * main recovery thread.  Since cancellation requires reading and 
-     * writing the recovery data structures, this method run a in mutually
+     * writing the recovery data structures, this method runs in a mutually
      * exclusive way to all other recovery threads.
      * 
      * NOTE: We don't try to kill the actual job on the remote system, we
      *       just clean up our persistent and in-memory data structures.
      *       Jobs that are queued or running on the remote system probably
      *       won't get blocked, so there's no point in trying to kill them.
-     *       If this approach becomes undesirable, see AbstractJobKiller
-     *       for ideas on how to kill a job.
-     * 
+     *
      * @param cancelMsg asynchronous message to cancel a job's recovery 
      * @return true if recovery is cancelled, false otherwise
      */

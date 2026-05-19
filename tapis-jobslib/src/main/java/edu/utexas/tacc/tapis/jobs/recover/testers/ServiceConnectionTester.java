@@ -28,7 +28,7 @@ extends AbsTester
    
    // Source identity.
    private static final String USER   = "jobs-recovery";
-   private static final String TENANT = "none";
+   private static final String DEFAULT_TENANT = "none";
    private static final String TRACKING_ID = ServiceClients.NOT_TRACKING;
    
    // Health check success state.
@@ -69,15 +69,18 @@ extends AbsTester
        // An exception can be thrown here.
        validateTesterParameters(testerParameters);
        
+       // Use the recovery tenant when available. Fallback to the legacy tenant.
+       String tenantId = StringUtils.defaultIfBlank(_jobRecovery.getTenantId(), DEFAULT_TENANT);
+       
        // Get the client class
        Object client;
-       try {client = ServiceClients.getInstance().getClient(USER, TENANT, TRACKING_ID, _serviceName);}
+       try {client = ServiceClients.getInstance().getClient(USER, tenantId, TRACKING_ID, _serviceName);}
        catch (Exception e) {
-           String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, TENANT, USER);
+           String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, tenantId, USER);
            throw new JobRecoveryAbortException(msg, e);
        }  
        if (client == null) {
-           String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, TENANT, USER);
+           String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, tenantId, USER);
            throw new JobRecoveryAbortException(msg);
        }
        

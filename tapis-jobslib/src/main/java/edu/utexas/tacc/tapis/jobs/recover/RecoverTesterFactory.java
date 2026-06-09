@@ -66,7 +66,7 @@ public class RecoverTesterFactory
     /* ---------------------------------------------------------------------- */
     /** Return a new tester instance based on the tester type.
      * 
-     * @param testerType the type of tester needed
+     * @param jobRecovery recovery record
      * @return a new tester instance
      * @throws JobException on unknown tester types
      */

@@ -8,8 +8,6 @@ import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 /**
- * TODO Should we add archiveSystem here? seems like that would be convenient, at least for the mkdir's that happen.
- *
  *  During job execution the Jobs service uses three main directories for input and output:
  * 
  *  - the execution asset directory

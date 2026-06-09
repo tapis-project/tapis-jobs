@@ -27,7 +27,7 @@
     </scm>
 
     <properties>
-      <revision>26Q2.0</revision>
+      <revision>26Q2.1</revision>
       <!-- Most properties set in parent tapis-bom   -->
       <!-- Properties can be overridden here         -->
       <!-- Individual projects may want to override. -->

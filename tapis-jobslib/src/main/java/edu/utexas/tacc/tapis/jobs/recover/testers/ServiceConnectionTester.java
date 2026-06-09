@@ -28,7 +28,6 @@ extends AbsTester
    
    // Source identity.
    private static final String USER   = "jobs-recovery";
-   private static final String TENANT = "none";
    private static final String TRACKING_ID = ServiceClients.NOT_TRACKING;
    
    // Health check success state.
@@ -71,13 +70,21 @@ extends AbsTester
        
        // Get the client class
        Object client;
-       try {client = ServiceClients.getInstance().getClient(USER, TENANT, TRACKING_ID, _serviceName);}
+       String tenant = _jobRecovery.getTenantId();
+       // If no tenant it is a fatal error
+       if (StringUtils.isBlank(tenant))
+       {
+         String msg = MsgUtils.getMsg("TAPIS_NULL_PARAMETER", "ServiceConnectionTester.canUnblock", "jobRecovery.tenantId");
+         _log.error(msg);
+         throw new JobRecoveryAbortException(msg);
+       }
+       try {client = ServiceClients.getInstance().getClient(USER, tenant, TRACKING_ID, _serviceName);}
        catch (Exception e) {
-           String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, TENANT, USER);
+           String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, tenant, USER);
            throw new JobRecoveryAbortException(msg, e);
        }  
        if (client == null) {
-           String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, TENANT, USER);
+           String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, tenant, USER);
            throw new JobRecoveryAbortException(msg);
        }
        

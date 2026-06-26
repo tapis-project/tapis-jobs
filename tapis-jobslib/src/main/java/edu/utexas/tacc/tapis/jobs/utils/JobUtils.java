@@ -17,6 +17,10 @@ import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
+
 import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobException;
 import edu.utexas.tacc.tapis.jobs.exceptions.JobInputException;
@@ -25,6 +29,7 @@ import edu.utexas.tacc.tapis.jobs.exceptions.runtime.JobAsyncCmdException;
 import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventCategoryFilter;
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobEventType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
 import edu.utexas.tacc.tapis.jobs.queue.messages.recover.JobRecoverMsg;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
 import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionUtils;
@@ -597,5 +602,46 @@ public final class JobUtils
       String msg = JobUtils.getMsg("JOBS_JOB_UPDATE_ERROR", jobUuid, tenant, user, sqle.getMessage());
       _log.error(msg, sqle);
       return new JobException(msg, sqle);
+  }
+
+  /*
+   * Check that we support cancel for a given combination of jobType, runtime and scheduler
+   * There are six combinations of jobType and runtimeType:
+   *     jobType x runtimeType = (FORK, BATCH) x (DOCKER, SINGULARITY, ZIP)
+   *  The only combination that Jobs does not support is BATCH-DOCKER
+   *  The only schedulerType supported (for BATCH) is slurm.
+   *  If not supported return a message, else return null.
+   */
+  public static String checkCancelSupported(JobType jobType, RuntimeEnum runtime, SchedulerTypeEnum schedulerType,
+                                            String jobUuid)
+  {
+    String msg;
+    // Check that we support the AppType (aka JobType), must be FORK or BATCH
+    if (!JobType.FORK.equals(jobType) && !JobType.BATCH.equals(jobType))
+    {
+      // This should have been rejected by checkCancelSupported call. But just in case we get this far.
+      msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobUuid, jobType, "JobUtils.checkCancelSupported");
+      return msg;
+    }
+
+    // Check that for BATCH jobs the scheduler is slurm
+    if (JobType.BATCH.equals(jobType) && !SchedulerTypeEnum.SLURM.equals(schedulerType))
+    {
+      msg = JobUtils.getMsg("JOBS_UNSUPPORTED_SCHEDULER_TYPE", jobUuid, schedulerType.name());
+      return msg;
+    }
+
+      // Check that we support the runtimeType (aka JobType)
+//        // TODO not needed, all cases covered. move check to checkCancelSupported. If enum added -> compile error
+//        default ->
+//          {
+//            // This should have been rejected at the front-end, but just in case we get this far.
+//            // For example, someone might add a new enum and forget to update this code.
+//            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_RUNTIME", runtime, "JobCancelerFactory");
+//            throw new JobException(msg);
+//          }
+
+
+    return null;
   }
 }

@@ -18,12 +18,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.utexas.tacc.tapis.apps.client.gen.model.RuntimeEnum;
+import edu.utexas.tacc.tapis.apps.client.gen.model.TapisApp;
 import edu.utexas.tacc.tapis.jobs.api.responses.RespCancelJob;
 import edu.utexas.tacc.tapis.jobs.api.utils.JobsApiUtils;
+import edu.utexas.tacc.tapis.jobs.dao.JobsDao;
 import edu.utexas.tacc.tapis.jobs.impl.JobsImpl;
-import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.model.dto.JobCancelDisplay;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobType;
+import edu.utexas.tacc.tapis.jobs.model.Job;
 import edu.utexas.tacc.tapis.jobs.utils.JobUtils;
+import edu.utexas.tacc.tapis.jobs.worker.execjob.JobExecutionContext;
+import edu.utexas.tacc.tapis.shared.exceptions.TapisException;
 import edu.utexas.tacc.tapis.shared.exceptions.TapisImplException;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.threadlocal.TapisThreadContext;
@@ -33,6 +39,8 @@ import edu.utexas.tacc.tapis.sharedapi.responses.results.ResultName;
 import edu.utexas.tacc.tapis.sharedapi.security.AuthenticatedUser;
 import edu.utexas.tacc.tapis.sharedapi.security.ResourceRequestUser;
 import edu.utexas.tacc.tapis.sharedapi.utils.TapisRestUtils;
+import edu.utexas.tacc.tapis.systems.client.gen.model.SchedulerTypeEnum;
+import edu.utexas.tacc.tapis.systems.client.gen.model.TapisSystem;
 
 @Path("/")
 public class JobCancelResource extends AbstractResource {
@@ -100,6 +108,7 @@ public class JobCancelResource extends AbstractResource {
      public Response cancelJob(@PathParam("jobUuid") String jobUuid)
      {
        String opName = "cancelJob";
+       String msg;
        // ------------------------- Retrieve and validate thread context -------------------------
        Response resp = JobsApiUtils.checkContext(TapisThreadLocal.tapisThreadContext.get());
        if (resp != null) return resp;
@@ -114,7 +123,7 @@ public class JobCancelResource extends AbstractResource {
 
        // ------------------------- Input Processing -------------------------
        if (StringUtils.isBlank(jobUuid)) {
-         String msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
+         msg = JobUtils.getMsgAuth("JOBS_MISSING_PARAMETER", rUser, "jobUuid");
          _log.error(msg);
          return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg)).build();
        }
@@ -126,9 +135,7 @@ public class JobCancelResource extends AbstractResource {
        Job job = null;
        var jobsImpl = JobsImpl.getInstance();
        try {
-           
-           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(),
-                                       threadContext.getOboTenantId());
+           job = jobsImpl.getJobByUuid(jobUuid, threadContext.getOboUser(), threadContext.getOboTenantId());
        }
        catch (TapisImplException e) {
            _log.error(e.getMessage());
@@ -157,11 +164,42 @@ public class JobCancelResource extends AbstractResource {
     	   ResultName missingName = new ResultName();
            missingName.name = jobUuid;
            RespName r = new RespName(missingName);
-           String msg = JobsApiUtils.getMsgAuth("JOBSAPI_IN_TERM_STATE", rUser, jobUuid, job.getStatus());
+           msg = JobsApiUtils.getMsgAuth("JOBSAPI_IN_TERM_STATE", rUser, jobUuid, job.getStatus());
            _log.warn(msg);
     	   return Response.status(Status.CONFLICT).entity(TapisRestUtils.createErrorResponse(msg, r)).build();
        }
-       
+
+       // If cancelling this type of job is not supported then reject the request here.
+       // See also JobCancelerFactory
+       // Extract required information from app and job.
+       JobExecutionContext jobCtx;
+       TapisApp app;
+       TapisSystem system;
+       // Wrap calls that can throw TapisException, return 500 on exception
+       try
+       {
+         jobCtx = new JobExecutionContext(job, new JobsDao());
+         app = jobCtx.getApp();
+         system = jobCtx.getExecutionSystem();
+       }
+       catch (TapisException te)
+       {
+         msg = JobUtils.getMsgAuth("JOBS_CANCEL_OP_ERR", rUser, jobUuid, te.getMessage());
+         _log.error(msg);
+         return Response.status(Status.INTERNAL_SERVER_ERROR).entity(TapisRestUtils.createErrorResponse(msg)).build();
+       }
+       RuntimeEnum runtime = app.getRuntime();
+       JobType jobType = job.getJobType();
+       SchedulerTypeEnum schedulerType = system.getBatchScheduler();
+       // Check that we support cancel for this type of job. If not, return 400.
+       msg = JobUtils.checkCancelSupported(jobType, runtime, schedulerType, jobUuid);
+       if (!StringUtils.isBlank(msg))
+       {
+         String msg2 = JobUtils.getMsgAuth("JOBS_UNSUPPORTED_CANCEL_OP_API", rUser, msg);
+         _log.error(msg2);
+         return Response.status(Status.BAD_REQUEST).entity(TapisRestUtils.createErrorResponse(msg2)).build();
+       }
+
        //------------------------- Cancel the Job  -----------------------------
        // initiate the cancellation.
        if (!jobsImpl.doCancelJob(jobUuid, threadContext))
@@ -171,7 +209,7 @@ public class JobCancelResource extends AbstractResource {
        // ---------------------------- Success -------------------------------
        // Success.
        JobCancelDisplay cancelMsg = new JobCancelDisplay();
-       String msg = JobUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED", jobUuid);
+       msg = JobUtils.getMsg("JOBS_JOB_CANCEL_ACCEPTED", jobUuid);
        cancelMsg.setMessage(msg);
        
        RespCancelJob r = new RespCancelJob(cancelMsg); 

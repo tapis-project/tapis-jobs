@@ -531,8 +531,7 @@ public final class JobExecutionContext
      */
     public boolean checkForCancelBeforeRecovery()
     {
-        // See if there the job received a cancel message
-        // and reset the job's message field to null.
+        // See if the job received a cancel message and reset the job's message field to null.
         CmdMsg cmdMsg = _job.getAndSetCmdMsg();
         if (cmdMsg == null || cmdMsg.msgType != CmdType.JOB_CANCEL) return false; 
         

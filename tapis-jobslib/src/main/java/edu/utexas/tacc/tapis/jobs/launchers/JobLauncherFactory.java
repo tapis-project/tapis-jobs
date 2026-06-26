@@ -28,6 +28,7 @@ public class JobLauncherFactory
         var app = jobCtx.getApp();
         var runtime = app.getRuntime();
         var jobType = jobCtx.getJob().getJobType();
+        String jobUuid = jobCtx.getJob().getUuid();
         
         // The result.
         JobLauncher launcher = null;
@@ -72,7 +73,7 @@ public class JobLauncherFactory
             };
         }
         else {
-            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobLauncherFactory");
+            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobUuid, jobType, "JobLauncherFactory");
             throw new JobException(msg);
         }
 

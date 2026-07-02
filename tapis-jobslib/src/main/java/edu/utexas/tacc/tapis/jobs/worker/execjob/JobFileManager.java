@@ -94,7 +94,7 @@ public final class JobFileManager
 
     // MKDIR retries. Total number of attempts and interval between retries in milliseconds
     private static final int MKDIR_RETRY_ATTEMPTS = 3;
-    private static final int MKDIR_RETRY_INTERVAL_MS = 3000;
+    private static final int MKDIR_RETRY_INTERVAL_MS = 10000;
 
     /* ********************************************************************** */
     /*                                Enums                                   */

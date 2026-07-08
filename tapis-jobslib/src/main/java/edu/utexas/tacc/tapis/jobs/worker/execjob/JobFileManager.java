@@ -91,7 +91,11 @@ public final class JobFileManager
     // Placeholder values used in URLs for DTN support. 
     private static final String SYSTEM_PLACEHOLER = "{SYSTEM_PLACEHOLER}";
     private static final String PATH_PLACEHOLER   = "{PATH_PLACEHOLER}";
-    
+
+    // MKDIR retries. Total number of attempts and interval between retries in milliseconds
+    private static final int MKDIR_RETRY_ATTEMPTS = 3;
+    private static final int MKDIR_RETRY_INTERVAL_MS = 10000;
+
     /* ********************************************************************** */
     /*                                Enums                                   */
     /* ********************************************************************** */
@@ -163,10 +167,9 @@ public final class JobFileManager
         // Create a set to that records the directories already created.
         var createdSet = new HashSet<String>();
         
-        // Initialize an audit object if auditing is enabled. Set the fields
-        // that are the same for all directories.  Only the target* fields will
-        // change for each mkdir call, so as long as they are all assigned on
-        // each mkdir call, we can safely reuse the same auditData object.
+        // Initialize an audit object if auditing is enabled. Set the fields that are the same for all directories.
+        // Only the target fields will change for each mkdir call, so as long as they are all assigned on each mkdir
+        // call, we can safely reuse the same auditData object.
         AuditData auditData = null;
         if (RuntimeParameters.getInstance().isAuditingEnabled()) {
         	auditData = JobWorkerAudit.getAuditData(_job, AUDIT_ACTION.ACTION_MKDIR);
@@ -174,181 +177,132 @@ public final class JobFileManager
         
         // ---------------------- Exec System Exec Dir ----------------------
         // Create the directory on the system.
-        try {
-            filesClient.mkdir(ioTargets.getExecTarget().systemId, 
-                              ioTargets.getExecTarget().dir, _shareExecSystemExecDirAppOwner);
-            // Optional auditing.
-            if (auditData != null) {
-            	auditData.targetSystemId = ioTargets.getExecTarget().systemId;
-            	auditData.targetPath = ioTargets.getExecTarget().dir;
-            	auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
-            	auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
-            	_audit.info(AuditUtils.auditMsg(auditData));
-            }
-        } catch (TapisClientException e) {
-            String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
-                                         ioTargets.getExecTarget().host,
-                                         _job.getOwner(), _job.getTenant(),
-                                         ioTargets.getExecTarget().dir, e.getCode());
-            throw new TapisImplException(msg, e, e.getCode());
+        // This is the first attempt for execSystem, include retry.
+        mkdirWithRetry(filesClient, ioTargets.getExecTarget(), _shareExecSystemExecDirAppOwner, MKDIR_RETRY_ATTEMPTS);
+        // Optional auditing.
+        if (auditData != null) {
+          auditData.targetSystemId = ioTargets.getExecTarget().systemId;
+          auditData.targetPath = ioTargets.getExecTarget().dir;
+          auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
+          auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
+          _audit.info(AuditUtils.auditMsg(auditData));
         }
-        
         // Save the created directory key to avoid attempts to recreate it.
-        createdSet.add(getDirectoryKey(ioTargets.getExecTarget().systemId, 
-                                       ioTargets.getExecTarget().dir));
+        createdSet.add(getDirectoryKey(ioTargets.getExecTarget().systemId, ioTargets.getExecTarget().dir));
         
         // ---------------------- Exec System Output Dir ----------------- 
         // See if the output dir is the same as the exec dir.
-        var execSysOutputDirKey = getDirectoryKey(ioTargets.getOutputTarget().systemId, 
+        var execSysOutputDirKey = getDirectoryKey(ioTargets.getOutputTarget().systemId,
                                                   ioTargets.getOutputTarget().dir);
-        if (!createdSet.contains(execSysOutputDirKey)) {
-            // Create the directory on the system.
-            try {
-                filesClient.mkdir(ioTargets.getOutputTarget().systemId, 
-                                  _job.getExecSystemOutputDir(), _shareExecSystemOutputDirAppOwner);
-                // Optional auditing.
-                if (auditData != null) {
-                	auditData.targetSystemId = ioTargets.getOutputTarget().systemId;
-                	auditData.targetPath = _job.getExecSystemOutputDir();
-                	auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
-                	auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
-                	_audit.info(AuditUtils.auditMsg(auditData));
-                }
-            } catch (TapisClientException e) {
-                String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
-                                             ioTargets.getOutputTarget().host,
-                                             _job.getOwner(), _job.getTenant(),
-                                             ioTargets.getOutputTarget().dir, e.getCode());
-                throw new TapisImplException(msg, e, e.getCode());
-            }
-            
-            // Save the created directory key to avoid attempts to recreate it.
-            createdSet.add(execSysOutputDirKey);
+        if (!createdSet.contains(execSysOutputDirKey))
+        {
+          // Create the directory on the system.
+          mkdirWithRetry(filesClient, ioTargets.getOutputTarget(), _shareExecSystemOutputDirAppOwner, 1);
+          // Optional auditing.
+          if (auditData != null)
+          {
+            auditData.targetSystemId = ioTargets.getOutputTarget().systemId;
+            auditData.targetPath = _job.getExecSystemOutputDir();
+            auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
+            auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
+            _audit.info(AuditUtils.auditMsg(auditData));
+          }
+          // Save the created directory key to avoid attempts to recreate it.
+          createdSet.add(execSysOutputDirKey);
         }
         
         // ---------------------- Exec System Input Dir ------------------ 
         // See if the input dir is the same as any previously created dir.
         var execSysInputDirKey = getDirectoryKey(ioTargets.getInputTarget().systemId, 
                                                  ioTargets.getInputTarget().dir);
-        if (!createdSet.contains(execSysInputDirKey)) {
-            // Create the directory on the system.
-            try {
-                filesClient.mkdir(ioTargets.getInputTarget().systemId, 
-                                  ioTargets.getInputTarget().dir, _shareExecSystemInputDirAppOwner);
-                // Optional auditing.
-                if (auditData != null) {
-                	auditData.targetSystemId = ioTargets.getInputTarget().systemId;
-                	auditData.targetPath = ioTargets.getInputTarget().dir;
-                	auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
-                	auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
-                	_audit.info(AuditUtils.auditMsg(auditData));
-                }
-            } catch (TapisClientException e) {
-                String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
-                                             ioTargets.getInputTarget().host,
-                                             _job.getOwner(), _job.getTenant(),
-                                             ioTargets.getInputTarget().dir, e.getCode());
-                throw new TapisImplException(msg, e, e.getCode());
-            }
-            
-            // Save the created directory key to avoid attempts to recreate it.
-            createdSet.add(execSysInputDirKey);
+        if (!createdSet.contains(execSysInputDirKey))
+        {
+          // Create the directory on the system.
+          mkdirWithRetry(filesClient, ioTargets.getInputTarget(), _shareExecSystemOutputDirAppOwner, 1);
+          // Optional auditing.
+          if (auditData != null)
+          {
+            auditData.targetSystemId = ioTargets.getInputTarget().systemId;
+            auditData.targetPath = ioTargets.getInputTarget().dir;
+            auditData.targetHost = _jobCtx.getExecutionSystem().getHost();
+            auditData.targetSystemType = _jobCtx.getExecutionSystem().getSystemType().name();
+            _audit.info(AuditUtils.auditMsg(auditData));
+          }
+          // Save the created directory key to avoid attempts to recreate it.
+          createdSet.add(execSysInputDirKey);
         }
         
         // ---------------------- DTN System Input Dir ------------------- 
         // Most jobs don't use a dtn.
-        if (ioTargets.getDtnInputTarget() != null) {
-        	// See if the input dir is the same as any previously created dir.
-        	var dtnSysInputDirKey = getDirectoryKey(ioTargets.getDtnInputTarget().systemId, 
-                                                 	ioTargets.getDtnInputTarget().dir);
-        	if (!createdSet.contains(dtnSysInputDirKey)) {
-        		// Create the directory on the system.
-        		try {
-        			filesClient.mkdir(ioTargets.getDtnInputTarget().systemId, 
-                                 	  ioTargets.getDtnInputTarget().dir, _shareDtnSystemInputDirAppOwner);
-                    // Optional auditing.
-                    if (auditData != null) {
-                    	auditData.targetSystemId = ioTargets.getDtnInputTarget().systemId;
-                    	auditData.targetPath = ioTargets.getDtnInputTarget().dir;
-                    	auditData.targetHost = _jobCtx.getDtnSystem().getHost();
-                    	auditData.targetSystemType = _jobCtx.getDtnSystem().getSystemType().name();
-                    	_audit.info(AuditUtils.auditMsg(auditData));
-                    }
-        		} catch (TapisClientException e) {
-        			String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
-                                             	 ioTargets.getDtnInputTarget().host,
-                                             	 _job.getOwner(), _job.getTenant(),
-                                             	 ioTargets.getDtnInputTarget().dir, e.getCode());
-        			throw new TapisImplException(msg, e, e.getCode());
-        		}
-            
-        		// Save the created directory key to avoid attempts to recreate it.
-        		createdSet.add(dtnSysInputDirKey);
-        	}
+        if (ioTargets.getDtnInputTarget() != null)
+        {
+          // See if the input dir is the same as any previously created dir.
+          var dtnSysInputDirKey = getDirectoryKey(ioTargets.getDtnInputTarget().systemId, ioTargets.getDtnInputTarget().dir);
+          if (!createdSet.contains(dtnSysInputDirKey))
+          {
+            // Create the directory on the system.
+            // This is the first attempt for dtnSystem, include retry.
+            mkdirWithRetry(filesClient,ioTargets.getDtnInputTarget(), _shareDtnSystemInputDirAppOwner, MKDIR_RETRY_ATTEMPTS);
+            // Optional auditing.
+            if (auditData != null)
+            {
+              auditData.targetSystemId = ioTargets.getDtnInputTarget().systemId;
+              auditData.targetPath = ioTargets.getDtnInputTarget().dir;
+              auditData.targetHost = _jobCtx.getDtnSystem().getHost();
+              auditData.targetSystemType = _jobCtx.getDtnSystem().getSystemType().name();
+              _audit.info(AuditUtils.auditMsg(auditData));
+            }
+            // Save the created directory key to avoid attempts to recreate it.
+            createdSet.add(dtnSysInputDirKey);
+          }
         }
         
         // ---------------------- DTN System Output Dir ------------------ 
         // Most jobs don't use a dtn.
-        if (ioTargets.getDtnOutputTarget() != null) {
-        	// See if the output dir is the same as any previously created dir.
-        	var dtnSysOutputDirKey = getDirectoryKey(ioTargets.getDtnOutputTarget().systemId, 
-                                                 	ioTargets.getDtnOutputTarget().dir);
-        	if (!createdSet.contains(dtnSysOutputDirKey)) {
-        		// Create the directory on the system.
-        		try {
-        			filesClient.mkdir(ioTargets.getDtnOutputTarget().systemId, 
-                                 	  ioTargets.getDtnOutputTarget().dir, _shareDtnSystemOutputDirAppOwner);
-                    // Optional auditing.
-                    if (auditData != null) {
-                    	auditData.targetSystemId = ioTargets.getDtnOutputTarget().systemId;
-                    	auditData.targetPath = ioTargets.getDtnOutputTarget().dir;
-                    	auditData.targetHost = _jobCtx.getDtnSystem().getHost();
-                    	auditData.targetSystemType = _jobCtx.getDtnSystem().getSystemType().name();
-                    	_audit.info(AuditUtils.auditMsg(auditData));
-                    }
-        		} catch (TapisClientException e) {
-        			String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
-                                             	 ioTargets.getDtnOutputTarget().host,
-                                             	 _job.getOwner(), _job.getTenant(),
-                                             	 ioTargets.getDtnOutputTarget().dir, e.getCode());
-        			throw new TapisImplException(msg, e, e.getCode());
-        		}
-            
-        		// Save the created directory key to avoid attempts to recreate it.
-        		createdSet.add(dtnSysOutputDirKey);
-        	}
+        if (ioTargets.getDtnOutputTarget() != null)
+        {
+          // See if the output dir is the same as any previously created dir.
+          var dtnSysOutputDirKey = getDirectoryKey(ioTargets.getDtnOutputTarget().systemId, ioTargets.getDtnOutputTarget().dir);
+          if (!createdSet.contains(dtnSysOutputDirKey))
+          {
+            // Create the directory on the system.
+            mkdirWithRetry(filesClient,ioTargets.getDtnOutputTarget(), _shareDtnSystemOutputDirAppOwner, 1);
+            // Optional auditing.
+            if (auditData != null)
+            {
+              auditData.targetSystemId = ioTargets.getDtnOutputTarget().systemId;
+              auditData.targetPath = ioTargets.getDtnOutputTarget().dir;
+              auditData.targetHost = _jobCtx.getDtnSystem().getHost();
+              auditData.targetSystemType = _jobCtx.getDtnSystem().getSystemType().name();
+              _audit.info(AuditUtils.auditMsg(auditData));
+            }
+            // Save the created directory key to avoid attempts to recreate it.
+            createdSet.add(dtnSysOutputDirKey);
+          }
         }
         
         // ---------------------- Archive System Dir ---------------------
         // See if the archive dir is the same as any previously created dir.
         // There is no mkdir command on S3 systems, so we skip those systems.
         // If archiveMode set to NEVER we skip this
-        var archiveSysDirKey = getDirectoryKey(_job.getArchiveSystemId(), 
-                                               _job.getArchiveSystemDir());
+        var archiveSysDirKey = getDirectoryKey(_job.getArchiveSystemId(), _job.getArchiveSystemDir());
         if (!createdSet.contains(archiveSysDirKey) && 
             _jobCtx.getArchiveSystem().getSystemType() != SystemTypeEnum.S3 &&
             !Job.ArchiveModeEnum.NEVER.equals(_job.getArchiveMode()))
         {
-            // Create the directory on the system.
-            try {
-                var sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingArchiveSystemDirAppOwner();
-                filesClient.mkdir(_job.getArchiveSystemId(), 
-                                  _job.getArchiveSystemDir(), sharedAppCtx);
-                // Optional auditing.
-                if (auditData != null) {
-                	auditData.targetSystemId = _job.getArchiveSystemId();
-                	auditData.targetPath = _job.getArchiveSystemDir();
-                	auditData.targetHost = _jobCtx.getArchiveSystem().getHost();
-                	auditData.targetSystemType = _jobCtx.getArchiveSystem().getSystemType().name();
-                	_audit.info(AuditUtils.auditMsg(auditData));
-                }
-            } catch (TapisClientException e) {
-                String msg = MsgUtils.getMsg("FILES_REMOTE_MKDIRS_ERROR", 
-                                             _jobCtx.getArchiveSystem().getHost(),
-                                             _job.getOwner(), _job.getTenant(),
-                                             _job.getArchiveSystemDir(), e.getCode());
-                throw new TapisImplException(msg, e, e.getCode());
-            }
+          String sharedAppCtx = _jobCtx.getJobSharedAppCtx().getSharingArchiveSystemDirAppOwner();
+          // Create the directory on the system.
+          // This is the first attempt for archiveSystem, include retry.
+          mkdirWithRetry(filesClient,ioTargets.getArchiveTarget(), sharedAppCtx, MKDIR_RETRY_ATTEMPTS);
+          // Optional auditing.
+          if (auditData != null)
+          {
+            auditData.targetSystemId = _job.getArchiveSystemId();
+            auditData.targetPath = _job.getArchiveSystemDir();
+            auditData.targetHost = _jobCtx.getArchiveSystem().getHost();
+            auditData.targetSystemType = _jobCtx.getArchiveSystem().getSystemType().name();
+            _audit.info(AuditUtils.auditMsg(auditData));
+          }
         }
     }
 
@@ -880,6 +834,56 @@ public final class JobFileManager
     /* ********************************************************************** */
     /*                            Private Methods                             */
     /* ********************************************************************** */
+    /*
+     * Attempt to create a directory with retries up to some limit.
+     * Consider FilesClient errors potentially recoverable. For other errors abort.
+     */
+    private void mkdirWithRetry(FilesClient filesClient, JobIOTargets.JobIOTarget jobIOTarget, String shareContext,
+                                int numAttempts)
+            throws TapisException {
+      String errMsg = null;
+      String host = jobIOTarget.host;
+      String path = jobIOTarget.dir;
+      String tenant = _job.getTenant();
+      String owner = _job.getOwner();
+      String jobUuid = _job.getUuid();
+      int httpStatus = -1;
+      for (int i = 1; i <= numAttempts; i++)
+      {
+        _log.debug(JobUtils.getMsg("JOBS_MKDIR_INFO", host, path, tenant, owner, jobUuid, i));
+        try
+        {
+          try
+          {
+            // Make the attempt. If no exceptions then return
+            filesClient.mkdir(jobIOTarget.systemId, jobIOTarget.dir, shareContext);
+            return;
+          }
+          catch (TapisClientException e)
+          {
+            httpStatus = e.getCode();
+            String msg = JobUtils.getMsg("JOBS_MKDIR_ATTEMPT_FAIL", host, path, tenant, owner, jobUuid, httpStatus, e.getMessage());
+            _log.warn(msg);
+          }
+          // The attempt failed. If not last attempt then pause for configured interval before trying again.
+          if (i < numAttempts)
+          {
+            _log.debug(JobUtils.getMsg("JOBS_MKDIR_ATTEMPT_PAUSE", host, path, tenant, owner, jobUuid, i, MKDIR_RETRY_INTERVAL_MS));
+            Thread.sleep(MKDIR_RETRY_INTERVAL_MS);
+          }
+        }
+        catch (Exception e)
+        {
+          errMsg = JobUtils.getMsg("JOBS_MKDIR_ERR1", host, path, tenant, owner, jobUuid, e.getMessage());
+          throw new TapisException(errMsg);
+        }
+      }
+      // If all errors were client exceptions then we end up here. This means all attempts failed without throwing
+      // a more general exception. So no successful attempts, throw an exception.
+      errMsg = JobUtils.getMsg("JOBS_MKDIR_ERR2", host, path, tenant, owner, jobUuid, httpStatus, "All mkdir attempts failed.");
+      throw new TapisImplException(errMsg, httpStatus);
+    }
+
     /* ---------------------------------------------------------------------- */
     /* stageAppZipFile:                                                       */
     /* ---------------------------------------------------------------------- */
@@ -1039,13 +1043,10 @@ public final class JobFileManager
         // time the local move method is called.
         List<String> mvOutputFileList = null;
         
-        // There's nothing to do if the archive and output directories are 
-        // the same or if we have to exclude all output files.  Note that 
-        // the sourceURI and source share context are a function of whether
-        // or not a dtn is being used.
+        // There's nothing to do if the archive and output directories are the same or if we have to exclude all output
+        // files. Note that the sourceURI and source share context are a function of whether a dtn is being used.
         //
-        // This block schedules the filtered contents of the execSystemOutputDir
-        // to be transfered.
+        // This block schedules the filtered contents of the execSystemOutputDir to be transferred.
         if (!archiveSameAsOutput && !matchesAll(excludes)) {
             // Will any filtering be necessary at all?
             if (excludes.isEmpty() && (includes.isEmpty() || matchesAll(includes))) 

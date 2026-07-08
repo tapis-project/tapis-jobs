@@ -52,6 +52,7 @@ public class JobMonitorFactory
         var app = jobCtx.getApp();
         var runtime = app.getRuntime();
         var jobType = jobCtx.getJob().getJobType();
+        String jobUuid = jobCtx.getJob().getUuid();
         
         // The result.
         JobMonitor monitor = null;
@@ -95,7 +96,7 @@ public class JobMonitorFactory
             };
         }
         else {
-            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobType, "JobMonitorFactory");
+            String msg = JobUtils.getMsg("JOBS_UNSUPPORTED_APP_TYPE", jobUuid, jobType, "JobMonitorFactory");
             throw new JobException(msg);
         }
         

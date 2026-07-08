@@ -531,8 +531,7 @@ public final class JobExecutionContext
      */
     public boolean checkForCancelBeforeRecovery()
     {
-        // See if there the job received a cancel message
-        // and reset the job's message field to null.
+        // See if the job received a cancel message and reset the job's message field to null.
         CmdMsg cmdMsg = _job.getAndSetCmdMsg();
         if (cmdMsg == null || cmdMsg.msgType != CmdType.JOB_CANCEL) return false; 
         
@@ -599,7 +598,7 @@ public final class JobExecutionContext
      throws TapisException 
     {
         if (_jobIOTargets == null) 
-            _jobIOTargets = new JobIOTargets(_job, getExecutionSystem(), getDtnSystem());
+            _jobIOTargets = new JobIOTargets(_job, getArchiveSystem(), getExecutionSystem(), getDtnSystem());
         return _jobIOTargets;
     } 
     
@@ -769,8 +768,7 @@ public final class JobExecutionContext
     /* ---------------------------------------------------------------------- */
     private void initSystems() throws TapisException
     {
-        // Load the jobs systems to force any exceptions
-        // to be surfaced at this point.
+        // Load the systems to force any exceptions to be surfaced at this point.
         getExecutionSystem();
         // Skip fetch of archiveSys if ArchiveMode is NEVER
         if (!Job.ArchiveModeEnum.NEVER.equals(_job.getArchiveMode())) getArchiveSystem();

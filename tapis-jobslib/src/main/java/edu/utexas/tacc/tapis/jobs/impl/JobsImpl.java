@@ -1167,7 +1167,7 @@ public final class JobsImpl
 	         try {
 	 			skShareList = skClient.getShares(params);
 	 		 } catch (TapisClientException e) {
-	 			 String msg = JobUtils.getMsg("JOBS_SHARE_SK_RETRIEVE_ERROR" , user, tenant, e);
+	 			 String msg = JobUtils.getMsg("JOBS_SHARE_SK_RETRIEVE_ERROR", user, tenant, e);
 	 	         _log.error(msg, e);
 	 	         throw new TapisImplException(msg, e, Condition.INTERNAL_SERVER_ERROR);
 	 		}

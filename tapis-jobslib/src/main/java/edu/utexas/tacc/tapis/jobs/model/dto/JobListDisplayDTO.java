@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import edu.utexas.tacc.tapis.jobs.model.enumerations.JobStatusType;
+import edu.utexas.tacc.tapis.jobs.model.enumerations.JobConditionCode;
 import edu.utexas.tacc.tapis.shared.TapisConstants;
 import edu.utexas.tacc.tapis.shared.i18n.MsgUtils;
 import edu.utexas.tacc.tapis.shared.utils.TapisGsonUtils;
@@ -30,6 +31,7 @@ public final class JobListDisplayDTO {
 	public String  appVersion;
 	public Instant created;
 	public JobStatusType status;
+	public JobConditionCode condition;
 	public Instant remoteStarted; 
 	public Instant ended;
 	public String tenant;
@@ -58,6 +60,7 @@ public final class JobListDisplayDTO {
         appVersion= jobListObject.getAppVersion();
         created = jobListObject.getCreated();
         status = jobListObject.getStatus();
+		condition = jobListObject.getCondition();
         remoteStarted = jobListObject.getRemoteStarted();
         ended = jobListObject.getEnded();
         tenant = jobListObject.getTenant();

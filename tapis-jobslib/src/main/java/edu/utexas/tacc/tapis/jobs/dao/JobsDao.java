@@ -612,6 +612,7 @@ public final class JobsDao
         fieldList.add(Tables.JOBS.NAME);
         fieldList.add(Tables.JOBS.OWNER);
         fieldList.add(Tables.JOBS.STATUS);
+		fieldList.add(Tables.JOBS.CONDITION);
         fieldList.add(Tables.JOBS.CREATED);
         fieldList.add(Tables.JOBS.ENDED);
         fieldList.add(Tables.JOBS.LAST_UPDATED);
@@ -756,6 +757,7 @@ public final class JobsDao
         fieldList.add(Tables.JOBS.NAME);
         fieldList.add(Tables.JOBS.OWNER);
         fieldList.add(Tables.JOBS.STATUS);
+		fieldList.add(Tables.JOBS.CONDITION);
         fieldList.add(Tables.JOBS.CREATED);
         fieldList.add(Tables.JOBS.ENDED);
         fieldList.add(Tables.JOBS.LAST_UPDATED);

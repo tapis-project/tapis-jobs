@@ -8,15 +8,16 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
-## 26Q2.1 - 2026-06-15
+## 26Q2.1 - 2026-08-30
 
-New feature and one bug fix.
+New feature and bug fixes.
 
 ### New features:
 - Add support for cancelling of BATCH type jobs where runtime is ZIP.
 
 ### Bug fixes:
 - Fix issue with ServiceConnection tester used in job recovery. Use of tenant *none* is not valid.
+- Add attribute *condition* to records returned by *getJobList*.
 
 ## 26Q2.0 - 2026-04-08
 

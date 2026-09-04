@@ -61,8 +61,7 @@ extends AbsTester
    /* canUnblock:                                                            */
    /* ---------------------------------------------------------------------- */
    @Override
-   public int canUnblock(Map<String, String> testerParameters) 
-    throws JobRecoveryAbortException 
+   public int canUnblock(Map<String, String> testerParameters) throws JobRecoveryAbortException
    {
        // Validate the tester parameters. 
        // An exception can be thrown here.
@@ -79,6 +78,7 @@ extends AbsTester
          throw new JobRecoveryAbortException(msg);
        }
        try {client = ServiceClients.getInstance().getClient(USER, tenant, TRACKING_ID, _serviceName);}
+
        catch (Exception e) {
            String msg = MsgUtils.getMsg("TAPIS_CLIENT_NOT_FOUND", _serviceName, tenant, USER);
            throw new JobRecoveryAbortException(msg, e);
@@ -191,7 +191,16 @@ extends AbsTester
            _log.error(msg);
            throw new JobRecoveryAbortException(msg);
        }
-       
+
+       // Not clear why, but it appears that sometimes the tester parameters will have a service name of the form
+       //    "files/v3/". This may be specific to how Jobs handles extracting the service name from the url.
+       //    It may only be for files, but several users have run into problems because of this. The tester
+       //    always fails because the service name is incorrect. For safety, strip off leading and trailing characters
+       //    we know to be invalid.
+       _serviceName = StringUtils.removeStart(_serviceName, '/');
+       _serviceName = StringUtils.stripEnd(_serviceName, "/");
+       _serviceName = StringUtils.stripEnd(_serviceName, "/v3");
+
        // We're good if we get here.
        _parmsValidated = true;
    }

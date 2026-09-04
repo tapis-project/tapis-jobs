@@ -8,6 +8,16 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
+## 26Q2.2 - 2026-09-04
+
+Bug fix.
+
+### New features:
+- None.
+
+### Bug fixes:
+- Fix another issue with ServiceConnection tester used in job recovery. Incorrect processing of service name.
+
 ## 26Q2.1 - 2026-08-30
 
 New feature and bug fixes.

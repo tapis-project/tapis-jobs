@@ -8,6 +8,18 @@ https://tapis.readthedocs.io/en/latest/technical/jobs.html
 You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
+---------------------------------------------------------------------------
+## 26Q3.0 - 2026-09-18
+
+Incremental improvements, security patches in shared libraries.
+
+### New features:
+- See below for new feature in 26Q2.1
+
+### Bug fixes:
+- See below for fixes from 26Q2.1 and 26Q2.2
+
+---------------------------------------------------------------------------
 ## 26Q2.2 - 2026-09-04
 
 Bug fix.
@@ -18,6 +30,7 @@ Bug fix.
 ### Bug fixes:
 - Fix another issue with ServiceConnection tester used in job recovery. Incorrect processing of service name.
 
+---------------------------------------------------------------------------
 ## 26Q2.1 - 2026-08-30
 
 New feature and bug fixes.
@@ -29,6 +42,7 @@ New feature and bug fixes.
 - Fix issue with ServiceConnection tester used in job recovery. Use of tenant *none* is not valid.
 - Add attribute *condition* to records returned by *getJobList*.
 
+---------------------------------------------------------------------------
 ## 26Q2.0 - 2026-04-08
 
 Skip fetch and mkdir for *archiveSystem* if *archiveMode* is NEVER.
@@ -39,6 +53,7 @@ Skip fetch and mkdir for *archiveSystem* if *archiveMode* is NEVER.
 ### Bug fixes:
 - None.
 
+---------------------------------------------------------------------------
 ## 26Q1.0 - 2026-03-03
 
 Refactor logging. Reduce logging of SQL activity and detailed servlet request and response information.

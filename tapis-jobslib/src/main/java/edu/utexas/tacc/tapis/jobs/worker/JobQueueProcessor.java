@@ -743,7 +743,6 @@ final class JobQueueProcessor
       // state, in which case there's no need for further monitoring.
       if (job.getRemoteOutcome() == null)
           try {jobCtx.monitorRunningJob();}
-          // TODO vdj job fail exception 10/28/2026
           catch (Exception e) {
         	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
         		  job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_ERROR);

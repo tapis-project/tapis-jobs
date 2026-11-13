@@ -348,6 +348,8 @@ public final class JobExecutionContext
             try {
                 // Establish a connection to the execution system.
                 _execSysTapisSSH = new TapisSSH(_executionSystem);
+                // NOTE: getConnection results in a call to tapis shared SSHConnection.initSession() which always
+                //       throws a recoverable exception. So if both attempts fail we should always go into recovery.
                 _execSysTapisSSH.getConnection();
             } 
             catch (Exception e) {
@@ -388,7 +390,7 @@ public final class JobExecutionContext
         try {execSys = getExecutionSystem();} catch (Exception e) {return true;}
         
         // Detect the runtimes that don't use a separate environment variable file.
-        if (execSys.getCanRunBatch() && 
+        if (Boolean.TRUE.equals(execSys.getCanRunBatch()) &&
             execSys.getBatchScheduler() == SchedulerTypeEnum.SLURM)
             return false;
         

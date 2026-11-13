@@ -285,7 +285,7 @@ public final class RecoveryUtils
         // It is a recoverable exception, create state map if necessary.
         TapisRecoverableException rex = (TapisRecoverableException) e;
         if (rex.state == null) rex.state = new TreeMap<>();
-        // Update the the BlockedJobActivity state if it is not already set.
+        // Update the BlockedJobActivity state if it is not already set.
         String tmpStr = rex.state.get(JobRecoveryDefinitions.BLOCKED_JOB_ACTIVITY);
         if (StringUtils.isBlank(tmpStr))
         {

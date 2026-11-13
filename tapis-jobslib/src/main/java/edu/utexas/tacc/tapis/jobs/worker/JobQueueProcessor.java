@@ -45,7 +45,7 @@ import edu.utexas.tacc.tapis.shared.utils.TapisUtils;
  * a recoverable error occurs. In that case, the job is put into a BLOCKED
  * state, queued on the recovery queue, and control relinquished by the thread.
  * Once a thread relinquishes control of a job it no longer has any connection 
- * to or affinity for that job. It is be ready to accept new work from the submission
+ * to or affinity for that job. It is ready to accept new work from the submission
  * queue.
  * 
  * A job's lifecycle consists of managing its progress through the various 
@@ -193,7 +193,7 @@ final class JobQueueProcessor
       // put the job into a inactive or terminal state.  All other
       // exceptions are handled by the enclosing try block.
       try {ack = processJob(jobCtx);}
-          catch (JobAsyncCmdException e) {}
+          catch (JobAsyncCmdException e) { /* do nothing */}
     }
     catch (Exception e) {
         // Initialize the job if one exists.
@@ -202,7 +202,13 @@ final class JobQueueProcessor
         
         // Leave breadcrumbs.
         JobWorkerThread thd = (JobWorkerThread) Thread.currentThread();
-        String jobUuid = job == null ? jobMsg.getUuid() : job.getUuid();
+        String jobUuid;
+        if (job == null) {
+            assert jobMsg != null;
+            jobUuid = jobMsg.getUuid();
+        } else {
+            jobUuid = job.getUuid();
+        }
         String msg = JobUtils.getMsg("JOBS_WORKER_PROCESSING_ERROR", thd.getName(), _queueName, 
                                      getProcessorName(), jobUuid, e.getMessage());
         _log.error(msg, e);
@@ -235,7 +241,7 @@ final class JobQueueProcessor
         // ------------ Unrecoverable Job Exception
         // If we get here with a negative ack, we have to fail the job. 
         //
-        if (!ack) failJob(job, msg, JobConditionCode.JOB_RECOVERY_FAILURE);
+        if (!ack) failJob(job, msg);
     }
     finally {
         
@@ -423,8 +429,7 @@ final class JobQueueProcessor
               case ARCHIVING         -> doArchiving(job);
 
               // Terminal states.
-              case CANCELLED         -> {rc = false; yield false;}
-              case FAILED            -> {rc = false; yield false;}
+              case CANCELLED, FAILED -> {rc = false; yield false;}
               case FINISHED          -> false;
               
               // States that should never be encountered here.
@@ -477,7 +482,7 @@ final class JobQueueProcessor
       // Determine if the job can proceed based on the various tapis
       // quotas placed on the execution systems, users and batchqueues.
       try {(new QuotaChecker(jobCtx)).checkQuotas();}
-          catch (Exception e) {handleException(job, e, BlockedJobActivity.CHECK_QUOTA);}
+          catch (Exception e) {handleException(e, BlockedJobActivity.CHECK_QUOTA);}
       
       // Advance job to next state.
       setState(job, JobStatusType.PROCESSING_INPUTS);
@@ -520,7 +525,7 @@ final class JobQueueProcessor
           catch (Exception e) {
         	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
         		  job.setCondition(JobConditionCode.JOB_REMOTE_ACCESS_ERROR);
-        	  handleException(job, e, BlockedJobActivity.PROCESSING_INPUTS);
+        	  handleException(e, BlockedJobActivity.PROCESSING_INPUTS);
           }
     
       // Advance job to next state.
@@ -564,7 +569,7 @@ final class JobQueueProcessor
       catch (Exception e) {
     	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
     		  job.setCondition(JobConditionCode.JOB_UNABLE_TO_STAGE_INPUTS);
-    	  handleException(job, e, BlockedJobActivity.STAGING_INPUTS);
+    	  handleException(e, BlockedJobActivity.STAGING_INPUTS);
       }
 
       // Advance job to next state.
@@ -608,7 +613,7 @@ final class JobQueueProcessor
       catch (Exception e) {
     	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
     		  job.setCondition(JobConditionCode.JOB_UNABLE_TO_STAGE_JOB);
-    	  handleException(job, e, BlockedJobActivity.STAGING_JOB);
+    	  handleException(e, BlockedJobActivity.STAGING_JOB);
        }
 
       // Advance job to next state.
@@ -651,7 +656,7 @@ final class JobQueueProcessor
       catch (Exception e) {
     	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
     		  job.setCondition(JobConditionCode.JOB_LAUNCH_FAILURE);
-    	  handleException(job, e, BlockedJobActivity.SUBMITTING);
+    	  handleException(e, BlockedJobActivity.SUBMITTING);
       }
 
       // Advance job to next state.
@@ -695,7 +700,7 @@ final class JobQueueProcessor
       catch (Exception e) {
     	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
     		  job.setCondition(JobConditionCode.JOB_QUEUE_MONITORING_ERROR);
-    	  handleException(job, e, BlockedJobActivity.QUEUED);
+    	  handleException(e, BlockedJobActivity.QUEUED);
       }
 
       // Advance job to next state. 
@@ -741,7 +746,7 @@ final class JobQueueProcessor
           catch (Exception e) {
         	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
         		  job.setCondition(JobConditionCode.JOB_EXECUTION_MONITORING_ERROR);
-        	  handleException(job, e, BlockedJobActivity.RUNNING);
+        	  handleException(e, BlockedJobActivity.RUNNING);
           }
 
       // The connection to the execution system will already 
@@ -788,7 +793,7 @@ final class JobQueueProcessor
       catch (Exception e) {
     	  if (TapisUtils.findInChain(e, TapisRecoverableException.class) == null)
     		  job.setCondition(JobConditionCode.JOB_ARCHIVING_FAILED); 
-    	  handleException(job, e, BlockedJobActivity.ARCHIVING);
+    	  handleException(e, BlockedJobActivity.ARCHIVING);
       }
 
       // Advance job to next state depending on what the remote outcome is.
@@ -876,7 +881,7 @@ final class JobQueueProcessor
           _log.debug(JobUtils.getMsg("JOBS_DELAYED_START", job.getUuid(), skewMs));
       
       // Delay for the randomized period.
-      try {Thread.sleep(skewMs);} catch (InterruptedException e) {}
+      try {Thread.sleep(skewMs);} catch (InterruptedException e) {/* do nothing */}
   }
   
   /* ---------------------------------------------------------------------- */
@@ -889,11 +894,10 @@ final class JobQueueProcessor
    * Except on database update errors, this method always throws the original 
    * exception as-is or wrapped.
    * 
-   * @param job the job that experienced an exception
    * @param e the exception
    * @throws TapisException a new db error or the possibly wrapped original exception
    */
-  private void handleException(Job job, Exception e, BlockedJobActivity activity) 
+  private void handleException(Exception e, BlockedJobActivity activity)
    throws TapisException
   {
       // Assign blocked activity in recoverable exceptions.
@@ -906,28 +910,22 @@ final class JobQueueProcessor
   /* ---------------------------------------------------------------------- */
   /* setState:                                                              */
   /* ---------------------------------------------------------------------- */
-  private void setState(Job job, JobStatusType newStatus) throws JobException
-  {setState(job, newStatus, null);}
-  
-  /* ---------------------------------------------------------------------- */
-  /* setState:                                                              */
-  /* ---------------------------------------------------------------------- */
-  /** Update the job's database record and in memory object to reflect the
+  /**
+   * Update the job's database record and in memory object to reflect the
    * transition to the new status.  If the update message is null the default
-   * state change message will be saved in the database.  
-   * 
+   * state change message will be saved in the database.
+   * <p>
    * Currently, there is no recovery from a failure to update status.
-   * 
-   * @param job the executing job 
+   *
+   * @param job       the executing job
    * @param newStatus a legal new status for the job
-   * @param msg the update message or null
-   * @throws JobException 
+   * @throws JobException
    */
-  private void setState(Job job, JobStatusType newStatus, String msg) throws JobException
+  private void setState(Job job, JobStatusType newStatus) throws JobException
   {
       // Get the context.
       var jobCtx = job.getJobCtx();
-      jobCtx.getJobsDao().setStatus(job, newStatus, msg);
+      jobCtx.getJobsDao().setStatus(job, newStatus, null);
   }
   
   /* ---------------------------------------------------------------------- */
@@ -980,7 +978,7 @@ final class JobQueueProcessor
           
           // Fail the job.
           String failMsg =  JobUtils.getMsg("JOBS_STATUS_FAILED_IMPROPER_RECOVERY");
-          failJob(job, failMsg, JobConditionCode.JOB_RECOVERY_FAILURE);
+          failJob(job, failMsg);
           _log.error(failMsg);
           
           // There's nothing more we can do.
@@ -1042,7 +1040,7 @@ final class JobQueueProcessor
           String msg = JobUtils.getMsg("JOBS_PUT_IN_RECOVERY_ERROR", job.getUuid(), 
                                        job.getTenant(), job.getOwner(), failMsg);
           _log.error(msg);
-          failJob(job, msg, JobConditionCode.JOB_RECOVERY_FAILURE);
+          failJob(job, msg);
       }
       
       return ack;
@@ -1055,7 +1053,7 @@ final class JobQueueProcessor
    * 
    * @param job the job to fail.
    */
-  private void failJob(Job job, String failMsg, JobConditionCode cond)
+  private void failJob(Job job, String failMsg)
   {
       // Don't blow up.
       if (job == null) return;
@@ -1074,7 +1072,7 @@ final class JobQueueProcessor
       // Fail the job.
       try {
     	  // Always set the job condition before calling any dao method.
-    	  job.setCondition(cond);
+    	  job.setCondition(JobConditionCode.JOB_RECOVERY_FAILURE);
           JobsDao dao = new JobsDao();
           dao.failJob(_jobWorker.getParms().name, job, failMsg);
       }

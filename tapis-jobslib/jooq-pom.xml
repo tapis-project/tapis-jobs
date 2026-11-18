@@ -204,6 +204,13 @@
           </configuration>
         </execution>
       </executions>
+      <dependencies>
+        <dependency>
+          <groupId>org.postgresql</groupId>
+          <artifactId>postgresql</artifactId>
+          <version>42.7.4</version>
+        </dependency>
+      </dependencies>
     </plugin>
   </plugins>
  </build>

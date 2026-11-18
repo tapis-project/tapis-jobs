@@ -9,6 +9,17 @@ You may also reference live-docs based on the openapi specification here:
 https://tapis-project.github.io/live-docs
 
 ---------------------------------------------------------------------------
+## 26Q4.0 - 2026-11-18
+
+Incremental improvements, improved error handling for SSH connection errors.
+
+### New features:
+- Improved error handling for SSH connection errors.
+
+### Bug fixes:
+- None
+
+---------------------------------------------------------------------------
 ## 26Q3.0 - 2026-09-18
 
 Incremental improvements, security patches in shared libraries.

@@ -4,7 +4,7 @@ Tapis v3 Jobs
 ---------------------------------------------------------------------------
 Notes on how to update OpenAPI specification
 ---------------------------------------------------------------------------
-The systems open api specification is maintained in a separate repository and is manually maintained.
+The Jobs open api specification is maintained in a separate repository and is manually maintained.
 When the interface or openapi documentation needs updating the file tapis-project/openapi-jobs:/JobsAPI.yaml
 must be updated.
 

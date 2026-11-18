@@ -419,6 +419,7 @@ public class JobSubmitResource
          
          // ------------------------- Initialize the Job -----------------------
          // Initialize job with calculated effective parameters.
+         // This call does various checks, such as app exists, exec system exists, etc.
          Job job = null;
          try {job = reqCtx.initNewJob();}
          catch (TapisImplException e) {
